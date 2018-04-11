@@ -38,6 +38,7 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
 {
     rsp_filter_t *filter = (rsp_filter_t *)audio_element_getdata(self);
     int out_buf_size = 0;
+    int in_buf_size = 0;
     int resample_mode = 0;
     if (filter->type == AUDIO_CODEC_TYPE_DECODER) {
         audio_element_info_t info = {0};
@@ -47,18 +48,20 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
             filter->src_ch = info.channels;
         }
         resample_mode = 0;
+        in_buf_size = filter->in_buf_size;
         filter->rsp_hd = resample_open(PCM_INOUT_NUM_RESTRICT, filter->src_rate,
                                        filter->dest_rate, filter->src_ch,
-                                       filter->dest_ch, 0, resample_mode, &filter->in_buf_size, &out_buf_size);
-        ESP_LOGI(TAG, "rsp_filter_open, decoder, src:%d,%d,dest:%d,%d,out_pcm:%d", filter->src_rate, filter->src_ch,
-                 filter->dest_rate, filter->dest_ch, out_buf_size);
+                                       filter->dest_ch, 0, resample_mode, &in_buf_size, &out_buf_size);
         filter->out_buf = audio_malloc(out_buf_size * sizeof(short) * filter->dest_ch);
         if (NULL == filter->out_buf) {
             ESP_LOGE(TAG, "Allocate memory failed,line:%d", __LINE__);
             return ESP_ERR_NO_MEM;
         }
-        filter->in_buf_size = filter->in_buf_size * sizeof(short) * filter->src_ch;
-        filter->in_buf = audio_malloc(filter->in_buf_size);
+        filter->in_buf_size = (in_buf_size & ~((1 << PCM_INOUT_NUM_RESTRICT) - 1)) * sizeof(short) * filter->src_ch;
+        in_buf_size = in_buf_size * sizeof(short) * filter->src_ch;
+        ESP_LOGI(TAG, "rsp_filter_open, decoder, src:%d,%d,dest:%d,%d,in:%d, out_pcm:%d", filter->src_rate, filter->src_ch,
+                 filter->dest_rate, filter->dest_ch, in_buf_size, out_buf_size);
+        filter->in_buf = audio_malloc(in_buf_size);
         if (NULL == filter->in_buf) {
             ESP_LOGE(TAG, "Allocate memory failed,line:%d", __LINE__);
             return ESP_ERR_NO_MEM;
@@ -68,16 +71,17 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
         out_buf_size = RESAMPLING_POINT_NUM;
         filter->rsp_hd = resample_open(PCM_INOUT_NUM_RESTRICT, filter->src_rate,
                                        filter->dest_rate, filter->src_ch,
-                                       filter->dest_ch, 0, resample_mode, &filter->in_buf_size, &out_buf_size);
-        ESP_LOGI(TAG, "rsp_filter_open, encoder, src:%d,%d,dest:%d,%d,in_pcm:%d", filter->src_rate, filter->src_ch,
-                 filter->dest_rate, filter->dest_ch, filter->in_buf_size);
+                                       filter->dest_ch, 0, resample_mode, &in_buf_size, &out_buf_size);
         filter->out_buf = audio_malloc(out_buf_size * sizeof(short) * filter->dest_ch);
         if (NULL == filter->out_buf) {
             ESP_LOGE(TAG, "Allocate memory failed,line:%d", __LINE__);
             return ESP_ERR_NO_MEM;
         }
-        filter->in_buf_size = filter->in_buf_size * sizeof(short) * filter->src_ch;
-        filter->in_buf = audio_malloc(filter->in_buf_size);
+        filter->in_buf_size = (in_buf_size & ~((1 << PCM_INOUT_NUM_RESTRICT) - 1)) * sizeof(short) * filter->src_ch;
+        in_buf_size = in_buf_size * sizeof(short) * filter->src_ch;
+        ESP_LOGI(TAG, "rsp_filter_open, encoder, src:%d,%d,dest:%d,%d,buf_sz:%d, in_pcm:%d", filter->src_rate, filter->src_ch,
+                 filter->dest_rate, filter->dest_ch, in_buf_size, filter->in_buf_size);
+        filter->in_buf = audio_malloc(in_buf_size);
         if (NULL == filter->in_buf) {
             ESP_LOGE(TAG, "Allocate memory failed,line:%d", __LINE__);
             return ESP_ERR_NO_MEM;
@@ -143,7 +147,7 @@ audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config)
     cfg.open = rsp_filter_open;
     cfg.close = rsp_filter_close;
     cfg.buffer_len = 0;
-    cfg.tag ="resample";
+    cfg.tag = "resample";
     audio_element_handle_t el = audio_element_init(&cfg);
     mem_assert(el);
     memcpy(filter, config, sizeof(rsp_filter_cfg_t));
