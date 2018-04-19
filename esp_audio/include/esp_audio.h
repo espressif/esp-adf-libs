@@ -100,7 +100,7 @@ audio_err_t esp_audio_output_stream_add(esp_audio_handle_t handle, audio_element
  */
 audio_err_t esp_audio_codec_lib_add(esp_audio_handle_t handle, audio_codec_type_t type, audio_element_handle_t lib);
 
-/*
+/**
  * @brief Check if this kind of music extension is supported or not
  *
  * @note This function just query the codec which has already add by esp_audio_codec_lib_add.
@@ -117,24 +117,26 @@ audio_err_t esp_audio_codec_lib_add(esp_audio_handle_t handle, audio_codec_type_
  */
 audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_type_t type, const char *extension);
 
-/*
+/**
  * @brief Play the given uri
  *
  * The esp_audio_play have follow activity, setup inputstream, outputstream and codec by uri, start all of them.
  * There is a rule that esp_audio will select input stream, codec and output stream by URI field.
+
  * Rule of URI field are as follow.
- *     --`UF_SCHEMA` field of URI for choose input stream from existing streams. e.g:"http","file"
- *     --`UF_PATH` field of URI for choose codec from existing codecs. e.g:"/audio/mp3_music.mp3"
- *     --`UF_FRAGMENT` field of URI for choose output stream from existing streams, output stream is I2S by default.
- *     --`UF_USERINFO` field of URI for specific sample rate and channels at encode mode.
- *        The format "user:password" in the userinfo field,"user" is sample rate, "password" is channels.
+ *     - `UF_SCHEMA` field of URI for choose input stream from existing streams. e.g:"http","file"
+ *     - `UF_PATH` field of URI for choose codec from existing codecs. e.g:"/audio/mp3_music.mp3"
+ *     - `UF_FRAGMENT` field of URI for choose output stream from existing streams, output stream is I2S by default.
+ *     - `UF_USERINFO` field of URI for specific sample rate and channels at encode mode.
+ *
+ *     The format "user:password" in the userinfo field, "user" is sample rate, "password" is channels.
  *
  * Now esp_audio_play support follow URIs.
- *     -- "https://dl.espressif.com/dl/audio/mp3_music.mp3"
- *     -- "http://media-ice.musicradio.com/ClassicFMMP3"
- *     -- "file://sdcard/test.mp3"
- *     -- "iis://16000:2@from.pcm/rec.wav#file"
- *     -- "iis://16000:1@record.pcm/record.wav#raw"
+ *     - "https://dl.espressif.com/dl/audio/mp3_music.mp3"
+ *     - "http://media-ice.musicradio.com/ClassicFMMP3"
+ *     - "file://sdcard/test.mp3"
+ *     - "iis://16000:2@from.pcm/rec.wav#file"
+ *     - "iis://16000:1@record.pcm/record.wav#raw"
  *
  * @note The URI parse by `http_parser_parse_url`,any illegal string will be return `ESP_ERR_AUDIO_INVALID_URI`.
  *
@@ -150,7 +152,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  */
 audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, const char *uri);
 
-/*
+/**
  * @brief Stop the esp_audio
  *
  * @note If user queue has been registered by evt_que, AUDIO_STATUS_STOPED event for success
@@ -166,7 +168,7 @@ audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, c
  */
 audio_err_t esp_audio_stop(esp_audio_handle_t handle, audio_termination_type_t type);
 
-/*
+/**
  * @brief Pause the esp_audio
  *
  * @note Only support music and without live stream. If user queue has been registered by evt_que, AUDIO_STATUS_PAUSED event for success
@@ -181,7 +183,7 @@ audio_err_t esp_audio_stop(esp_audio_handle_t handle, audio_termination_type_t t
  */
 audio_err_t esp_audio_pause(esp_audio_handle_t handle);
 
-/*
+/**
  * @brief Resume the music paused
  *
  * @note Only support music and without live stream. If user queue has been registered by evt_que, AUDIO_STATUS_PLAYING event for success
@@ -196,7 +198,7 @@ audio_err_t esp_audio_pause(esp_audio_handle_t handle);
  */
 audio_err_t esp_audio_resume(esp_audio_handle_t handle);
 
-/*
+/**
  * @brief Setting esp_audio volume.
  *
  * @param[in] handle    The esp_audio instance
@@ -209,7 +211,7 @@ audio_err_t esp_audio_resume(esp_audio_handle_t handle);
  */
 audio_err_t esp_audio_vol_set(esp_audio_handle_t handle, int vol);
 
-/*
+/**
  * @brief Get esp_audio volume
  *
  * @param[in] handle    The esp_audio instance
@@ -222,7 +224,7 @@ audio_err_t esp_audio_vol_set(esp_audio_handle_t handle, int vol);
  */
 audio_err_t esp_audio_vol_get(esp_audio_handle_t handle, int *vol);
 
-/*
+/**
  * @brief Get esp_audio status
  *
  * @param[in] handle    The esp_audio instance
@@ -234,7 +236,7 @@ audio_err_t esp_audio_vol_get(esp_audio_handle_t handle, int *vol);
  */
 audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *state);
 
-/*
+/**
  * @brief Get the position of current music that is playing in microseconds.
  *
  * @note This function works with decoding music.
@@ -249,7 +251,7 @@ audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *st
  */
 audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
 
-/*
+/**
  * @brief Choose the `in_stream`, `codec` and `out_stream` definitely, and set `uri`.
  *
  * @note This function provide a manual way to select in/out stream and codec, should be called before the `esp_audio_play`,
