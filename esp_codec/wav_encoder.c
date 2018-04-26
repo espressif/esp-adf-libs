@@ -20,21 +20,21 @@ typedef struct wav_encoder {
     bool parsed_header;
 } wav_encoder_t;
 
-static esp_err_t _wav_destroy(audio_element_handle_t self)
+static esp_err_t _wav_encoder_destroy(audio_element_handle_t self)
 {
     wav_encoder_t *wav = (wav_encoder_t *)audio_element_getdata(self);
     audio_free(wav);
     return ESP_OK;
 }
-static esp_err_t _wav_open(audio_element_handle_t self)
+static esp_err_t _wav_encoder_open(audio_element_handle_t self)
 {
-    ESP_LOGD(TAG, "_wav_open");
+    ESP_LOGD(TAG, "_wav_encoder_open");
     return ESP_OK;
 }
 
-static esp_err_t _wav_close(audio_element_handle_t self)
+static esp_err_t _wav_encoder_close(audio_element_handle_t self)
 {
-    ESP_LOGD(TAG, "_wav_close");
+    ESP_LOGD(TAG, "_wav_encoder_close");
     if (AEL_STATE_PAUSED != audio_element_get_state(self)) {
         audio_element_info_t info = {0};
         audio_element_setinfo(self, &info);
@@ -42,7 +42,7 @@ static esp_err_t _wav_close(audio_element_handle_t self)
     return ESP_OK;
 }
 
-static int _wav_process(audio_element_handle_t self, char *in_buffer, int in_len)
+static int _wav_encoder_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     audio_element_info_t audio_info = { 0 };
     int r_size = audio_element_input(self, in_buffer, in_len);
@@ -62,10 +62,10 @@ audio_element_handle_t wav_encoder_init(wav_encoder_cfg_t *config)
     wav_encoder_t *wav = audio_calloc(1, sizeof(wav_encoder_t));
     mem_assert(wav);
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
-    cfg.destroy = _wav_destroy;
-    cfg.process = _wav_process;
-    cfg.open = _wav_open;
-    cfg.close = _wav_close;
+    cfg.destroy = _wav_encoder_destroy;
+    cfg.process = _wav_encoder_process;
+    cfg.open = _wav_encoder_open;
+    cfg.close = _wav_encoder_close;
     cfg.task_stack =  config->task_stack;
     if (cfg.task_stack == 0) {
         cfg.task_stack = WAV_ENCODER_TASK_STACK;

@@ -48,7 +48,7 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
             filter->src_ch = info.channels;
         }
         resample_mode = 0;
-        in_buf_size = filter->in_buf_size;
+        in_buf_size = RESAMPLING_POINT_NUM;
         filter->rsp_hd = resample_open(PCM_INOUT_NUM_RESTRICT, filter->src_rate,
                                        filter->dest_rate, filter->src_ch,
                                        filter->dest_ch, 0, resample_mode, &in_buf_size, &out_buf_size);

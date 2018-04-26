@@ -29,6 +29,7 @@ typedef struct esp_audio_setup_t {
     audio_codec_type_t  set_type;               /*!< Set codec type */
     int                 set_sample_rate;        /*!< Set music sample rate */
     int                 set_channel;            /*!< Set music channels */
+    int                 set_pos;                /*!< Set starting position */
     char               *set_path;               /*!< Set out stream path */
     char               *set_uri;                /*!< Set URI */
     char               *set_in_stream;          /*!< Tag of in_stream */
@@ -143,6 +144,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  * @param handle The esp_audio_handle_t instance
  * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3",
  * @param type   Specific handle type decoder or encoder
+ * @param pos    Specific starting position by bytes
  *
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
@@ -150,7 +152,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *      - ESP_ERR_AUDIO_INVALID_URI: URI is illegal
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
-audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, const char *uri);
+audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, const char *uri, int pos);
 
 /**
  * @brief Stop the esp_audio
@@ -237,9 +239,9 @@ audio_err_t esp_audio_vol_get(esp_audio_handle_t handle, int *vol);
 audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *state);
 
 /**
- * @brief Get the position of current music that is playing in microseconds.
+ * @brief Get the position in bytes of currently played music.
  *
- * @note This function works with decoding music.
+ * @note This function works only with decoding music.
  *
  * @param[in] handle    The esp_audio instance
  * @param[out] pos      A pointer to int that indicates esp_audio decoding position.
@@ -250,6 +252,21 @@ audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *st
  *      - ESP_ERR_AUDIO_NOT_READY:no out stream.
  */
 audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
+
+/**
+ * @brief Get the position in microseconds of currently played music.
+ *
+ * @note This function works only with decoding music.
+ *
+ * @param[in] handle    The esp_audio instance
+ * @param[out] time     A pointer to int that indicates esp_audio decoding position.
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
+ *      - ESP_ERR_AUDIO_NOT_READY:no out stream.
+ */
+audio_err_t esp_audio_time_get(esp_audio_handle_t handle, int *time);
 
 /**
  * @brief Choose the `in_stream`, `codec` and `out_stream` definitely, and set `uri`.
