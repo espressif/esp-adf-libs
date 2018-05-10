@@ -5,7 +5,7 @@
  * It's output pcm size aligning bits. 2 - align with 4 bytes, 4 - align with 16 bytes.
  *
  */
-#define PCM_INOUT_NUM_RESTRICT (4)
+#define PCM_INOUT_NUM_RESTRICT (2)
 
 #if (PCM_INOUT_NUM_RESTRICT < 0) || (PCM_INOUT_NUM_RESTRICT > 64)
 #error input/output pcm number restrict setup error

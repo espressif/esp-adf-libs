@@ -19,15 +19,15 @@ typedef struct wav_decoder {
     bool parsed_header;
 } wav_decoder_t;
 
-static esp_err_t _wav_destroy(audio_element_handle_t self)
+static esp_err_t _wav_decoder_destroy(audio_element_handle_t self)
 {
     wav_decoder_t *wav = (wav_decoder_t *)audio_element_getdata(self);
     audio_free(wav);
     return ESP_OK;
 }
-static esp_err_t _wav_open(audio_element_handle_t self)
+static esp_err_t _wav_decoder_open(audio_element_handle_t self)
 {
-    ESP_LOGD(TAG, "_wav_open");
+    ESP_LOGD(TAG, "_wav_decoder_open");
     // if (AEL_STATE_PAUSED == audio_element_get_state(self)) {
     // TODO
     // }
@@ -35,9 +35,9 @@ static esp_err_t _wav_open(audio_element_handle_t self)
     return ESP_OK;
 }
 
-static esp_err_t _wav_close(audio_element_handle_t self)
+static esp_err_t _wav_decoder_close(audio_element_handle_t self)
 {
-    ESP_LOGD(TAG, "_wav_close");
+    ESP_LOGD(TAG, "_wav_decoder_close");
     if (AEL_STATE_PAUSED != audio_element_get_state(self)) {
         audio_element_info_t info = {0};
         audio_element_setinfo(self, &info);
@@ -47,7 +47,7 @@ static esp_err_t _wav_close(audio_element_handle_t self)
     return ESP_OK;
 }
 
-static int _wav_process(audio_element_handle_t self, char *in_buffer, int in_len)
+static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     wav_decoder_t *wav = (wav_decoder_t *)audio_element_getdata(self);
     audio_element_info_t audio_info = { 0 };
@@ -91,10 +91,10 @@ audio_element_handle_t wav_decoder_init(wav_decoder_cfg_t *config)
     wav_decoder_t *wav = audio_calloc(1, sizeof(wav_decoder_t));
     mem_assert(wav);
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
-    cfg.destroy = _wav_destroy;
-    cfg.process = _wav_process;
-    cfg.open = _wav_open;
-    cfg.close = _wav_close;
+    cfg.destroy = _wav_decoder_destroy;
+    cfg.process = _wav_decoder_process;
+    cfg.open = _wav_decoder_open;
+    cfg.close = _wav_decoder_close;
     cfg.task_stack =  config->task_stack;
     if (cfg.task_stack == 0) {
         cfg.task_stack = WAV_DECODER_TASK_STACK;

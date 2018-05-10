@@ -52,6 +52,9 @@ typedef enum {
     TERMINATION_TYPE_MAX,
 } audio_termination_type_t;
 
+/**
+ * @brief esp_audio status information parameters
+ */
 typedef struct {
     esp_audio_status_t status;      /*!< Status of esp_audio */
     audio_err_t err_msg;            /*!< Status is `AUDIO_STATUS_ERROR`,err_msg will be setup */
