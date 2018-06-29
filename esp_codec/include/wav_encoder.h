@@ -16,13 +16,22 @@ extern "C" {
  * @brief      WAV Encoder configurations
  */
 typedef struct {
-    int task_stack; /*!< WAV Encoder task stack size */
+    int                     out_rb_size;    /*!< Size of output ringbuffer */
+    int                     task_stack;     /*!< Task stack size */
+    int                     task_core;      /*!< Task running in core (0 or 1) */
+    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
 } wav_encoder_cfg_t;
 
-#define WAV_ENCODER_TASK_STACK (3072)
+#define WAV_ENCODER_TASK_STACK          (3 * 1024)
+#define WAV_ENCODER_TASK_CORE           (0)
+#define WAV_ENCODER_TASK_PRIO           (5)
+#define WAV_ENCODER_RINGBUFFER_SIZE     (8 * 1024)
 
 #define DEFAULT_WAV_ENCODER_CONFIG() {\
+    .out_rb_size        = WAV_ENCODER_RINGBUFFER_SIZE,\
     .task_stack         = WAV_ENCODER_TASK_STACK,\
+    .task_core          = WAV_ENCODER_TASK_CORE,\
+    .task_prio          = WAV_ENCODER_TASK_PRIO,\
 }
 
 /**

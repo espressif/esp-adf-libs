@@ -12,17 +12,26 @@
 extern "C" {
 #endif
 
-#define WAV_DECODER_TASK_STACK (3072)
-
 /**
  * brief      WAV Decoder configurations
  */
 typedef struct {
-    int task_stack; /*!< WAV Decover task stack size */
+    int                     out_rb_size;    /*!< Size of output ringbuffer */
+    int                     task_stack;     /*!< Task stack size */
+    int                     task_core;      /*!< Task running in core (0 or 1) */
+    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
 } wav_decoder_cfg_t;
 
+#define WAV_DECODER_TASK_STACK          (3 * 1024)
+#define WAV_DECODER_TASK_CORE           (0)
+#define WAV_DECODER_TASK_PRIO           (5)
+#define WAV_DECODER_RINGBUFFER_SIZE     (8 * 1024)
+
 #define DEFAULT_WAV_DECODER_CONFIG() {\
+    .out_rb_size        = WAV_DECODER_RINGBUFFER_SIZE,\
     .task_stack         = WAV_DECODER_TASK_STACK,\
+    .task_core          = WAV_DECODER_TASK_CORE,\
+    .task_prio          = WAV_DECODER_TASK_PRIO,\
 }
 
 /**

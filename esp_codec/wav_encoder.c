@@ -37,6 +37,9 @@ static esp_err_t _wav_encoder_close(audio_element_handle_t self)
     ESP_LOGD(TAG, "_wav_encoder_close");
     if (AEL_STATE_PAUSED != audio_element_get_state(self)) {
         audio_element_info_t info = {0};
+        audio_element_getinfo(self, &info);
+        info.byte_pos = 0;
+        info.total_bytes = 0;
         audio_element_setinfo(self, &info);
     }
     return ESP_OK;
@@ -66,7 +69,10 @@ audio_element_handle_t wav_encoder_init(wav_encoder_cfg_t *config)
     cfg.process = _wav_encoder_process;
     cfg.open = _wav_encoder_open;
     cfg.close = _wav_encoder_close;
-    cfg.task_stack =  config->task_stack;
+    cfg.task_stack = config->task_stack;
+    cfg.task_prio = config->task_prio;
+    cfg.task_core = config->task_core;
+    cfg.out_rb_size = config->out_rb_size;
     if (cfg.task_stack == 0) {
         cfg.task_stack = WAV_ENCODER_TASK_STACK;
     }

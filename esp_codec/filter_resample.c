@@ -148,6 +148,10 @@ audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config)
     cfg.close = rsp_filter_close;
     cfg.buffer_len = 0;
     cfg.tag = "resample";
+    cfg.task_stack = config->task_stack;
+    cfg.task_prio = config->task_prio;
+    cfg.task_core = config->task_core;
+    cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
     mem_assert(el);
     memcpy(filter, config, sizeof(rsp_filter_cfg_t));
