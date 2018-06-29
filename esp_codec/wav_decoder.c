@@ -40,6 +40,9 @@ static esp_err_t _wav_decoder_close(audio_element_handle_t self)
     ESP_LOGD(TAG, "_wav_decoder_close");
     if (AEL_STATE_PAUSED != audio_element_get_state(self)) {
         audio_element_info_t info = {0};
+        audio_element_getinfo(self, &info);
+        info.byte_pos = 0;
+        info.total_bytes = 0;
         audio_element_setinfo(self, &info);
         wav_decoder_t *wav = (wav_decoder_t *)audio_element_getdata(self);
         wav->parsed_header = false;
@@ -55,6 +58,7 @@ static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, in
     int r_size = audio_element_input(self, in_buffer, in_len);
     int out_len = r_size;
     if (r_size > 0) {
+        audio_element_getinfo(self, &audio_info);
         if (!wav->parsed_header) {
             if (wav_head_parser((const uint8_t *)in_buffer, r_size, &info) != ESP_OK) {
                 ESP_LOGE(TAG, "Error parse wav header");
@@ -78,7 +82,6 @@ static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, in
             return r_size;
         }
         out_len = audio_element_output(self, in_buffer, r_size);
-        audio_element_getinfo(self, &audio_info);
         audio_info.byte_pos += out_len;
         audio_element_setinfo(self, &audio_info);
     }
@@ -95,7 +98,10 @@ audio_element_handle_t wav_decoder_init(wav_decoder_cfg_t *config)
     cfg.process = _wav_decoder_process;
     cfg.open = _wav_decoder_open;
     cfg.close = _wav_decoder_close;
-    cfg.task_stack =  config->task_stack;
+    cfg.task_stack = config->task_stack;
+    cfg.task_prio = config->task_prio;
+    cfg.task_core = config->task_core;
+    cfg.out_rb_size = config->out_rb_size;
     if (cfg.task_stack == 0) {
         cfg.task_stack = WAV_DECODER_TASK_STACK;
     }
