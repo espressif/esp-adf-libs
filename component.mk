@@ -12,7 +12,7 @@ COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
 
 COMPONENT_SRCDIRS := . esp_codec
 
-LIBS := esp_codec esp_audio esp-aac recorder_engine vad # wakeup
+LIBS := esp_codec esp_audio esp-amr esp-amrwbenc esp-aac recorder_engine vad # wakeup
 
 COMPONENT_ADD_LDFLAGS +=  -L$(COMPONENT_PATH)/esp_audio/lib \
                           -L$(COMPONENT_PATH)/esp_codec/lib \
