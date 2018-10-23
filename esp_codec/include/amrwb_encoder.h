@@ -27,7 +27,7 @@ typedef struct {
 #define AMRWB_ENCODER_TASK_PRIO           (5)
 #define AMRWB_ENCODER_RINGBUFFER_SIZE     (8 * 1024)
 
-#define DEFAULT_amrwb_ENCODER_CONFIG() {\
+#define DEFAULT_AMRWB_ENCODER_CONFIG() {\
         .out_rb_size        = AMRWB_ENCODER_RINGBUFFER_SIZE,\
         .task_stack         = AMRWB_ENCODER_TASK_STACK,\
         .task_core          = AMRWB_ENCODER_TASK_CORE,\
