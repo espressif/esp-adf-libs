@@ -27,8 +27,12 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SAMPLE_RATE_HZ 16000      //Supports 32000, 16000, 8000
-#define VAD_FRAME_LENGTH_MS 10    //Supports 10ms, 20ms, 30ms
+#define VAD_FRAME_LENGTH_MS 30    //Supports 10ms, 20ms, 30ms
 
 /**
  * @brief Sets the VAD operating mode. A more aggressive (higher mode) VAD is more
@@ -38,7 +42,8 @@ typedef enum {
     VAD_MODE_0 = 0,
     VAD_MODE_1,
     VAD_MODE_2,
-    VAD_MODE_3
+    VAD_MODE_3,
+    VAD_MODE_4
 } vad_mode_t;
 
 typedef enum {
@@ -47,10 +52,6 @@ typedef enum {
 } vad_state_t;
 
 typedef void* vad_handle_t;
-
-typedef struct vad_runner_t vad_runner_t;
-
-extern const vad_runner_t VAD_RUNNER;
 
 /**
  * @brief Creates an instance to the VAD structure.
@@ -65,7 +66,7 @@ extern const vad_runner_t VAD_RUNNER;
  *         - NULL: Create failed
  *         - Others: The instance of VAD
  */
-typedef vad_handle_t (*vad_runner_create_t)(vad_mode_t vad_mode, int sample_rate_hz, int one_frame_ms);
+vad_handle_t vad_create(vad_mode_t vad_mode, int sample_rate_hz, int one_frame_ms);
 
 /**
  * @brief Feed samples of an audio stream to the VAD and check if there is someone speaking.
@@ -79,7 +80,7 @@ typedef vad_handle_t (*vad_runner_create_t)(vad_mode_t vad_mode, int sample_rate
  *         - VAD_SPEECH  if voice is detected
  *
  */
-typedef vad_state_t (*vad_runner_process_t)(vad_handle_t inst, int16_t *data);
+vad_state_t vad_process(vad_handle_t inst, int16_t *data);
 
 /**
  * @brief Free the VAD instance
@@ -89,33 +90,26 @@ typedef vad_state_t (*vad_runner_process_t)(vad_handle_t inst, int16_t *data);
  * @return None
  *
  */
-typedef void (*vad_runner_destroy_t)(vad_handle_t inst);
-
-/**
- * @brief Vad runner callback funcitons.
- */
-struct vad_runner_t {
-    vad_runner_create_t vad_create;
-    vad_runner_process_t vad_process;
-    vad_runner_destroy_t vad_destroy;
-};
+void vad_destroy(vad_handle_t inst);
 
 /*
-Programming Guide:
-
-static vad_runner_t *vad_runner = &VAD_RUNNER;    //defeine the VAD_RUNNER
-
-int16_t *buffer = malloc((VAD_FRAME_LENGTH_MS * SAMPLE_RATE_HZ /1000) * sizeof(int16_t));  //Apply for a memory to store the audio data.
-
-vad_handle_t vad_inst = vad_runner->vad_create(VAD_MODE_3, SAMPLE_RATE_HZ, VAD_FRAME_LENGTH_MS);     //Creates an instance to the VAD structure.
-
-while (1) {
-   //Use buffer to receive the audio data from MIC.
-   vad_state_t vad_state = vad_runner->vad_process(vad_inst, buffer);      //Feed samples to the VAD process and get the result.
-}
-
-vad_runner->vad_destroy(vad_inst);   // Free the VAD instance at the end of whole VAD process
-
+* Programming Guide:
+*
+* @code{c}
+* vad_handle_t vad_inst = vad_create(VAD_MODE_3, SAMPLE_RATE_HZ, VAD_FRAME_LENGTH_MS);     // Creates an instance to the VAD structure.
+*
+* while (1) {
+*    //Use buffer to receive the audio data from MIC.
+*    vad_state_t vad_state = vad_process(vad_inst, buffer);      // Feed samples to the VAD process and get the result.
+* }
+*
+* vad_destroy(vad_inst);   // Free the VAD instance at the end of whole VAD process
+*
+* @endcode
 */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #endif //_ESP_VAD_H_
