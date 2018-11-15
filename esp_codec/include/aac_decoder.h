@@ -11,17 +11,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief      AAC Decoder configuration
- */
-typedef struct {
-    int                     out_rb_size;    /*!< Size of output ringbuffer */
-    int                     task_stack;     /*!< Task stack size */
-    int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
-    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
-} aac_decoder_cfg_t;
-
 #define AAC_DECODER_TASK_STACK_SIZE     (5 * 1024)
 #define AAC_DECODER_TASK_CORE           (0)
 #define AAC_DECODER_TASK_PRIO           (5)
@@ -33,6 +22,16 @@ typedef struct {
     .task_core          = AAC_DECODER_TASK_CORE,\
     .task_prio          = AAC_DECODER_TASK_PRIO,\
 }
+
+/**
+ * @brief      AAC Decoder configuration
+ */
+typedef struct {
+    int                     out_rb_size;    /*!< Size of output ringbuffer */
+    int                     task_stack;     /*!< Task stack size */
+    int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
+    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+} aac_decoder_cfg_t;
 
 /**
  * @brief      Create an Audio Element handle to decode incoming AAC data

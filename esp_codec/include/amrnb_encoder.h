@@ -11,17 +11,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief      AMRNB Encoder configurations
- */
-typedef struct {
-    int                     out_rb_size;    /*!< Size of output ringbuffer */
-    int                     task_stack;     /*!< Task stack size */
-    int                     task_core;      /*!< Task running in core (0 or 1) */
-    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
-} amrnb_encoder_cfg_t;
-
 #define AMRNB_ENCODER_TASK_STACK          (15 * 1024)
 #define AMRNB_ENCODER_TASK_CORE           (0)
 #define AMRNB_ENCODER_TASK_PRIO           (5)
@@ -34,6 +23,15 @@ typedef struct {
         .task_prio          = AMRNB_ENCODER_TASK_PRIO,\
     }
 
+/**
+ * @brief      AMRNB Encoder configurations
+ */
+typedef struct {
+    int                     out_rb_size;    /*!< Size of output ringbuffer */
+    int                     task_stack;     /*!< Task stack size */
+    int                     task_core;      /*!< Task running in core (0 or 1) */
+    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+} amrnb_encoder_cfg_t;
 
 /**
  * @brief      Create an Audio Element handle to encode incoming AMRNB data
