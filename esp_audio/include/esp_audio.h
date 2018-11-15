@@ -139,8 +139,11 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *     - "iis://16000:2@from.pcm/rec.wav#file"
  *     - "iis://16000:1@record.pcm/record.wav#raw"
  *
- * @note The URI parse by `http_parser_parse_url`,any illegal string will be return `ESP_ERR_AUDIO_INVALID_URI`.
- *
+ * @note 
+ *     - The URI parse by `http_parser_parse_url`,any illegal string will be return `ESP_ERR_AUDIO_INVALID_URI`.
+ *     - If the esp_decoder codec is added to `handle`, then the `handle` of esp_decoder will be set as the default decoder, 
+ *       even if other decoders are added. 
+ * 
  * @param handle The esp_audio_handle_t instance
  * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3",
  * @param type   Specific handle type decoder or encoder

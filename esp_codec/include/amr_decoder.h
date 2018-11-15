@@ -11,17 +11,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief      AMR Decoder configuration
- */
-typedef struct {
-    int                     out_rb_size;    /*!< Size of output ringbuffer */
-    int                     task_stack;     /*!< Task stack size */
-    int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
-    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
-} amr_decoder_cfg_t;
-
 #define AMR_DECODER_TASK_STACK_SIZE     (5 * 1024)
 #define AMR_DECODER_TASK_CORE           (0)
 #define AMR_DECODER_TASK_PRIO           (5)
@@ -34,6 +23,15 @@ typedef struct {
         .task_prio          = AMR_DECODER_TASK_PRIO,\
     }
 
+/**
+ * @brief      AMR Decoder configuration
+ */
+typedef struct {
+    int                     out_rb_size;    /*!< Size of output ringbuffer */
+    int                     task_stack;     /*!< Task stack size */
+    int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
+    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+} amr_decoder_cfg_t;
 
 /**
  * @brief      Create an Audio Element handle to decode incoming AMR data
