@@ -33,9 +33,9 @@ extern "C"
 
 typedef struct
 {
-    void *(*decoder_open)(audio_element_handle_t el);
-    void *(*decoder_process)(audio_element_handle_t el);
-    void *(*decoder_close)(audio_element_handle_t el);
+    esp_err_t (*decoder_open)(audio_element_handle_t el);
+    esp_codec_err_t (*decoder_process)(audio_element_handle_t el);
+    esp_err_t (*decoder_close)(audio_element_handle_t el);
     esp_codec_type_t decoder_type;
 } audio_decoder_t;
 

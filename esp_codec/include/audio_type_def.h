@@ -4,6 +4,11 @@
 #ifndef _AUDIO_TYPE_DEF_H_
 #define _AUDIO_TYPE_DEF_H_
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef enum
 {
     ESP_CODEC_TYPE_UNKNOW        = 0,
@@ -28,9 +33,15 @@ typedef enum
 } esp_decoder_work_mode_t;
 
 typedef enum
-{
+{   
     ESP_CODEC_ERR_CONTINUE       = 1,
+    ESP_CODEC_ERR_OK             = 0,
+    ESP_CODEC_ERR_FAIL           = -1,
     ESP_CODEC_ERR_DONE           = -2,
 } esp_codec_err_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

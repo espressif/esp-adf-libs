@@ -4,6 +4,8 @@
 #ifndef _AUTO_OPUS_DEC_H_
 #define _AUTO_OPUS_DEC_H_
 
+#include "audio_type_def.h"
+
 /**
  * @brief      Open an Audio Element type data
  *
@@ -13,7 +15,7 @@
  *             ESP_OK
  *             ESP_FAIL
  */
-int opus_decoder_open(audio_element_handle_t el);
+esp_err_t opus_decoder_open(audio_element_handle_t el);
 
 /**
  * @brief      Close an Audio Element type data
@@ -24,7 +26,7 @@ int opus_decoder_open(audio_element_handle_t el);
  *             ESP_OK
  *             ESP_FAIL
  */
-int opus_decoder_close(audio_element_handle_t el);
+esp_err_t opus_decoder_close(audio_element_handle_t el);
 
 /**
  * @brief      Do music data to decode
@@ -35,6 +37,6 @@ int opus_decoder_close(audio_element_handle_t el);
  *             ESP_OK
  *             ESP_FAIL
  */
-int opus_decoder_process(audio_element_handle_t el);
+esp_codec_err_t opus_decoder_process(audio_element_handle_t el);
 
 #endif
