@@ -6,9 +6,8 @@
 EXTRA_COMPONENT_DIRS += $(COMPONENT_PATH)/esp_sr/
 
 COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
-                                esp_codec/include \
-                                esp_codec/wav/include \
-                                esp_codec/resample/include \
+                                esp_codec/include/codec \
+                                esp_codec/include/processing \
                                 recorder_engine/include \
                                 esp_sr/include
 
