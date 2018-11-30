@@ -28,22 +28,21 @@ typedef void *esp_resample_handle_t;
  * Notes: Decode mode, the input pcm number control the output pcm number
  *        Encode mode, the output pcm number control the input pcm number
  *
- * @param[in]       pcm_inout_num_restrict      Out data size will be align with this number.
- * @param[in]       src_rate                    Source sample rate
- * @param[in]       tar_rate                    Destination sample rate
- * @param[in]       in_chan                     Number of source channel
- * @param[in]       out_chan                    Number of destination channel
- * @param[in]       down_ch_idx                 Select right or left channel will be keep,
- *                                                  only work with source channel more than destination channel.
- * @param[in]       resample_mode               Decode mode and encode mode supported,`0` means decode mode, `1` means encode mode
- * @param[in/out]   in_pcm_size                 In decode mode, it's input parameter, for fixed input number of pcm.
+ * @param           pcm_inout_num_restrict      Out data size will be align with this number.
+ * @param           src_rate                    Source sample rate
+ * @param           tar_rate                    Destination sample rate
+ * @param           in_chan                     Number of source channel
+ * @param           out_chan                    Number of destination channel
+ * @param           down_ch_idx                 Select right or left channel will be keep, only work with source channel more than destination channel.
+ * @param           resample_mode               Decode mode and encode mode supported,`0` means decode mode, `1` means encode mode
+ * @param           in_pcm_size                 In decode mode, it's input parameter, for fixed input number of pcm.
  *                                              In encode mode, it's output parameter, indicate how many pcm size needed with one frame.
- * @param[in/out]   out_pcm_size                In decode mode, it's output parameter, indicate how many pcm size will buffering with one frame.
+ * @param           out_pcm_size                In decode mode, it's output parameter, indicate how many pcm size will buffering with one frame.
  *                                              In encode mode, it's input parameter, for fixed output number of pcm.
+ * 
  * @return
  *     - NULL:  Fail
  *     - Others: Success
- *
  */
 esp_resample_handle_t resample_open(int pcm_inout_num_restrict, int src_rate, int tar_rate,
                                     int in_chan, int out_chan, int down_ch_idx, int resample_mode,
@@ -54,12 +53,13 @@ esp_resample_handle_t resample_open(int pcm_inout_num_restrict, int src_rate, in
  *
  * Notes: This function configures and initializes the TWDT.
  *
- * @param[in]           handle              Handle from resample_open.
- * @param[in]           in_pcm              Input buffer.
- * @param[in]           out_pcm             Output buffer.
- * @param[in]           in_pcm_num          It's input pcm numbers.
- * @param[in/out]       output_pcm_num      In decode mode, it's output parameter, indicate how many pcm numbers in `out_pcm`.
+ * @param            handle                 Handle from resample_open.
+ * @param            in_pcm                 Input buffer.
+ * @param            out_pcm                Output buffer.
+ * @param            in_pcm_num             It's input pcm numbers.
+ * @param            output_pcm_num         In decode mode, it's output parameter, indicate how many pcm numbers in `out_pcm`.
  *                                          In encode mode, it's input parameter, indicate how many pcm numbers in `out_pcm`.
+ * 
  * @return
  *     - < 0 :  Fail
  *     - >= 0:  In encode mode, it's consumed input pcm numbers, if is not equal to `output_pcm_num`, need to move the in buffer.
@@ -71,7 +71,7 @@ int resample_process(esp_resample_handle_t handle, short *in_pcm, short *out_pcm
 /**
  * @brief  Destroy the specific `esp_resample_handle_t`.
  *
- * @param[in]       handle      Handle from resample_open.
+ * @param             handle               Handle from resample_open.
  *
  * @return  NONE.
  */

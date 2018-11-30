@@ -112,6 +112,7 @@ esp_err_t wav_head_parser(const uint8_t *inData, int len, wav_info_t *info);
 *
 * @param      wavhead         The header information of WAV file
 * @param      sample_rate     The sample rate of WAV file
+* @param      bits            The bit width of WAV file
 * @param      channels        The number channel(s) of WAV file
 */
 void wav_head_init(wav_header_t *wavhead, int sample_rate, int bits, int channels);
