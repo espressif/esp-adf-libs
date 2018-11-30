@@ -31,29 +31,32 @@ extern "C"
 #define ESP_DECODER_TASK_PRIO (5)
 #define ESP_DECODER_RINGBUFFER_SIZE (10 * 1024)
 
-typedef struct
-{
-    esp_err_t (*decoder_open)(audio_element_handle_t el);
-    esp_codec_err_t (*decoder_process)(audio_element_handle_t el);
-    esp_err_t (*decoder_close)(audio_element_handle_t el);
-    esp_codec_type_t decoder_type;
+/**
+ * @brief      To provide audio stream element
+ */
+typedef struct{
+    esp_err_t (*decoder_open)(audio_element_handle_t el);             /*!< Open an Audio Element type data */
+    esp_codec_err_t (*decoder_process)(audio_element_handle_t el);    /*!< Do Audio data to decode */
+    esp_err_t (*decoder_close)(audio_element_handle_t el);            /*!< Close an Audio Element type data */
+    esp_codec_type_t decoder_type;                                    /*!< Type of Audio file */
 } audio_decoder_t;
 
-typedef struct decoder_node
-{
-    audio_decoder_t audio_decoder;
-    struct decoder_node *next;
+/**
+ * @brief      The audio formats list
+ */
+typedef struct decoder_node{
+    audio_decoder_t audio_decoder;                                   /*!< Audio stream element */
+    struct decoder_node *next;                                       /*!< The audio formats list */
 } audio_decoder_node_t;
 
 /**
  * @brief      Auto audio decoder configuration
  */
-typedef struct
-{
-    int out_rb_size; /*!< Size of output ringbuffer */
-    int task_stack;  /*!< Task stack size */
-    int task_core;   /*!< CPU core number (0 or 1) where decoder task in running */
-    int task_prio;   /*!< Task priority (based on freeRTOS priority) */
+typedef struct{
+    int out_rb_size;                                                /*!< Size of output ringbuffer */
+    int task_stack;                                                 /*!< Task stack size */
+    int task_core;                                                  /*!< CPU core number (0 or 1) where decoder task in running */
+    int task_prio;                                                  /*!< Task priority (based on freeRTOS priority) */
 } esp_decoder_cfg_t;
 
 #define DEFAULT_ESP_WAV_DECODER_CONFIG()        \
