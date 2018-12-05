@@ -7,57 +7,84 @@
 #include "esp_err.h"
 #include "audio_element.h"
 #include "audio_common.h"
-
+#include "esp_resample.h"
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /**
- * brief      Resample filter configurations
+ * @brief      Resample Filter Configuration
  */
 typedef struct {
-    int                 src_rate;       /*!< Source audio sample rates (in Hz)*/
-    int                 src_ch;         /*!< Source audio channel (Mono=1, Stereo=2) */
-    int                 dest_rate;      /*!< Destination audio sample rates (in Hz) */
-    int                 dest_ch;        /*!< Destination audio channel (Mono=1, Stereo=2) */
-    audio_codec_type_t  type;           /*!< Type of filter */
-    int                 out_rb_size;    /*!< Size of output ringbuffer */
-    int                 task_stack;     /*!< Task stack size */
-    int                 task_core;      /*!< Task running in core (0 or 1) */
-    int                 task_prio;      /*!< Task priority (based on freeRTOS priority) */
+    int src_rate;         /*!< The sampling rate of the source PCM file (in Hz)*/
+    int src_ch;           /*!< The number of channel(s) of the source PCM file (Mono=1, Dual=2) */
+    int dest_rate;        /*!< The sampling rate of the destination PCM file (in Hz) */
+    int dest_ch;          /*!< The number of channel(s) of the destination PCM file (Mono=1, Dual=2) */
+    int sample_bits;      /*!< The bit width of the PCM file. Currently, the only supported bit width is 16 bits. */
+    int mode;             /*!< The resampling mode (the encoding mode or the decoding mode). For decoding mode, input PCM length is constant; for encoding mode, output PCM length is constant. */
+    int max_indata_bytes; /*!< The maximum buffer size of the input PCM (in bytes) */
+    int out_len_bytes;    /*!< The buffer length of the output stream data. This parameter must be configured in encoding mode. */
+    int type;             /*!< The resampling type (Automatic, Upsampling and Downsampling) */
+    int complexity;       /*!< Indicates the complexity of the resampling. This parameter is only valid when a FIR filter is used. Range: 0~4; O indicates the lowest complexity, which means the accuracy is the lowest and the speed is the fastest; Meanwhile, 4 indicates the highest complexity, which means the accuracy is the highest and the speed is the slowest.*/
+    int down_ch_idx;      /*!< Indicates the channel that is selected (the right channel or the left channel). This parameter is only valid when the complexity parameter is set to 0 and the number of channel(s) of the input file has changed from dual to mono. */
+    int out_rb_size;      /*!< Output ringbuffer size*/
+    int task_stack;       /*!< Task stack size */
+    int task_core;        /*!< Task running on core */
+    int task_prio;        /*!< Task priority */
 } rsp_filter_cfg_t;
 
-#define RSP_FILTER_TASK_STACK          (4 * 1024)
-#define RSP_FILTER_TASK_CORE           (0)
-#define RSP_FILTER_TASK_PRIO           (5)
-#define RSP_FILTER_RINGBUFFER_SIZE     (8 * 1024)
+#define RSP_FILTER_BUFFER_BYTE              (1024)
+#define RSP_FILTER_TASK_STACK               (4 * 1024)
+#define RSP_FILTER_TASK_CORE                (0)
+#define RSP_FILTER_TASK_PRIO                (5)
+#define RSP_FILTER_RINGBUFFER_SIZE          (8 * 1024)
 
-#define DEFAULT_RESAMPLE_FILTER_CONFIG() {\
-    .src_rate       = 0,    \
-    .src_ch         = 0,    \
-    .dest_rate      = 48000,\
-    .dest_ch        = 2,    \
-    .type           = AUDIO_CODEC_TYPE_DECODER,    \
-    .out_rb_size    = RSP_FILTER_RINGBUFFER_SIZE,\
-    .task_stack     = RSP_FILTER_TASK_STACK,\
-    .task_core      = RSP_FILTER_TASK_CORE,\
-    .task_prio      = RSP_FILTER_TASK_PRIO,\
-}
+#define DEFAULT_RESAMPLE_FILTER_CONFIG() {          \
+        .src_rate = 0,                              \
+        .src_ch = 0,                                \
+        .dest_rate = 48000,                         \
+        .dest_ch = 2,                               \
+        .sample_bits = 16,                          \
+        .mode = RESAMPLE_DECODE_MODE,               \
+        .max_indata_bytes = RSP_FILTER_BUFFER_BYTE, \
+        .out_len_bytes = RSP_FILTER_BUFFER_BYTE,    \
+        .type = AUDIO_CODEC_TYPE_DECODER,           \
+        .complexity = 0,                            \
+        .down_ch_idx = 0,                           \
+        .out_rb_size = RSP_FILTER_RINGBUFFER_SIZE,  \
+        .task_stack = RSP_FILTER_TASK_STACK,        \
+        .task_core = RSP_FILTER_TASK_CORE,          \
+        .task_prio = RSP_FILTER_TASK_PRIO,          \
+    }
 
 /**
- * @brief      Create an Audio Element handle to a filter that is able to resample incoming data.
- *             Depending on configuration, the filter may upsample, downsample, as well as convert
- *             the data between mono and stereo.
- *             - If the audio_codec_type_t is `AUDIO_CODEC_TYPE_DECODER`, configuration values of `src_rate` and `src_ch`
- *             have no effect, the `src_*` information provide by `audio_element_getinfo`
- *             - If the audio_codec_type_t is `AUDIO_CODEC_TYPE_DECODER`, the configurations `src_*` and `dest_*`  must be provided
+ * @brief      Set the audio sample rate and the number of channels to be processed by the resample.
  *
- * @param      config  The configuration
+ * @param      self       Audio element handle
+ * @param      rate       The sample rate of stream data
+ * @param      ch         The number channels of stream data
  *
- * @return     The audio element handle
+ * @return     
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int rate, int ch);
+
+/**
+ * @brief      Create an Audio Element handle to resample incoming data.
+ * 
+ * Depending on configuration, there are upsampling, downsampling, as well as 
+ * converting data between mono and dual.
+ * 
+ *   - If the audio_codec_type_t is `AUDIO_CODEC_TYPE_DECODER`, `src_rate` and `src_ch` will be fetched from `audio_element_getinfo`.
+ *   - If the audio_codec_type_t is `AUDIO_CODEC_TYPE_ENCODER`, `src_rate`, `src_ch`, `dest_rate` and `dest_ch` must be configured.
+ *
+ * @param      config     The configuration
+ *
+ * @return     The audio element handler
  */
 audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config);
-
 
 #ifdef __cplusplus
 }

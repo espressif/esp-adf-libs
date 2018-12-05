@@ -177,27 +177,21 @@ static int equalizer_process(audio_element_handle_t self, char *in_buffer, int i
         r_size = audio_element_input(self, (char *)equalizer->buf, BUF_SIZE);
 #endif
     }
-
-    if (r_size != BUF_SIZE) {
-        equalizer->at_eof = 1;
-    }
-    if (r_size == 0) {
-        ESP_LOGI(TAG, "equalizer finished");
-        return ESP_OK;
-    }
-    equalizer->byte_num += r_size;
-    ret = esp_equalizer_process(equalizer->eq_handle, (unsigned char *)equalizer->buf, r_size,
-                                equalizer->samplerate, equalizer->channel);
-    if (ret < 0) {
-        equalizer_close(self);
-        equalizer_open(self);
-        return ESP_CODEC_ERR_CONTINUE;
-    }
-    ret = audio_element_output(self, (char *)equalizer->buf, BUF_SIZE);
-
-    if (ret <= 0) {
-        ESP_LOGW(TAG, "output aborted %d %d", ret, equalizer->byte_num);
-        return ESP_FAIL;
+    if (r_size > 0) {
+        if (r_size != BUF_SIZE) {
+            equalizer->at_eof = 1;
+        }
+        equalizer->byte_num += r_size;
+        ret = esp_equalizer_process(equalizer->eq_handle, (unsigned char *)equalizer->buf, r_size,
+                                    equalizer->samplerate, equalizer->channel);
+        if (ret < 0) {
+            equalizer_close(self);
+            equalizer_open(self);
+            return ESP_CODEC_ERR_CONTINUE;
+        }
+        ret = audio_element_output(self, (char *)equalizer->buf, BUF_SIZE);
+    } else {
+        ret = r_size;
     }
     return ret;
 }
