@@ -39,19 +39,19 @@ static esp_err_t is_valid_rsp_filter_channel(int channel)
     return ESP_OK;
 }
 
-esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int rate, int ch)
+esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int src_rate, int src_ch)
 {
     rsp_filter_t *filter = (rsp_filter_t *)audio_element_getdata(self);
-    if (filter->resample_info->src_rate == rate
-        && filter->resample_info->src_ch == ch) {
+    if (filter->resample_info->src_rate == src_rate
+        && filter->resample_info->src_ch == src_ch) {
         return ESP_OK;
     }
-    if (is_valid_rsp_filter_samplerate(rate) != ESP_OK
-        || is_valid_rsp_filter_channel(ch) != ESP_OK) {
+    if (is_valid_rsp_filter_samplerate(src_rate) != ESP_OK
+        || is_valid_rsp_filter_channel(src_ch) != ESP_OK) {
         return ESP_FAIL;
     } else {
-        filter->resample_info->src_rate = rate;
-        filter->resample_info->src_ch = ch;
+        filter->resample_info->src_rate = src_rate;
+        filter->resample_info->src_ch = src_ch;
         ESP_LOGI(TAG, "reset sample rate of source data : %d, reset channel of source data : %d",
                  filter->resample_info->src_rate, filter->resample_info->src_ch);
     }
@@ -149,7 +149,7 @@ static int rsp_filter_process(audio_element_handle_t self, char *in_buffer, int 
                                            filter->resample_info->max_indata_bytes - filter->in_offset);
             if (read_len > 0) {
                 filter->in_offset += read_len;
-            }            
+            }
         }
         if (read_len > 0){
             in_bytes_consumed = esp_resample_run(filter->rsp_hd, filter->resample_info,

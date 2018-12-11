@@ -41,8 +41,8 @@ typedef struct {
 #define RSP_FILTER_RINGBUFFER_SIZE          (8 * 1024)
 
 #define DEFAULT_RESAMPLE_FILTER_CONFIG() {          \
-        .src_rate = 0,                              \
-        .src_ch = 0,                                \
+        .src_rate = 44100,                          \
+        .src_ch = 2,                                \
         .dest_rate = 48000,                         \
         .dest_ch = 2,                               \
         .sample_bits = 16,                          \
@@ -59,24 +59,24 @@ typedef struct {
     }
 
 /**
- * @brief      Set the audio sample rate and the number of channels to be processed by the resample.
+ * @brief      Set the source audio sample rate and the number of channels to be processed by the resample.
  *
  * @param      self       Audio element handle
- * @param      rate       The sample rate of stream data
- * @param      ch         The number channels of stream data
+ * @param      src_rate   The sample rate of stream data
+ * @param      src_ch     The number channels of stream data
  *
- * @return     
+ * @return
  *             ESP_OK
  *             ESP_FAIL
  */
-esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int rate, int ch);
+esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int src_rate, int src_ch);
 
 /**
  * @brief      Create an Audio Element handle to resample incoming data.
- * 
- * Depending on configuration, there are upsampling, downsampling, as well as 
+ *
+ * Depending on configuration, there are upsampling, downsampling, as well as
  * converting data between mono and dual.
- * 
+ *
  *   - If the audio_codec_type_t is `AUDIO_CODEC_TYPE_DECODER`, `src_rate` and `src_ch` will be fetched from `audio_element_getinfo`.
  *   - If the audio_codec_type_t is `AUDIO_CODEC_TYPE_ENCODER`, `src_rate`, `src_ch`, `dest_rate` and `dest_ch` must be configured.
  *
