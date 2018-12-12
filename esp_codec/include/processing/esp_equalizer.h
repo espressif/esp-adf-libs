@@ -4,6 +4,11 @@
 #ifndef _ESP_EQUALIZER_H
 #define _ESP_EQUALIZER_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
 * @brief      Initialize the equalizer handle
 *
@@ -12,7 +17,7 @@
 * @param      n_band  The number of audio sub-bands. Fixed number of 10 sub-bands is supported and this value should be set to 10.
 * @param      use_xmms_original_freqs  Currently should be set 0
 *
-* @return     The equalizer handle. 
+* @return     The equalizer handle.
 */
 void *esp_equalizer_init(int nch, int g_rate, int n_band, int use_xmms_original_freqs);
 
@@ -32,7 +37,7 @@ void esp_equalizer_uninit(void *handle);
 * @param      g_rate   The audio sample rate. Four sample rates are supported: 11025Hz, 22050Hz, 44100Hz and 48000Hz.
 * @param      nch      The audio channel number
 *
-* @return     Length of pcm_buf after processing 
+* @return     Length of pcm_buf after processing
 */
 int esp_equalizer_process(void *handle, unsigned char *pcm_buf, int length, int g_rate, int nch);
 
@@ -62,8 +67,12 @@ int esp_equalizer_get_band_count(void *handle);
 * @param      index   The index of audio sub-bands. Currently only support 10 sub-bands, so it should be 0-9.
 * @param      nch     The audio channel number
 *
-* @return     The number of the equalizer sub-bands 
+* @return     The number of the equalizer sub-bands
 */
 float esp_equalizer_get_band_value(void *handle, int index, int nch);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
