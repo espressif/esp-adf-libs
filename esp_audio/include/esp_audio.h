@@ -139,11 +139,11 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *     - "iis://16000:2@from.pcm/rec.wav#file"
  *     - "iis://16000:1@record.pcm/record.wav#raw"
  *
- * @note 
+ * @note
  *     - The URI parse by `http_parser_parse_url`,any illegal string will be return `ESP_ERR_AUDIO_INVALID_URI`.
- *     - If the esp_decoder codec is added to `handle`, then the `handle` of esp_decoder will be set as the default decoder, 
- *       even if other decoders are added. 
- * 
+ *     - If the esp_decoder codec is added to `handle`, then the `handle` of esp_decoder will be set as the default decoder,
+ *       even if other decoders are added.
+ *
  * @param handle The esp_audio_handle_t instance
  * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3",
  * @param type   Specific handle type decoder or encoder
@@ -162,6 +162,8 @@ audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, c
  *
  * @note If user queue has been registered by evt_que, AUDIO_STATUS_STOPED event for success
  *       or AUDIO_STATUS_ERROR event for error will be received.
+ *       `TERMINATION_TYPE_DONE` only works with input stream which can't stoped by itself,
+ *       e.g. `raw read/write stream`, others streams are no effect.
  *
  * @param[in] handle The esp_audio instance
  * @param[in] type   Stop immediately or done

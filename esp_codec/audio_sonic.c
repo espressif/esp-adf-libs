@@ -6,7 +6,7 @@
 #include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
-#include "sonic.h"
+#include "esp_sonic.h"
 #include "audio_sonic.h"
 #include "audio_type_def.h"
 
@@ -147,14 +147,14 @@ static esp_err_t sonic_open(audio_element_handle_t self)
         sonic->sonic_info.channel = info.channels;
     }
 
-    sonic->sonic_handle = changeVoiceCreateStream(sonic->sonic_info.samplerate, sonic->sonic_info.channel);
-    changeVoiceSetResampleMode(sonic->sonic_handle, sonic->sonic_info.resample_linear_interpolate);
-    changeVoiceSetSpeed(sonic->sonic_handle, sonic->sonic_info.speed);
-    changeVoiceSetPitch(sonic->sonic_handle, sonic->sonic_info.pitch);
-    changeVoiceSetRate(sonic->sonic_handle, sonic->rate);
-    changeVoiceSetVolume(sonic->sonic_handle, sonic->volume);
-    changeVoiceSetChordPitch(sonic->sonic_handle, sonic->emulate_chord_pitch);
-    changeVoiceSetQuality(sonic->sonic_handle, sonic->quality);
+    sonic->sonic_handle = esp_sonic_create_stream(sonic->sonic_info.samplerate, sonic->sonic_info.channel);
+    esp_sonic_set_resample_mode(sonic->sonic_handle, sonic->sonic_info.resample_linear_interpolate);
+    esp_sonic_set_speed(sonic->sonic_handle, sonic->sonic_info.speed);
+    esp_sonic_set_pitch(sonic->sonic_handle, sonic->sonic_info.pitch);
+    esp_sonic_set_rate(sonic->sonic_handle, sonic->rate);
+    esp_sonic_set_volume(sonic->sonic_handle, sonic->volume);
+    esp_sonic_set_chord_pitch(sonic->sonic_handle, sonic->emulate_chord_pitch);
+    esp_sonic_set_quality(sonic->sonic_handle, sonic->quality);
 
 #ifdef DEBUG_SONIC_ENC_ISSUE
     char fileName1[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '1', '.', 'p', 'c', 'm', '\0'};
@@ -178,7 +178,7 @@ static esp_err_t sonic_close(audio_element_handle_t self)
     ESP_LOGD(TAG, "sonic_close");
     sonic_t *sonic = (sonic_t *)audio_element_getdata(self);
     if (sonic->sonic_handle != NULL) {
-        changeVoiceDestroyStream(sonic->sonic_handle);
+        esp_sonic_destroy_stream(sonic->sonic_handle);
     }
     if (sonic->inbuf != NULL) {
         audio_free(sonic->inbuf);
@@ -218,9 +218,9 @@ static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_le
 #endif
     if (samplesRead > 0) {
         samplesRead = samplesRead / (sonic->sonic_info.channel * sizeof(short));
-        changeVoiceWriteToStream(sonic->sonic_handle, sonic->inbuf, samplesRead );
+        esp_sonic_write_to_stream(sonic->sonic_handle, sonic->inbuf, samplesRead );
         do {
-            samplesWritten = changeVoiceReadFromStream(sonic->sonic_handle, sonic->outbuf, BUF_SIZE / sonic->sonic_info.channel);
+            samplesWritten = esp_sonic_read_from_stream(sonic->sonic_handle, sonic->outbuf, BUF_SIZE / sonic->sonic_info.channel);
             if (samplesWritten > 0) {
 #ifdef DEBUG_SONIC_ENC_ISSUE
                 ret = fwrite(sonic->outbuf, sizeof(short), samplesWritten, outone);
