@@ -1,5 +1,5 @@
 # Espressif speech recognition
-Espressif speech recognition libraries libraries provide support for a single and multi wakeup word. Different wakeup words are provided by separate libraries named `*nn_model*.a`.The libraries include `libnn_model_hilexin_wn3.a` and `libnn_model_alexa_wn3.a` with a single wakeup word inside, others have multi wakeup words. Two models are provided, `SR_MODEL_WN3_QUANT` used for a single wakeup word and `SR_MODEL_WN4_QUANT` used for multi wakeup words.
+Espressif speech recognition libraries provide support for a single and multi wakeup word. Different wakeup words are provided by separate libraries named `*nn_model*.a`.The libraries include `libnn_model_hilexin_wn3.a` and `libnn_model_alexa_wn3.a` with a single wakeup word inside, others have multi wakeup words. Two models are provided, `SR_MODEL_WN3_QUANT` used for a single wakeup word and `SR_MODEL_WN4_QUANT` used for multi wakeup words.
 
 # Wake words libraries
 

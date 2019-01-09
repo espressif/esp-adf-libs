@@ -28,7 +28,7 @@
 #define REC_ONE_BLOCK_SIZE 2880     // 90ms[16k,16bit,1channel]
 
 #define DEFAULT_REC_ENGINE_CONFIG() {\
-    .one_frame_time_ms          = 10,\
+    .one_frame_duration_ms      = 10,\
     .sensitivity                = 0,\
     .vad_off_delay_ms           = 600,\
     .wakeup_time_ms             = 10000,\
@@ -155,17 +155,17 @@ typedef enum {
  * @brief recorder configuration parameters
  */
 typedef struct {
-    int           one_frame_time_ms;          // Time of one frame data.
-    int           sensitivity;                // For response accuracy rate sensitivity. Default 0: 90%, 1: 95%.
-    int           vad_off_delay_ms;           // Vad off delay to stop if no voice is detected.
-    int           wakeup_time_ms;             // Time of wakeup.
-    bool          support_encoding;           // Support encoding data.
-    const char   *extension;                  // Encoding format."amr" or "amrwb" support.
-    rec_open      open;                       // Recorder open callback function.
-    rec_fetch     fetch;                      // Recorder fetch data callback function.
-    rec_close     close;                      // Recorder close callback function.
-    rec_callback  evt_cb;                     // Recorder event callback function.
-    void          *user_data;                 // User data
+    int           one_frame_duration_ms;      /*!< Duration of one frame (optional) */
+    int           sensitivity;                /*!< For response accuracy rate sensitivity. Default 0: 90%, 1: 95% */
+    int           vad_off_delay_ms;           /*!< Vad off delay to stop if no voice is detected */
+    int           wakeup_time_ms;             /*!< Time of wakeup */
+    bool          support_encoding;           /*!< Support encoding data */
+    const char   *extension;                  /*!< Encoding format."amr" or "amrwb" support */
+    rec_open      open;                       /*!< Recorder open callback function */
+    rec_fetch     fetch;                      /*!< Recorder fetch data callback function */
+    rec_close     close;                      /*!< Recorder close callback function */
+    rec_callback  evt_cb;                     /*!< Recorder event callback function */
+    void          *user_data;                 /*!< Pointer to user data (optional) */
 } rec_config_t;
 
 /**
