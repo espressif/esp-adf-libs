@@ -28,7 +28,7 @@ config WAKEUP_WORD_ALEXA
     bool "Wakeup word is Alexa"
     depends on SR_MODEL_WN3_QUANT
 
-config WAKEUP_WORD_LIGHT_CONTROL_CN
+config WAKEUP_WORD_LIGHT_CONTROL_CH
     bool "Light control commands with Chinese"
     depends on SR_MODEL_WN4_QUANT
 

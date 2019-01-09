@@ -3,8 +3,6 @@
 #
 # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
 
-EXTRA_COMPONENT_DIRS += $(COMPONENT_PATH)/esp_sr/
-
 COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
                                 esp_codec/include/codec \
                                 esp_codec/include/processing \
@@ -24,7 +22,7 @@ endif
 ifdef CONFIG_WAKEUP_WORD_ALEXA
     LIBS += vad esp_wakenet nn_model_alexa_wn3
 endif
-ifdef CONFIG_WAKEUP_WORD_LIGHT_CONTROL
+ifdef CONFIG_WAKEUP_WORD_LIGHT_CONTROL_CH
     LIBS += vad esp_wakenet nn_model_light_control_ch_wn4
 endif
 ifdef CONFIG_WAKEUP_WORD_SPEECH_CMD_CH
