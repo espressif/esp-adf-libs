@@ -212,8 +212,6 @@ esp_err_t rec_engine_detect_suspend(rec_voice_suspend_t flag);
 /**
  * @brief Start recording by force.
  *
- * @param none.
- *
  * @return
  *      - 0: Success
  *      - -1: Error
@@ -222,8 +220,6 @@ esp_err_t rec_engine_trigger_start(void);
 
 /**
  * @brief Stop recording by force.
- *
- * @param none.
  *
  * @return
  *      - 0: Success
@@ -235,8 +231,6 @@ esp_err_t rec_engine_trigger_stop(void);
  * @brief Destroy the recorder engine.
  *
  * @note Upon completion of this function rec_close callback will be triggered.
- *
- * @param None.
  *
  * @return
  *      - 0: Success
@@ -253,7 +247,7 @@ esp_err_t rec_engine_destroy(void);
  *              Even if disable voice activity detection, the `REC_EVENT_VAD_START` and `REC_EVENT_VAD_STOP` events
  *              still notified when `rec_engine_trigger_start` and `rec_engine_trigger_stop` called.
  *
- * @param vad_enable, true is enable vad, false disable vad
+ * @param vad_enable true is enable vad, false disable vad
  *
  * @return
  *      - 0: Success
@@ -267,7 +261,7 @@ esp_err_t rec_engine_vad_enable(bool vad_enable);
  * @note `support_encoding` must be set, `rec_engine_enc_enable` can be used.
  *       Disable encoding by default.
  *
- * @param enc_enable, true is enable encoding, false is disable.
+ * @param enc_enable true is enable encoding, false is disable.
  *
  * @return
  *     - 0: Success
@@ -298,7 +292,7 @@ esp_err_t rec_engine_enc_data_read(uint8_t *buffer, int buffer_size, int waiting
  *
  * @note if enable mute, no data fill the buffer, so the `rec_engine_enc_data_read` and `rec_engine_data_read` will be blocked.
  *
- * @param mute_enable, true is mute, false is not.
+ * @param mute_enable true is mute, false is not.
  *
  * @return
  *     - 0: Success
@@ -309,7 +303,7 @@ esp_err_t rec_engine_mute_enable(bool mute_enable);
 /**
  * @brief Get recorder engine wakeup state.
  *
- * @param wakeup_start_t, true is WAKEUP_START, false is not.
+ * @param wakeup_start_t true is WAKEUP_START, false is not.
  *
  * @return
  *     - 0: Success
