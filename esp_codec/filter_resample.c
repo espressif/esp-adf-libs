@@ -12,6 +12,7 @@
 static const char *TAG = "RSP_FILTER";
 
 #define RESAMPLING_POINT_NUM 512
+
 typedef struct rsp_filter {
     resample_info_t *resample_info;
     unsigned char *out_buf;
@@ -78,6 +79,13 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
     if (resample_info->sample_bits != 16) {
         ESP_LOGE(TAG, "Currently, the only supported bit width is 16 bits.");
         return ESP_FAIL;
+    }
+    if (resample_info->complexity < 0){
+        ESP_LOGI(TAG, "Currently, the complexity is %d, that is less than 0, it has been set 0.", resample_info->complexity);
+        resample_info->complexity = 0;
+    } else if (resample_info->complexity > COMPLEXITY_MAX_NUM ){
+        ESP_LOGI(TAG, "Currently, the complexity is %d, that is more than the maximal of complexity, it has been set the maximal of complexity.", resample_info->complexity);
+        resample_info->complexity = COMPLEXITY_MAX_NUM;
     }
     unsigned char p_in[1] = {NULL};
     unsigned char p_out[1] = {NULL};
@@ -205,12 +213,6 @@ audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config)
     }
     memcpy(resample_info, config, sizeof(resample_info_t));
     filter->resample_info = resample_info;
-    if (filter->resample_info->type == AUDIO_CODEC_TYPE_DECODER) {
-        filter->resample_info->mode = RESAMPLE_DECODE_MODE;
-        filter->resample_info->max_indata_bytes = RESAMPLING_POINT_NUM;
-    } else {
-        filter->resample_info->mode = RESAMPLE_ENCODE_MODE;
-    }
     audio_element_setdata(el, filter);
     audio_element_info_t info = {0};
     audio_element_setinfo(el, &info);

@@ -61,6 +61,20 @@ extern int set_value_gain[];
 esp_err_t equalizer_set_info(audio_element_handle_t self, int rate, int ch);
 
 /**
+ * @brief      Set the audio gain to be processed by the equalizer.
+ *
+ * @param      self                      Audio element handle
+ * @param      index                     the position of center frequencies of equalizer 
+ * @param      value_gain                the value of audio gain which in `index`
+ * @param      is_channels_gain_equal    if Number of audio channel is equal 2, the value of audio gains which two channels are equal by checking `is_channels_gain_equal`. if `is_channels_gain_equal` is `true`,it means equal,otherwise unequal.
+ *
+ * @return     
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t equalizer_set_gain_info(audio_element_handle_t self, int index, int value_gain, bool is_channels_gain_equal);
+
+/**
  * @brief      Create an Audio Element handle that equalizes incoming data.
  *
  * @param      config  The configuration

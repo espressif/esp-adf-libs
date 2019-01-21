@@ -5,6 +5,7 @@
 #define _ESPRESSIF_RESAMPLE_H_
 
 #define PCM_INOUT_NUM_RESTRICT (2)
+#define COMPLEXITY_MAX_NUM  (5)
 
 #if (PCM_INOUT_NUM_RESTRICT < 0) || (PCM_INOUT_NUM_RESTRICT > 64)
 #error input/output PCM number restrict setup error
@@ -28,6 +29,14 @@ typedef enum {
     RESAMPLE_IN_BUF_ALIGNED_ERROR    = -13,  /*!< The buffer of the input PCM file is not byte aligned. */
     RESAMPLE_DOWN_CH_IDX_CHANGE      = -14,  /*!< The currently selected channel (right or left) is not equal to the channel selected in configuration. This error is only triggered when the complexity parameter is set to 0 and the number of channel(s) of the input file has changed from dual to mono. */
 } esp_resp_err_t;
+
+typedef enum {
+    ESP_RESAMPLE_TYPE_AUTO     = -1,        /*!<automatically select the following type */
+    ESP_RESAMPLE_TYPE_DECIMATE = 0,         /*!<only down-sampling, for integer time down-sampling case, like 48000 to 24000 or 12000 or 8000 */
+    ESP_RESAMPLE_TYPE_INTERP   = 1,         /*!<only up-sampling, for interger time up-sampling case, like 8000 to 16000 or 24000 or 48000 */
+    ESP_RESAMPLE_TYPE_RESAMPLE = 2,         /*!<first up-sampling, then down-sampling, for non-integer case, like 44100 to 48000 */
+    ESP_RESAMPLE_TYPE_BYPASS   = 3,         /*!<source sample rate and target sample rate equal case, just by pass */
+}esp_resample_type_t;
 
 /**
 *  @brief     Resampling supports two modes
