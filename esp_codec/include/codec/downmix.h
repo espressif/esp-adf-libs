@@ -107,6 +107,22 @@ void downmix_set_status(audio_element_handle_t self, downmix_status_t status_val
 esp_err_t downmix_set_info(audio_element_handle_t self, int rate0, int ch0, int rate1, int ch1);
 
 /**
+* @brief      Sets the audio gain to be processed.
+*
+* @param      self                  audio element handle
+* @param      gain                  the reset value of `gain` which in `downmix_info_t`. The `gain` is an array of four elements.
+*/
+void downmix_set_gain_info(audio_element_handle_t self, float *gain);
+
+/**
+* @brief      Sets the audio `transform_time` to be processed.
+*
+* @param      self                  audio element handle
+* @param      transform_time        the reset value of `transform_time` which in `downmix_info_t`. The `transform_time` is an array of two elements.
+*/
+void downmix_set_transform_time_info(audio_element_handle_t self, int *transform_time);
+
+/**
 * @brief      Initializes the Audio Element handle for downmixing.
 *
 * @param      config  the configuration
