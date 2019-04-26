@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 #include "upnp_utils.h"
-#include "http_server.h"
+#include "esp_http_server.h"
 
 typedef struct upnp_service_* upnp_service_handle_t;
 
