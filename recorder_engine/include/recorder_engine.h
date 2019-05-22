@@ -32,6 +32,8 @@
     .sensitivity                = 0,\
     .vad_off_delay_ms           = 600,\
     .wakeup_time_ms             = 10000,\
+    .task_core                  = 1,\
+    .enable_wwe                 = true,\
     .open                       = NULL,\
     .fetch                      = NULL,\
     .close                      = NULL,\
@@ -161,6 +163,8 @@ typedef struct {
     int           wakeup_time_ms;             /*!< Time of wakeup */
     bool          support_encoding;           /*!< Support encoding data */
     const char   *extension;                  /*!< Encoding format."amr" or "amrwb" support */
+    int           task_core;                  /*!< Recorder task running in core (0 or 1) */
+    bool          enable_wwe;                 /*!< Enable Wake Word Engine or not */
     rec_open      open;                       /*!< Recorder open callback function */
     rec_fetch     fetch;                      /*!< Recorder fetch data callback function */
     rec_close     close;                      /*!< Recorder close callback function */
