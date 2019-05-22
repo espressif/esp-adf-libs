@@ -5,7 +5,7 @@
 COMPONENT_ADD_INCLUDEDIRS := include
 
 ifdef CONFIG_WAKEUP_WORD_HI_LEXIN
-    LIBS := vad esp_wakenet nn_model_hilexin_wn3
+    LIBS := vad esp_wakenet nn_model_hilexin_wn5
 endif
 ifdef CONFIG_WAKEUP_WORD_ALEXA
     LIBS := vad esp_wakenet nn_model_alexa_wn3

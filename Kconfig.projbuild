@@ -2,7 +2,7 @@ menu "Speech Recognition Configuration"
 
 choice SR_MODEL_SEL
     prompt "Speech recognition wake net to use"
-    default SR_MODEL_WN3_QUANT
+    default SR_MODEL_WN5_QUANT
     help
         Select the wake net to be used.
 
@@ -11,6 +11,9 @@ config SR_MODEL_WN3_QUANT
 
 config SR_MODEL_WN4_QUANT
     bool "WakeNet 4 (quantized)"
+
+config SR_MODEL_WN5_QUANT
+    bool "WakeNet 5 (quantized)"
 
 endchoice
 
@@ -22,11 +25,11 @@ choice NAME_OF_WAKEUP_WORD
 
 config WAKEUP_WORD_HI_LEXIN
     bool "Wakeup word is Hi Lexin"
-    depends on SR_MODEL_WN3_QUANT
+    depends on SR_MODEL_WN3_QUANT || SR_MODEL_WN5_QUANT
 
 config WAKEUP_WORD_ALEXA
     bool "Wakeup word is Alexa"
-    depends on SR_MODEL_WN3_QUANT
+    depends on SR_MODEL_WN3_QUANT || SR_MODEL_WN5_QUANT
 
 config WAKEUP_WORD_LIGHT_CONTROL_CH
     bool "Light control commands with Chinese"

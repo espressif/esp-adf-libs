@@ -109,7 +109,7 @@ void vad_destroy(vad_handle_t inst);
 */
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif //_ESP_VAD_H_

@@ -222,7 +222,7 @@ typedef struct {
 */
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif /* _ESP_SR_IFACE_H_ */

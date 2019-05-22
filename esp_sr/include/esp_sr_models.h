@@ -31,3 +31,5 @@
 
 extern const esp_sr_iface_t esp_sr_wakenet3_quantized;
 extern const esp_sr_iface_t esp_sr_wakenet4_quantized;
+extern const esp_sr_iface_t esp_sr_wakenet5_float;
+extern const esp_sr_iface_t esp_sr_wakenet5_quantized;
