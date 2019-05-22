@@ -17,7 +17,7 @@ COMPONENT_SRCDIRS := . esp_codec
 LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac recorder_engine esp_ssdp esp_upnp esp_dlna
 
 ifdef CONFIG_WAKEUP_WORD_HI_LEXIN
-    LIBS += vad esp_wakenet nn_model_hilexin_wn3
+    LIBS += vad esp_wakenet nn_model_hilexin_wn5
 endif
 ifdef CONFIG_WAKEUP_WORD_ALEXA
     LIBS += vad esp_wakenet nn_model_alexa_wn3
