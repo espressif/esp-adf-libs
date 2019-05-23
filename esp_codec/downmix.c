@@ -23,6 +23,9 @@ typedef struct {
     downmix_status_t status;
     int  ticks_to_wait;
     int  reset_flag;
+    int samplerate_new[2];
+    int channel_new[2];
+    int gain_new[4];
 } downmix_t;
 
 #ifdef DEBUG_DOWNMIX_ISSUE
@@ -71,12 +74,21 @@ static esp_err_t downmix_open(audio_element_handle_t self)
     downmix->inbuf0 = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
     downmix->inbuf1 = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
     downmix->outbuf = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
+    if(downmix->reset_flag){
+        downmix->downmix_info.channel[0] = downmix->channel_new[0];
+        downmix->downmix_info.channel[1] = downmix->channel_new[1]; 
+        downmix->downmix_info.samplerate[0] = downmix->samplerate_new[0];
+        downmix->downmix_info.samplerate[1] = downmix->samplerate_new[1];
+        downmix->downmix_info.gain[0] = downmix->gain_new[0];
+        downmix->downmix_info.gain[1] = downmix->gain_new[1];
+        downmix->downmix_info.gain[2] = downmix->gain_new[2];
+        downmix->downmix_info.gain[3] = downmix->gain_new[3];
+    }
     downmix->reset_flag = 0;
     if (is_valid_downmix_samplerate(downmix->downmix_info.samplerate) != ESP_OK
         || is_valid_downmix_channel(downmix->downmix_info.channel) != ESP_OK) {
         return ESP_FAIL;
     }
-    downmix->status = DOWNMIX_BYPASS;
     esp_downmix_info_t esp_downmix_info;
     esp_downmix_info.bits_num = 16;
     esp_downmix_info.channels[0] = downmix->downmix_info.channel[0];
@@ -147,30 +159,32 @@ static esp_err_t downmix_close(audio_element_handle_t self)
 
 static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
+    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
 #ifdef DEBUG_DOWNMIX_ISSUE
     loocpcm++;
-    if (loocpcm == 500) {
-        set_downmix_status(self, 1);
+    if (loocpcm == 50) {
+        downmix->status = 1;
     }
-    if (loocpcm == 10000) {
-        set_downmix_status(self, 2);
+    if (loocpcm == 100000) {
+        downmix->status = 2;
     }
 #endif
-    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
-    if (downmix->reset_flag == 1){
-        downmix_close(self);
-        downmix_open(self);
-        ESP_LOGW(TAG, "Reopen downmix");
-        return ESP_CODEC_ERR_CONTINUE;
-    }
-    if (is_valid_downmix_samplerate(downmix->downmix_info.samplerate) != ESP_OK
-        || is_valid_downmix_channel(downmix->downmix_info.channel) != ESP_OK) {
-        return ESP_FAIL;
-    }
     int r_size = DM_BUF_SIZE / 2;
     int ret = 0;
     int bytes_one = 0;
     int bytes_two = 0;
+    if (downmix->reset_flag == 1){
+        ret = downmix_close(self);
+        if (ret < 0) {
+            return ret;
+        }
+        ret = downmix_open(self);
+        if (ret < 0) {
+            return ret;
+        }
+        ESP_LOGW(TAG, "Reopen downmix");
+        return ESP_CODEC_ERR_CONTINUE;
+    }
     if (downmix->at_eof == 1) {
         ESP_LOGI(TAG, "downmix finished");
         return ESP_OK;
@@ -207,8 +221,8 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
         }
     }
     if (bytes_one > 0 || bytes_two > 0) {
-        ret = esp_downmix_process(downmix->downmix_handle, downmix->inbuf0, DM_BUF_SIZE,
-                                  downmix->inbuf1, DM_BUF_SIZE, downmix->outbuf, downmix->status);
+        ret = esp_downmix_process(downmix->downmix_handle, downmix->inbuf0, r_size * downmix->downmix_info.channel[0],
+                                  downmix->inbuf1, r_size * downmix->downmix_info.channel[1], downmix->outbuf, downmix->status);
         ret = audio_element_output(self, (char *)downmix->outbuf, ret);
     } else {
         ret = bytes_one > bytes_two ? bytes_two : bytes_one;
@@ -244,11 +258,10 @@ esp_err_t downmix_set_info(audio_element_handle_t self, int rate0, int ch0, int 
 
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
     downmix->reset_flag = 1;
-    downmix->downmix_info.samplerate[0] = rate0;
-    downmix->downmix_info.samplerate[1] = rate1;
-    downmix->downmix_info.channel[0] = ch0;
-    downmix->downmix_info.channel[1] = ch1;
-
+    downmix->samplerate_new[0] = rate0;
+    downmix->samplerate_new[1] = rate1;
+    downmix->channel_new[0] = ch0;
+    downmix->channel_new[1] = ch1;
     return ESP_OK;
 }
 
@@ -262,10 +275,10 @@ void downmix_set_gain_info(audio_element_handle_t self, float *gain)
             return ;
     }
     downmix->reset_flag = 1;
-    downmix->downmix_info.gain[0] = gain[0];
-    downmix->downmix_info.gain[1] = gain[1];
-    downmix->downmix_info.gain[2] = gain[2];
-    downmix->downmix_info.gain[3] = gain[3];
+    downmix->gain_new[0] = gain[0];
+    downmix->gain_new[1] = gain[1];
+    downmix->gain_new[2] = gain[2];
+    downmix->gain_new[3] = gain[3];
     return ;
 }
 
@@ -301,6 +314,16 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     audio_element_handle_t el = audio_element_init(&cfg);
     mem_assert(el);
     memcpy(downmix, config, sizeof(downmix_info_t));
+    downmix->channel_new[0] = downmix->downmix_info.channel[0];
+    downmix->channel_new[1] = downmix->downmix_info.channel[1];
+    downmix->samplerate_new[0] = downmix->downmix_info.samplerate[0];
+    downmix->samplerate_new[1] = downmix->downmix_info.samplerate[1];
+    downmix->gain_new[0] = downmix->downmix_info.gain[0];
+    downmix->gain_new[1] = downmix->downmix_info.gain[1];
+    downmix->gain_new[2] = downmix->downmix_info.gain[2];
+    downmix->gain_new[3] = downmix->downmix_info.gain[3];
+    downmix->reset_flag = 0;
+    downmix->status = DOWNMIX_BYPASS;
     audio_element_setdata(el, downmix);
     downmix->ticks_to_wait = 0;
     ESP_LOGD(TAG, "downmix_init");
