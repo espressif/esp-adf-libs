@@ -75,6 +75,7 @@ typedef struct {
     audio_element_handle_t          out_el;             /*!< Handle of the out stream */
     audio_element_handle_t          codec_el;           /*!< Handle of the codec */
     audio_element_handle_t          filter_el;          /*!< Handle of the filter */
+    esp_audio_state_t               st;                 /*!< The state of esp_audio */
 } esp_audio_info_t;
 
 /**
@@ -187,7 +188,8 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *     - Asynchronous interface
  *
  * @param handle The esp_audio_handle_t instance
- * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3",
+ * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3".
+ *               If NULL to be set, the uri setup by`esp_audio_setup` will used.
  * @param type   Specific handle type decoder or encoder
  * @param pos    Specific starting position by bytes
  *
