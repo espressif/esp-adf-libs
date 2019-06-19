@@ -14,7 +14,7 @@ COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
 
 COMPONENT_SRCDIRS := . esp_codec
 
-LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac recorder_engine esp_ssdp esp_upnp esp_dlna
+LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna
 
 ifdef CONFIG_WAKEUP_WORD_HI_LEXIN
     LIBS += vad esp_wakenet nn_model_hilexin_wn5
@@ -27,6 +27,18 @@ ifdef CONFIG_WAKEUP_WORD_LIGHT_CONTROL_CH
 endif
 ifdef CONFIG_WAKEUP_WORD_SPEECH_CMD_CH
     LIBS += vad esp_wakenet nn_model_speech_cmd_ch_wn4
+endif
+
+ifdef CONFIG_REC_ENG_ENABLE_VAD_ONLY
+ LIBS += recorder_engine_vad
+endif
+
+ifdef CONFIG_REC_ENG_ENABLE_VAD_WWE
+ LIBS += recorder_engine_vad_wwe
+endif
+
+ifdef CONFIG_REC_ENG_ENABLE_VAD_WWE_AMR
+ LIBS += recorder_engine
 endif
 
 COMPONENT_ADD_LDFLAGS +=  -L$(COMPONENT_PATH)/esp_audio/lib \
