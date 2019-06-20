@@ -73,8 +73,8 @@ esp_err_t sonic_set_info(audio_element_handle_t self, int rate, int ch);
 * @brief      Sets the audio pitch and speed to be processed by the sonic.
 *
 * @param      self       Audio element handle
-* @param      pitch      Scale factor of pitch of audio file. 0 means the original pitch.
-* @param      speed      Scale factor of speed of audio file. 0 means the original speed.
+* @param      pitch      Scale factor of pitch of audio file. 0 means the original pitch. The range is [0.2 4.0].
+* @param      speed      Scale factor of speed of audio file. 0 means the original speed. The range is [0.1 8.0].
 *
 * @return
 *             ESP_OK
