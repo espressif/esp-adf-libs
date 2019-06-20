@@ -59,18 +59,18 @@ static esp_err_t is_valid_sonic_channel(int channel)
 esp_err_t sonic_set_info(audio_element_handle_t self, int rate, int ch)
 {
     sonic_t *sonic = (sonic_t *)audio_element_getdata(self);
-    if (sonic->sonic_info.samplerate == rate
-        && sonic->sonic_info.channel == ch) {
+    if (sonic->samplerate == rate
+        && sonic->channel == ch) {
         return ESP_OK;
     }
     if (is_valid_sonic_samplerate(rate) != ESP_OK
         || is_valid_sonic_channel(ch) != ESP_OK) {
         return ESP_FAIL;
     } else {
-        sonic->sonic_info.samplerate = rate;
-        sonic->sonic_info.channel = ch;
+        sonic->samplerate = rate;
+        sonic->channel = ch;
         ESP_LOGI(TAG, "reset sample rate of stream data : %d, reset channel of stream data : %d",
-                 sonic->sonic_info.samplerate, sonic->sonic_info.channel);
+                 sonic->samplerate, sonic->channel);
     }
     return ESP_OK;
 }
@@ -79,31 +79,27 @@ esp_err_t sonic_set_pitch_and_speed_info(audio_element_handle_t self, float pitc
 {
     sonic_t *sonic = (sonic_t *)audio_element_getdata(self);
     if ((pitch - 0 < 0.0001)
-        && (speed - 0 < 0.0001)
-        && (sonic->sonic_info.pitch - pitch < 0.0001)
-        && (sonic->sonic_info.speed - speed < 0.0001)) {
+        && (speed - 0 < 0.0001)) {
         return ESP_OK;
     }
-    if (sonic->sonic_info.pitch - pitch < 0.0001){
-        if (pitch >= 0.1
-            && pitch <= 10){
-            sonic->sonic_info.pitch = pitch;
-            ESP_LOGI(TAG, "reset pitch of stream data : %.2f", sonic->sonic_info.pitch);
-        }else{
-            ESP_LOGD(TAG, "The pitch must be in [0.1 10],reset pitch of stream data : %.2f", pitch);
-            return ESP_FAIL;
-        } 
+
+    if ((pitch >= 0.2)
+        && (pitch <= 4.0)) {
+        sonic->pitch = pitch;
+    } else if ((pitch - 0) > 0.0001) {
+        ESP_LOGE(TAG, "The pitch must be in [0.2 4.0],reset pitch of stream data is  %.2f .", pitch);
+        return ESP_FAIL;
     }
-    if (sonic->sonic_info.speed - speed < 0.0001){
-        if (speed >= 0.1
-            && speed <= 10){
-            sonic->sonic_info.speed = speed;   
-            ESP_LOGI(TAG, "reset speed of stream data : %.2f", sonic->sonic_info.speed);
-        }else{
-            ESP_LOGD(TAG, "The speed must be in [0.1 10],reset speed of stream data : %.2f", speed);
-            return ESP_FAIL;
-        } 
-    }  
+
+    if ((speed >= 0.1)
+        && (speed <= 8.0)) {
+        sonic->speed = speed;       
+    } else if ((speed - 0) > 0.0001) {
+        ESP_LOGE(TAG, "The speed must be in [0.1 8.0],reset speed of stream data is  %.2f . ", speed);
+        return ESP_FAIL;
+    } 
+
+    ESP_LOGI(TAG, "The reset pitch and speed of stream data are  %.2f and %.2f respectively ", sonic->pitch, sonic->speed);
     return ESP_OK;
 }
 
@@ -136,18 +132,16 @@ static esp_err_t sonic_open(audio_element_handle_t self)
     sonic->quality = 0;
     sonic->volume = SONIC_SET_VALUE_FOR_INITIALIZATION;
     sonic->rate = SONIC_SET_VALUE_FOR_INITIALIZATION;
-    sonic->pitch = sonic->sonic_info.pitch;
-    sonic->speed = sonic->sonic_info.speed;
-    sonic->samplerate = sonic->sonic_info.samplerate;
-    sonic->channel = sonic->sonic_info.channel;
-    audio_element_info_t info = {0};
-    audio_element_getinfo(self, &info);
-    if (info.sample_rates && info.channels) {
-        sonic->sonic_info.samplerate = info.sample_rates;
-        sonic->sonic_info.channel = info.channels;
-    }
+    sonic->sonic_info.pitch = sonic->pitch;
+    sonic->sonic_info.speed = sonic->speed;
+    sonic->sonic_info.samplerate = sonic->samplerate;
+    sonic->sonic_info.channel = sonic->channel;
 
     sonic->sonic_handle = esp_sonic_create_stream(sonic->sonic_info.samplerate, sonic->sonic_info.channel);
+    if (sonic->sonic_handle == NULL){
+        ESP_LOGE(TAG, "The handle of sonic is NULL");
+        return ESP_FAIL;
+    }
     esp_sonic_set_resample_mode(sonic->sonic_handle, sonic->sonic_info.resample_linear_interpolate);
     esp_sonic_set_speed(sonic->sonic_handle, sonic->sonic_info.speed);
     esp_sonic_set_pitch(sonic->sonic_handle, sonic->sonic_info.pitch);
@@ -214,11 +208,11 @@ static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_le
 #ifdef DEBUG_SONIC_ENC_ISSUE
     samplesRead = fread(sonic->inbuf, sizeof(short), BUF_SIZE / sonic->sonic_info.channel, inone);
 #else
-    samplesRead = audio_element_input(self, (char *)sonic->inbuf, BUF_SIZE  * sizeof(short));
+    samplesRead = audio_element_input(self, (char *)sonic->inbuf, BUF_SIZE * sizeof(short));
 #endif
     if (samplesRead > 0) {
         samplesRead = samplesRead / (sonic->sonic_info.channel * sizeof(short));
-        esp_sonic_write_to_stream(sonic->sonic_handle, sonic->inbuf, samplesRead );
+        esp_sonic_write_to_stream(sonic->sonic_handle, sonic->inbuf, samplesRead);
         do {
             samplesWritten = esp_sonic_read_from_stream(sonic->sonic_handle, sonic->outbuf, BUF_SIZE / sonic->sonic_info.channel);
             if (samplesWritten > 0) {
@@ -230,7 +224,7 @@ static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_le
 #endif
             }
         } while (samplesWritten > 0);
-    }else{
+    } else {
         ret = samplesRead;
     }
 
@@ -254,7 +248,12 @@ audio_element_handle_t sonic_init(sonic_cfg_t *config)
     cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
     mem_assert(el);
-    memcpy(sonic, config, sizeof(sonic_info_t));
+    sonic->sonic_info = config->sonic_info;
+    sonic->pitch = sonic->sonic_info.pitch;
+    sonic->speed = sonic->sonic_info.speed;
+    sonic->samplerate = sonic->sonic_info.samplerate;
+    sonic->channel = sonic->sonic_info.channel;   
+    
     audio_element_setdata(el, sonic);
     audio_element_info_t info = {0};
     audio_element_setinfo(el, &info);
