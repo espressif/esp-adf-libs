@@ -10,11 +10,12 @@ COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
                                 esp_sr/include \
                                 esp_ssdp/include \
                                 esp_dlna/include \
-                                esp_upnp/include
+                                esp_upnp/include \
+                                esp_sip/include
 
 COMPONENT_SRCDIRS := . esp_codec
 
-LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna
+LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna esp_sip
 
 ifdef CONFIG_WAKEUP_WORD_HI_LEXIN
     LIBS += vad esp_wakenet nn_model_hilexin_wn5
@@ -48,6 +49,7 @@ COMPONENT_ADD_LDFLAGS +=  -L$(COMPONENT_PATH)/esp_audio/lib \
                           -L$(COMPONENT_PATH)/esp_ssdp/lib \
                           -L$(COMPONENT_PATH)/esp_upnp/lib \
                           -L$(COMPONENT_PATH)/esp_dlna/lib \
+                          -L$(COMPONENT_PATH)/esp_sip/lib \
                            $(addprefix -l,$(LIBS)) \
 
 ALL_LIB_FILES += $(patsubst %,$(COMPONENT_PATH)/%/lib/lib%.a,$(LIBS))

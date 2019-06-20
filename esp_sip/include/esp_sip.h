@@ -1,0 +1,205 @@
+/*
+ * ESPRESSIF MIT License
+ *
+ * Copyright (c) 2019 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ *
+ * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
+ * it is free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+
+#ifndef _ESP_SIP_H
+#define _ESP_SIP_H
+
+#include "esp_err.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct sip_* sip_handle_t;
+
+/**
+ * @brief SIP audio codec type
+ */
+typedef enum {
+    SIP_ACODEC_G711A,
+    SIP_ACODEC_G711U,
+} sip_audio_codec_t;
+
+/**
+ * @brief SIP session state
+ */
+typedef enum {
+    SIP_STATE_NONE          = 0x01,
+    SIP_STATE_CONNECTED     = 0x02,
+    SIP_STATE_REGISTERED    = 0x04,
+    SIP_STATE_CALLING       = 0x08,
+    SIP_STATE_RINGING       = 0x10,
+    SIP_STATE_ON_CALL       = 0x20,
+    SIP_STATE_CALL_OWNER    = 0x40,
+} sip_state_t;
+
+/**
+ * @brief SIP session event
+ */
+typedef enum {
+    SIP_EVENT_NONE = 0,
+    SIP_EVENT_REGISTERED,
+    SIP_EVENT_RINGING,
+    SIP_EVENT_INVITING,
+    SIP_EVENT_HANGUP,
+    SIP_EVENT_BUSY,
+    SIP_EVENT_UNREGISTERED,
+    SIP_EVENT_AUDIO_SESSION_BEGIN,
+    SIP_EVENT_READ_AUDIO_DATA,
+    SIP_EVENT_WRITE_AUDIO_DATA,
+    SIP_EVENT_AUDIO_SESSION_END,
+    SIP_EVENT_REQUEST_NETWORK_STATUS,
+    SIP_EVENT_REQUEST_NETWORK_IP,
+} sip_event_t;
+
+/**
+ * @brief SIP session event message
+ */
+typedef struct {
+    sip_event_t type;           /*!< SIP session event type */
+    void *data;                 /*!< RTP TX/RX data */
+    int data_len;               /*!< Length of rtp data */
+} sip_event_msg_t;
+
+typedef int (*sip_event_handle)(sip_event_msg_t *event);
+
+/**
+ * @brief SIP session configurations
+ */
+typedef struct {
+    sip_event_handle            event_handler;       /*!< SIP session event handler */
+    const char                  *uri;                /*!< udp://user:pass@server:port/path */
+    sip_audio_codec_t           acodec_type;         /*!< Audio codec type */
+} sip_config_t;
+
+/**
+ * @brief      Intialize SIP Service
+ *
+ * @param[in]  config   The SIP configuration
+ *
+ * @return     The sip handle
+ */
+sip_handle_t esp_sip_init(sip_config_t *config);
+
+/**
+ * @brief      Start sip task and register the device
+ *
+ * @param[in]  sip  The sip handle
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_start(sip_handle_t sip);
+
+/**
+ * @brief      Stop sip task
+ *
+ * @param[in]  sip  The sip handle
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_stop(sip_handle_t sip);
+
+/**
+ * @brief      Destroy SIP Service
+ *
+ * @param[in]  sip  The sip handle
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_destroy(sip_handle_t sip);
+
+/**
+ * @brief       Answer the sip Session
+ *
+ * @param[in]  sip      The sip handle
+ * @param[in]  accept   accept the session or not
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_uas_answer(sip_handle_t sip, bool accept);
+
+/**
+ * @brief      Initialize a sip session
+ *
+ * @param[in]  sip          The sip handle
+ * @param[in]  extension    Remote extension ID
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_uac_invite(sip_handle_t sip, const char *extension);
+
+/**
+ * @brief      Hang up
+ *
+ * @param[in]  sip  The sip handle
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_uac_bye(sip_handle_t sip);
+
+/**
+ * @brief      Cancel the sip session
+ *
+ * @param[in]  sip  The sip handle
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_uac_cancel(sip_handle_t sip);
+
+/**
+ * @brief      Get the current session state
+ *
+ * @param[in]  sip  The sip handle
+ *
+ * @return     SIP session state
+ */
+sip_state_t esp_sip_get_state(sip_handle_t sip);
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif
