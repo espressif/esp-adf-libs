@@ -6,6 +6,7 @@
 #include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
+#include "esp_downmix.h"
 #include "downmix.h"
 #include "audio_type_def.h"
 static const char *TAG = "DOWNMIX";
@@ -19,40 +20,36 @@ typedef struct {
     unsigned char *inbuf1;
     unsigned char *outbuf;
     void *downmix_handle;
-    int at_eof;
-    downmix_status_t status;
-    int  ticks_to_wait;
-    int  reset_flag;
-    int samplerate_new[2];
-    int channel_new[2];
-    int gain_new[4];
+    int ticks_to_wait;
+    int reset_flag;
 } downmix_t;
 
 #ifdef DEBUG_DOWNMIX_ISSUE
-static FILE *outone = NULL;
-static FILE *outtwo = NULL;
+static FILE *inputone = NULL;
+static FILE *inputtwo = NULL;
+static FILE *output = NULL;
+char *filein0 = NULL;
+char *filein1 = NULL;
+char *fileOut = NULL;
 int loocpcm = 0;
 #endif
 
 static esp_err_t is_valid_downmix_samplerate(int *samplerate)
 {
-    if ((samplerate[0] < 0 && samplerate[0] >= 100000)
-        || (samplerate[1] < 0 && samplerate[1] >= 100000)
+    if ((samplerate[0] < SAMPLERATE_MIN && samplerate[0] >= SAMPLERATE_MAX)
+        || (samplerate[1] < SAMPLERATE_MIN && samplerate[1] >= SAMPLERATE_MAX)
         || samplerate[0] != samplerate[1]) {
-        ESP_LOGE(TAG, "The samplerates are error");
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "The samplerates of stream are error. (line %d)", __LINE__);
+        return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
 }
 
 static esp_err_t is_valid_downmix_channel(int *channel)
 {
-    if (channel[0] != 1
-        && channel[0] != 2
-        && channel[1] != 1
-        && channel[1] != 2) {
-        ESP_LOGE(TAG, "The number of channels should be either 1 or 2");
-        return ESP_FAIL;
+    if ((channel[0] != 1 && channel[0] != 2) || (channel[1] != 1 && channel[1] != 2)) {
+        ESP_LOGE(TAG, "The number of channels should be either 1 or 2. (line %d)", __LINE__);
+        return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
 }
@@ -66,28 +63,59 @@ static esp_err_t downmix_destroy(audio_element_handle_t self)
 
 static esp_err_t downmix_open(audio_element_handle_t self)
 {
-#ifdef downmix_MEMORY_ANALYSIS
+#ifdef DOWNMIX_MEMORY_ANALYSIS
     AUDIO_MEM_SHOW(TAG);
 #endif
     ESP_LOGD(TAG, "downmix_open");
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+
     downmix->inbuf0 = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
-    downmix->inbuf1 = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
-    downmix->outbuf = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
-    if(downmix->reset_flag){
-        downmix->downmix_info.channel[0] = downmix->channel_new[0];
-        downmix->downmix_info.channel[1] = downmix->channel_new[1]; 
-        downmix->downmix_info.samplerate[0] = downmix->samplerate_new[0];
-        downmix->downmix_info.samplerate[1] = downmix->samplerate_new[1];
-        downmix->downmix_info.gain[0] = downmix->gain_new[0];
-        downmix->downmix_info.gain[1] = downmix->gain_new[1];
-        downmix->downmix_info.gain[2] = downmix->gain_new[2];
-        downmix->downmix_info.gain[3] = downmix->gain_new[3];
+    if (downmix->inbuf0 == NULL) {
+        ESP_LOGE(TAG, "Failed to audio_calloc of downmix->inbuf0. (line %d)", __LINE__);
+        return ESP_ERR_NO_MEM;
     }
+    downmix->inbuf1 = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
+    if (downmix->inbuf1 == NULL) {
+        ESP_LOGE(TAG, "Failed to audio_calloc of downmix->inbuf1. (line %d)", __LINE__);
+        return ESP_ERR_NO_MEM;
+    }
+    downmix->outbuf = (unsigned char *)audio_calloc(1, DM_BUF_SIZE);
+    if (downmix->outbuf == NULL) {
+        ESP_LOGE(TAG, "Failed to audio_calloc of downmix->outbuf. (line %d)", __LINE__);
+        return ESP_ERR_NO_MEM;
+    }
+
     downmix->reset_flag = 0;
     if (is_valid_downmix_samplerate(downmix->downmix_info.samplerate) != ESP_OK
         || is_valid_downmix_channel(downmix->downmix_info.channel) != ESP_OK) {
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;
+    }
+    if ((downmix->downmix_info.gain[0] < GAIN_MIN || downmix->downmix_info.gain[0] > GAIN_MAX)
+        || (downmix->downmix_info.gain[1] < GAIN_MIN || downmix->downmix_info.gain[1] > GAIN_MAX)
+        || (downmix->downmix_info.gain[2] < GAIN_MIN || downmix->downmix_info.gain[2] > GAIN_MAX)
+        || (downmix->downmix_info.gain[3] < GAIN_MIN || downmix->downmix_info.gain[3] > GAIN_MAX)) {
+        ESP_LOGE(TAG, "The gain is out (%d, %d) range", GAIN_MIN, GAIN_MAX);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if ((downmix->downmix_info.transform_time[0] < 0 || downmix->downmix_info.transform_time[1] < 0)) {
+        ESP_LOGE(TAG, "The transform_time must be equal or gather than zero (%d, %d)",
+                 downmix->downmix_info.transform_time[0], downmix->downmix_info.transform_time[1]);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (downmix->downmix_info.play_status >= DOWNMIX_PLAY_STATUS_MAX) {
+        ESP_LOGE(TAG, "The downmix play status is more than DOWNMIX_PLAY_STATUS_MAX, %d",
+                 downmix->downmix_info.play_status);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (downmix->downmix_info.output_status >= ESP_DOWNMIX_TYPE_OUTPUT_MAX) {
+        ESP_LOGE(TAG, "The downmix play status is more than ESP_DOWNMIX_TYPE_OUTPUT_MAX, %d",
+                 downmix->downmix_info.output_status);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (downmix->downmix_info.dual_two_mono_select >= SELECT_CHANNEL_MAX) {
+        ESP_LOGE(TAG, "The downmix dual_two_mono_select is more than SELECT_CHANNEL_MAX, %d",
+                 downmix->downmix_info.dual_two_mono_select);
+        return ESP_ERR_INVALID_ARG;
     }
     esp_downmix_info_t esp_downmix_info;
     esp_downmix_info.bits_num = 16;
@@ -101,24 +129,34 @@ static esp_err_t downmix_open(audio_element_handle_t self)
     esp_downmix_info.downmix_gain[1].set_dbgain[0] = (float)downmix->downmix_info.gain[2];
     esp_downmix_info.downmix_gain[1].set_dbgain[1] = (float)downmix->downmix_info.gain[3];
     esp_downmix_info.dual_2_mono_select_ch = downmix->downmix_info.dual_two_mono_select;
+    esp_downmix_info.output_status = downmix->downmix_info.output_status;
 
     downmix->downmix_handle = esp_downmix_open(&esp_downmix_info);
     if (downmix->downmix_handle == NULL) {
-        ESP_LOGE(TAG, "Failed to do downmix initialization");
+        ESP_LOGE(TAG, "Failed to do downmix initialization, (line %d)", __LINE__);
         return ESP_FAIL;
     }
 
 #ifdef DEBUG_DOWNMIX_ISSUE
-    char fileName1[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '1', '.', 'p', 'c', 'm', '\0'};
-    outone = fopen(fileName1, "rb");
-    if (!outone) {
-        perror(fileName1);
+    loocpcm = 0;
+    //char fNameIn0[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '1', '.', 'p', 'c', 'm', '\0'};
+    inputone = fopen(filein0, "rb");
+    if (!inputone) {
+        perror(filein0);
         return ESP_FAIL;
     }
-    char fileName[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '2', '.', 'p', 'c', 'm', '\0'};
-    outtwo = fopen(fileName, "rb");
-    if (!outtwo) {
-        perror(fileName);
+    if (filein1 != NULL) {
+        //char fNameIn1[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '2', '.', 'p', 'c', 'm', '\0'};
+        inputtwo = fopen(filein1, "rb");
+        if (!inputtwo) {
+            perror(filein1);
+            return ESP_FAIL;
+        }
+    }
+
+    output = fopen(fileOut, "wb");
+    if (!output) {
+        perror(fileOut);
         return ESP_FAIL;
     }
 #endif
@@ -141,17 +179,19 @@ static esp_err_t downmix_close(audio_element_handle_t self)
     if (downmix->outbuf != NULL) {
         audio_free(downmix->outbuf);
     }
-#ifdef downmix_MEMORY_ANALYSIS
+#ifdef DOWNMIX_MEMORY_ANALYSIS
     AUDIO_MEM_SHOW(TAG);
 #endif
 #ifdef DEBUG_DOWNMIX_ISSUE
-    if (outone != NULL) {
-        fclose(outone);
+    if (inputone != NULL) {
+        fclose(inputone);
     }
-    if (outtwo != NULL) {
-        fclose(outtwo);
+    if (inputtwo != NULL) {
+        fclose(inputtwo);
     }
-
+    if (output != NULL) {
+        fclose(output);
+    }
 #endif
 
     return ESP_OK;
@@ -160,20 +200,24 @@ static esp_err_t downmix_close(audio_element_handle_t self)
 static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "downmix is NULL(line %d)", __LINE__);
+        return ESP_FAIL;
+    }
 #ifdef DEBUG_DOWNMIX_ISSUE
     loocpcm++;
-    if (loocpcm == 50) {
-        downmix->status = 1;
+    if (loocpcm == 5) {
+        downmix->downmix_info.play_status = DOWNMIX_SWITCH_ON;
     }
-    if (loocpcm == 100000) {
-        downmix->status = 2;
+    if (loocpcm == 1000) {
+        downmix->downmix_info.play_status = DOWNMIX_SWITCH_OFF;
     }
 #endif
     int r_size = DM_BUF_SIZE / 2;
     int ret = 0;
     int bytes_one = 0;
     int bytes_two = 0;
-    if (downmix->reset_flag == 1){
+    if (downmix->reset_flag == 1) {
         ret = downmix_close(self);
         if (ret < 0) {
             return ret;
@@ -185,45 +229,48 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
         ESP_LOGW(TAG, "Reopen downmix");
         return ESP_CODEC_ERR_CONTINUE;
     }
-    if (downmix->at_eof == 1) {
-        ESP_LOGI(TAG, "downmix finished");
-        return ESP_OK;
-    }
-    if (downmix->at_eof == 0) {
 #ifdef DEBUG_DOWNMIX_ISSUE
-        bytes_one = fread((char *)downmix->inbuf0, 1, r_size * downmix->downmix_info.channel[0], outone);
-        bytes_two = fread((char *)downmix->inbuf1, 1, r_size * downmix->downmix_info.channel[1], outtwo);
+    bytes_one = fread((char *)downmix->inbuf0, 1, r_size * downmix->downmix_info.channel[0], inputone);
+    if (inputtwo != NULL) {
+        bytes_two = fread((char *)downmix->inbuf1, 1, r_size * downmix->downmix_info.channel[1], inputtwo);
+    }
 #else
-        bytes_one = audio_element_input(self, (char *)downmix->inbuf0,
-                                        r_size * downmix->downmix_info.channel[0]);
-        bytes_two = audio_element_multi_input(self, (char *)downmix->inbuf1,
-                                              r_size * downmix->downmix_info.channel[1], 0, downmix->ticks_to_wait);
-        ESP_LOGD("TAG", "two:%d, one:%d", bytes_two, bytes_one);
+    bytes_one = audio_element_input(self, (char *)downmix->inbuf0, r_size * downmix->downmix_info.channel[0]);
+    bytes_two = audio_element_multi_input(self, (char *)downmix->inbuf1, r_size * downmix->downmix_info.channel[1], 0, downmix->ticks_to_wait);
+
+    ESP_LOGD("TAG", "two:%d, one:%d", bytes_two, bytes_one);
 #endif
-        // if buf0 done, until buf1 done or fail, downmix can be exit.
-        if (bytes_one < 0 ) {
-            if (bytes_two > 0) {
-                memset(downmix->inbuf0, 0, bytes_one);
-            } else {
-                downmix->at_eof = 1;
-            }
+    // if buf0 done, until buf1 done or fail, downmix can be exit.
+    if (bytes_one < 0) {
+        if (bytes_two > 0) {
+            memset(downmix->inbuf0, 0, DM_BUF_SIZE);
+        } else {
+            ESP_LOGI(TAG, "downmix finished");
+            return ESP_OK;
         }
-        // If buf1 done, change the downmix status to `DOWNMIX_SWITCH_OFF`
-        // And set timeout of buf1 ringbuffer is `0`
-        if (bytes_two != r_size * downmix->downmix_info.channel[1]) {
-            if ((bytes_two == AEL_IO_TIMEOUT)
-                && (0 == downmix->ticks_to_wait)) {
-                memset(downmix->inbuf1, 0, DM_BUF_SIZE);
-            } else {
-                downmix_set_status(self, DOWNMIX_SWITCH_OFF);
-                downmix_set_second_input_rb_timeout(self, 0);
-            }
+    }
+    // If buf1 done, change the downmix status to `DOWNMIX_SWITCH_OFF`
+    // And set timeout of buf1 ringbuffer is `0`
+    if (bytes_two != r_size * downmix->downmix_info.channel[1]) {
+        if ((bytes_two == AEL_IO_TIMEOUT) && (0 == downmix->ticks_to_wait)) {
+            memset(downmix->inbuf1, 0, DM_BUF_SIZE);
+        } else {
+            downmix->downmix_info.play_status = DOWNMIX_SWITCH_OFF;
+            downmix_set_second_input_rb_timeout(self, 0);
         }
     }
     if (bytes_one > 0 || bytes_two > 0) {
-        ret = esp_downmix_process(downmix->downmix_handle, downmix->inbuf0, r_size * downmix->downmix_info.channel[0],
-                                  downmix->inbuf1, r_size * downmix->downmix_info.channel[1], downmix->outbuf, downmix->status);
+        ret = esp_downmix_process(downmix->downmix_handle, downmix->inbuf0, r_size,
+                                  downmix->inbuf1, r_size, downmix->outbuf, downmix->downmix_info.play_status);
+#ifdef DEBUG_DOWNMIX_ISSUE
+        ret = fwrite((char *)downmix->outbuf, 1, ret, output);
+        if (loocpcm == 10) {
+            printf("inputpcm0:%d byte  inputpcm1: %d byte outputpcm: %d byte\n",
+                   r_size * downmix->downmix_info.channel[0], r_size * downmix->downmix_info.channel[1], ret);
+        }
+#else
         ret = audio_element_output(self, (char *)downmix->outbuf, ret);
+#endif
     } else {
         ret = bytes_one > bytes_two ? bytes_two : bytes_one;
     }
@@ -241,58 +288,127 @@ void downmix_set_second_input_rb(audio_element_handle_t self, ringbuf_handle_t r
     audio_element_set_multi_input_ringbuf(self, rb, 0);
 }
 
-void downmix_set_status(audio_element_handle_t self, downmix_status_t status_value)
+esp_err_t downmix_set_play_status(audio_element_handle_t self, downmix_play_status_t status_value)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
-    downmix->status = status_value;
-}
-
-esp_err_t downmix_set_info(audio_element_handle_t self, int rate0, int ch0, int rate1, int ch1)
-{
-    int samplerate[2] = {rate0, rate1};
-    int channel[2] = {ch0, ch1};
-    if (is_valid_downmix_samplerate(samplerate) != ESP_OK
-        || is_valid_downmix_channel(channel) != ESP_OK) {
-        return ESP_FAIL;
+    if (downmix->downmix_info.play_status == status_value) {
+        return ESP_OK;
     }
-
-    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (status_value >= DOWNMIX_PLAY_STATUS_MAX) {
+        ESP_LOGE(TAG, "The set downmix play status is more than DOWNMIX_PLAY_STATUS_MAX, %d", status_value);
+        return ESP_ERR_INVALID_ARG;
+    }
+    downmix->downmix_info.play_status = status_value;
     downmix->reset_flag = 1;
-    downmix->samplerate_new[0] = rate0;
-    downmix->samplerate_new[1] = rate1;
-    downmix->channel_new[0] = ch0;
-    downmix->channel_new[1] = ch1;
     return ESP_OK;
 }
 
-void downmix_set_gain_info(audio_element_handle_t self, float *gain)
+esp_err_t downmix_set_output_status(audio_element_handle_t self, downmix_source_info_t status_value)
+{
+    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix->downmix_info.output_status == status_value) {
+        return ESP_OK;
+    }
+    if (status_value >= ESP_DOWNMIX_TYPE_OUTPUT_MAX) {
+        ESP_LOGE(TAG, "The set downmix output status is more than ESP_DOWNMIX_TYPE_OUTPUT_MAX, %d",
+                 status_value);
+        return ESP_ERR_INVALID_ARG;
+    }
+    downmix->downmix_info.output_status = status_value;
+    downmix->reset_flag = 1;
+    return ESP_OK;
+}
+
+esp_err_t downmix_set_dual_two_mono_select_info(audio_element_handle_t self,
+        int dual_two_mono_select)
+{
+    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix->downmix_info.dual_two_mono_select == dual_two_mono_select) {
+        return ESP_OK;
+    }
+    if (dual_two_mono_select >= SELECT_CHANNEL_MAX) {
+        ESP_LOGE(TAG, "The set downmix dual_two_mono_select is more than SELECT_CHANNEL_MAX, %d",
+                 dual_two_mono_select);
+        return ESP_ERR_INVALID_ARG;
+    }
+    downmix->downmix_info.dual_two_mono_select = dual_two_mono_select;
+    downmix->reset_flag = 1;
+    return ESP_OK;
+}
+
+esp_err_t downmix_set_base_file_info(audio_element_handle_t self, int rate, int ch)
+{
+    int samplerate[2] = {rate, 44100};
+    int channel[2] = {ch, 1};
+    if (is_valid_downmix_samplerate(samplerate) != ESP_OK
+        || is_valid_downmix_channel(channel) != ESP_OK) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    downmix->reset_flag = 1;
+    downmix->downmix_info.samplerate[0] = rate;
+    downmix->downmix_info.channel[0] = ch;
+    return ESP_OK;
+}
+
+esp_err_t downmix_set_newcome_file_info(audio_element_handle_t self, int rate, int ch)
+{
+    int samplerate[2] = {44100, rate};
+    int channel[2] = {1, ch};
+    if (is_valid_downmix_samplerate(samplerate) != ESP_OK
+        || is_valid_downmix_channel(channel) != ESP_OK) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    downmix->reset_flag = 1;
+    downmix->downmix_info.samplerate[1] = rate;
+    downmix->downmix_info.channel[1] = ch;
+    return ESP_OK;
+}
+
+esp_err_t downmix_set_gain_info(audio_element_handle_t self, float *gain)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
     if ((downmix->downmix_info.gain[0] - gain[0] < 0.01)
+        && (downmix->downmix_info.gain[0] - gain[0] > 0.01)
         && (downmix->downmix_info.gain[1] - gain[1] < 0.01)
+        && (downmix->downmix_info.gain[1] - gain[1] > 0.01)
         && (downmix->downmix_info.gain[2] - gain[2] < 0.01)
-        && (downmix->downmix_info.gain[3] - gain[3] < 0.01)) {
-            return ;
+        && (downmix->downmix_info.gain[2] - gain[2] > 0.01)
+        && (downmix->downmix_info.gain[3] - gain[3] < 0.01)
+        && (downmix->downmix_info.gain[3] - gain[3] > 0.01)) {
+        return ESP_OK;
+    }
+    if ((gain[0] < GAIN_MIN || gain[0] > GAIN_MAX) || (gain[1] < GAIN_MIN || gain[1] > GAIN_MAX)
+        || (gain[2] < GAIN_MIN || gain[2] > GAIN_MAX) || (gain[3] < GAIN_MIN || gain[3] > GAIN_MAX)) {
+        ESP_LOGE(TAG, "The set gain set is more than gain range (%d, %d)", GAIN_MIN, GAIN_MAX);
+        return ESP_ERR_INVALID_ARG;
     }
     downmix->reset_flag = 1;
-    downmix->gain_new[0] = gain[0];
-    downmix->gain_new[1] = gain[1];
-    downmix->gain_new[2] = gain[2];
-    downmix->gain_new[3] = gain[3];
-    return ;
+    downmix->downmix_info.gain[0] = gain[0];
+    downmix->downmix_info.gain[1] = gain[1];
+    downmix->downmix_info.gain[2] = gain[2];
+    downmix->downmix_info.gain[3] = gain[3];
+    return ESP_OK;
 }
 
-void downmix_set_transform_time_info(audio_element_handle_t self, int *transform_time)
+esp_err_t downmix_set_transform_time_info(audio_element_handle_t self, int *transform_time)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
     if ((downmix->downmix_info.transform_time[0] == transform_time[0])
-        && (downmix->downmix_info.transform_time[1] == transform_time[1])){
-            return ;
+        && (downmix->downmix_info.transform_time[1] == transform_time[1])) {
+        return ESP_OK;
+    }
+
+    if ((transform_time[0] < 0 || transform_time[1] < 0)) {
+        ESP_LOGE(TAG, "The set transform_time must be equal or gather than zero (%d, %d)", transform_time[0],
+                 transform_time[1]);
+        return ESP_FAIL;
     }
     downmix->reset_flag = 1;
     downmix->downmix_info.transform_time[0] = transform_time[0];
     downmix->downmix_info.transform_time[1] = transform_time[1];
-    return ;
+    return ESP_OK;
 }
 
 audio_element_handle_t downmix_init(downmix_cfg_t *config)
@@ -314,16 +430,7 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     audio_element_handle_t el = audio_element_init(&cfg);
     mem_assert(el);
     memcpy(downmix, config, sizeof(downmix_info_t));
-    downmix->channel_new[0] = downmix->downmix_info.channel[0];
-    downmix->channel_new[1] = downmix->downmix_info.channel[1];
-    downmix->samplerate_new[0] = downmix->downmix_info.samplerate[0];
-    downmix->samplerate_new[1] = downmix->downmix_info.samplerate[1];
-    downmix->gain_new[0] = downmix->downmix_info.gain[0];
-    downmix->gain_new[1] = downmix->downmix_info.gain[1];
-    downmix->gain_new[2] = downmix->downmix_info.gain[2];
-    downmix->gain_new[3] = downmix->downmix_info.gain[3];
     downmix->reset_flag = 0;
-    downmix->status = DOWNMIX_BYPASS;
     audio_element_setdata(el, downmix);
     downmix->ticks_to_wait = 0;
     ESP_LOGD(TAG, "downmix_init");
