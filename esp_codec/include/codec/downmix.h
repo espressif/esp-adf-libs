@@ -115,8 +115,8 @@ esp_err_t downmix_set_play_status(audio_element_handle_t self, downmix_play_stat
 /**
 * @brief      Passes the downmix dual_two_mono_select status.
 *
-* @param      self               audio element handle
-* @param      status_value       the value of the downmix dual_two_mono_select status.
+* @param      self                       audio element handle
+* @param      dual_two_mono_select       the value of the downmix dual_two_mono_select status.
 *
 * @return
 *             ESP_OK
