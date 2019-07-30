@@ -396,4 +396,16 @@ audio_err_t esp_audio_info_get(esp_audio_handle_t handle, esp_audio_info_t *info
  */
 audio_err_t esp_audio_info_set(esp_audio_handle_t handle, esp_audio_info_t *info);
 
+/* @brief Set esp_audio event callback.
+ *
+ * @param[in] handle    The esp_audio instance
+ * @param[in] cb        A pointer to esp_audio_event_callback
+ * @param[in] cb_ctx    The context of callback
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_callback_set(esp_audio_handle_t handle, esp_audio_event_callback cb, void *cb_ctx);
+
 #endif
