@@ -31,9 +31,8 @@ extern "C" {
 #endif
 
 /**
- * @brief      This function accepts an 13-bit signed integer and encodes it as A-law data
- *             stored in a unsigned char. it should only be called with the data shifted
- *             such that it only contains information in the lower 13-bits.
+ * @brief      This function accepts an 16-bit signed integer and encodes it as A-law data
+ *             stored in a unsigned char.
  *
  * @param[in]  pcm_val   16-bits pcm
  *
@@ -51,9 +50,8 @@ unsigned char esp_g711a_encode(int16_t pcm_val);
 int16_t esp_g711a_decode(unsigned char pcm_val);
 
 /**
- * @brief      This function accepts a 14-bit signed integer and encodes it as u-law data
- *             stored in a unsigned char. it should only be called with the data shifted
- *             such that it only contains information in the lower 14-bits.
+ * @brief      This function accepts a 16-bit signed integer and encodes it as u-law data
+ *             stored in a unsigned char.
  *
  * @param[in]  pcm_val   16-bits pcm
  *
