@@ -45,10 +45,11 @@ typedef enum {
  * @brief SIP session state
  */
 typedef enum {
-    SIP_STATE_NONE          = 0x01,
-    SIP_STATE_CONNECTED     = 0x02,
-    SIP_STATE_REGISTERED    = 0x04,
-    SIP_STATE_CALLING       = 0x08,
+    SIP_STATE_NONE          = 0x00,
+    SIP_STATE_CONNECTED     = 0x01,
+    SIP_STATE_REGISTERED    = 0x02,
+    SIP_STATE_CALLING       = 0x04,
+    SIP_STATE_SESS_PROGRESS = 0x08,
     SIP_STATE_RINGING       = 0x10,
     SIP_STATE_ON_CALL       = 0x20,
     SIP_STATE_CALL_OWNER    = 0x40,
@@ -71,6 +72,7 @@ typedef enum {
     SIP_EVENT_AUDIO_SESSION_END,
     SIP_EVENT_REQUEST_NETWORK_STATUS,
     SIP_EVENT_REQUEST_NETWORK_IP,
+    SIP_EVENT_READ_DTMF,
 } sip_event_t;
 
 /**
@@ -89,7 +91,10 @@ typedef int (*sip_event_handle)(sip_event_msg_t *event);
  */
 typedef struct {
     sip_event_handle            event_handler;       /*!< SIP session event handler */
-    const char                  *uri;                /*!< udp://user:pass@server:port/path */
+    const char                  *uri;                /*!< Transport://user:pass@server:port/path */
+    const char                  *cert_pem;           /*!< SSL server certification, PEM format as string, if the client requires to verify server */
+    const char                  *client_cert_pem;    /*!< SSL client certification, PEM format as string, if the server requires to verify client */
+    const char                  *client_key_pem;     /*!< SSL client key, PEM format as string, if the server requires to verify client */
     sip_audio_codec_t           acodec_type;         /*!< Audio codec type */
 } sip_config_t;
 
@@ -196,6 +201,19 @@ esp_err_t esp_sip_uac_cancel(sip_handle_t sip);
  * @return     SIP session state
  */
 sip_state_t esp_sip_get_state(sip_handle_t sip);
+
+/**
+ * @brief      Send DTMF event ( Only support out band method (RFC2833) )
+ *
+ * @param[in]  sip          The sip handle
+ * @param[in]  dtmf_event   DTMF event ID (0-15)
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_send_dtmf(sip_handle_t sip, const uint8_t dtmf_event);
 
 #ifdef __cplusplus
 }
