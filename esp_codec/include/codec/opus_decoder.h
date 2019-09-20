@@ -15,7 +15,7 @@ extern "C" {
 #define OPUS_DECODER_TASK_STACK_SIZE     (30 * 1024)
 #define OPUS_DECODER_TASK_CORE           (0)
 #define OPUS_DECODER_TASK_PRIO           (5)
-#define OPUS_DECODER_RINGBUFFER_SIZE     (8 * 1024)
+#define OPUS_DECODER_RINGBUFFER_SIZE     (2 * 1024)
 
 #define DEFAULT_OPUS_DECODER_CONFIG() {\
     .out_rb_size        = OPUS_DECODER_RINGBUFFER_SIZE,\

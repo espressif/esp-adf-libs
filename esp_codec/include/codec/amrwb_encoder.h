@@ -14,7 +14,7 @@ extern "C" {
 #define AMRWB_ENCODER_TASK_STACK          (15 * 1024)
 #define AMRWB_ENCODER_TASK_CORE           (0)
 #define AMRWB_ENCODER_TASK_PRIO           (5)
-#define AMRWB_ENCODER_RINGBUFFER_SIZE     (8 * 1024)
+#define AMRWB_ENCODER_RINGBUFFER_SIZE     (2 * 1024)
 
 #define DEFAULT_AMRWB_ENCODER_CONFIG() {\
         .out_rb_size        = AMRWB_ENCODER_RINGBUFFER_SIZE,\

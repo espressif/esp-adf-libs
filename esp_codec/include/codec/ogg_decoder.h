@@ -14,7 +14,7 @@ extern "C" {
 #define OGG_DECODER_TASK_STACK_SIZE     (10 * 1024)
 #define OGG_DECODER_TASK_CORE           (0)
 #define OGG_DECODER_TASK_PRIO           (5)
-#define OGG_DECODER_RINGBUFFER_SIZE     (8 * 1024)
+#define OGG_DECODER_RINGBUFFER_SIZE     (2 * 1024)
 
 #define DEFAULT_OGG_DECODER_CONFIG() {\
     .out_rb_size        = OGG_DECODER_RINGBUFFER_SIZE,\

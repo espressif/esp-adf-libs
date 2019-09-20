@@ -14,7 +14,7 @@ extern "C" {
 #define FLAC_DECODER_TASK_STACK_SIZE     (10 * 1024)
 #define FLAC_DECODER_TASK_CORE           (0)
 #define FLAC_DECODER_TASK_PRIO           (5)
-#define FLAC_DECODER_RINGBUFFER_SIZE     (8 * 1024)
+#define FLAC_DECODER_RINGBUFFER_SIZE     (2 * 1024)
 
 #define DEFAULT_FLAC_DECODER_CONFIG() {\
     .out_rb_size        = FLAC_DECODER_RINGBUFFER_SIZE,\
