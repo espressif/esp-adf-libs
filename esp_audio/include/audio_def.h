@@ -8,7 +8,7 @@
 
 #define ESP_ERR_AUDIO_BASE                  (0x80000 + 0x1000) /*!< Starting number of ESP audio error codes */
 
-typedef enum audio_err_t {
+typedef enum {
     ESP_ERR_AUDIO_NO_ERROR                  = ESP_OK,
     ESP_ERR_AUDIO_FAIL                      = ESP_FAIL,
 
@@ -37,7 +37,7 @@ typedef enum audio_err_t {
 
 } audio_err_t;
 
-typedef enum esp_audio_status_t {
+typedef enum {
     AUDIO_STATUS_UNKNOWN    = 0,
     AUDIO_STATUS_RUNNING    = 1,
     AUDIO_STATUS_PAUSED     = 2,
