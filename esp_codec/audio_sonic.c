@@ -42,7 +42,7 @@ static esp_err_t is_valid_sonic_samplerate(int samplerate)
     if (samplerate < 8000
         || samplerate > 48000) {
         ESP_LOGE(TAG, "The sample rate should be within range [8000,48000], here is %d Hz", samplerate);
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
 }
@@ -51,7 +51,7 @@ static esp_err_t is_valid_sonic_channel(int channel)
 {
     if (channel != 1 && channel != 2) {
         ESP_LOGE(TAG, "The number of channels should be either 1 or 2, here is %d", channel);
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;;
     }
     return ESP_OK;
 }
@@ -65,7 +65,7 @@ esp_err_t sonic_set_info(audio_element_handle_t self, int rate, int ch)
     }
     if (is_valid_sonic_samplerate(rate) != ESP_OK
         || is_valid_sonic_channel(ch) != ESP_OK) {
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;;
     } else {
         sonic->samplerate = rate;
         sonic->channel = ch;
@@ -88,7 +88,7 @@ esp_err_t sonic_set_pitch_and_speed_info(audio_element_handle_t self, float pitc
         sonic->pitch = pitch;
     } else if ((pitch - 0) > 0.0001) {
         ESP_LOGE(TAG, "The pitch must be in [0.2 4.0],reset pitch of stream data is  %.2f .", pitch);
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;;
     }
 
     if ((speed >= 0.1)
@@ -96,7 +96,7 @@ esp_err_t sonic_set_pitch_and_speed_info(audio_element_handle_t self, float pitc
         sonic->speed = speed;       
     } else if ((speed - 0) > 0.0001) {
         ESP_LOGE(TAG, "The speed must be in [0.1 8.0],reset speed of stream data is  %.2f . ", speed);
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;;
     } 
 
     ESP_LOGI(TAG, "The reset pitch and speed of stream data are  %.2f and %.2f respectively ", sonic->pitch, sonic->speed);
@@ -120,12 +120,12 @@ static esp_err_t sonic_open(audio_element_handle_t self)
     sonic->inbuf = (short *)calloc(sizeof(short), BUF_SIZE);
     if (sonic->inbuf == NULL) {
         ESP_LOGE(TAG, "Failed to allocate input buffer");
-        return ESP_FAIL;
+        return ESP_ERR_NO_MEM;
     }
     sonic->outbuf = (short *)calloc(sizeof(short), BUF_SIZE);
-    if (sonic->inbuf == NULL) {
+    if (sonic->outbuf == NULL) {
         ESP_LOGE(TAG, "Failed to allocate output buffer");
-        return ESP_FAIL;
+        return ESP_ERR_NO_MEM;
     }
     sonic->emulate_chord_pitch = 0;
     sonic->enable_nonlinear_speedup = 0;
@@ -176,9 +176,11 @@ static esp_err_t sonic_close(audio_element_handle_t self)
     }
     if (sonic->inbuf != NULL) {
         audio_free(sonic->inbuf);
+        sonic->inbuf = NULL;
     }
     if (sonic->outbuf != NULL) {
         audio_free(sonic->outbuf);
+        sonic->outbuf = NULL;
     }
 #ifdef SONIC_MEMORY_ANALYSIS
     AUDIO_MEM_SHOW(TAG);
@@ -193,15 +195,21 @@ static esp_err_t sonic_close(audio_element_handle_t self)
 static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     sonic_t *sonic = (sonic_t *)audio_element_getdata(self);
+    int ret = 1;
     if ((sonic->samplerate != sonic->sonic_info.samplerate)
         || (sonic->channel != sonic->sonic_info.channel)
         || (sonic->pitch != sonic->sonic_info.pitch)
         || (sonic->speed != sonic->sonic_info.speed)){
-        sonic_close(self);
+        ret = sonic_close(self);
+        if (ret != ESP_OK) {
+            return AEL_PROCESS_FAIL;
+        }
         sonic_open(self);
+        if (ret != ESP_OK) {
+            return AEL_PROCESS_FAIL;
+        }
         return ESP_CODEC_ERR_CONTINUE;
     }
-    int ret = 1;
     int samplesRead = 0;
     int samplesWritten = 0;
     int out_buffer_len = 0;
@@ -233,8 +241,15 @@ static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_le
 
 audio_element_handle_t sonic_init(sonic_cfg_t *config)
 {
+    if (config == NULL) {
+        ESP_LOGE(TAG, "config is NULL. (line %d)", __LINE__);
+        return NULL;
+    }
     sonic_t *sonic = audio_calloc(1, sizeof(sonic_t));
-    mem_assert(sonic);
+    if(sonic == NULL){
+        ESP_LOGE(TAG, "audio_calloc failed for sonic. (line %d)", __LINE__);
+        return NULL;
+    }
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = sonic_destroy;
     cfg.process = sonic_process;
@@ -247,6 +262,10 @@ audio_element_handle_t sonic_init(sonic_cfg_t *config)
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
+    if(el == NULL){
+        audio_free(sonic);
+        return NULL;
+    }
     mem_assert(el);
     sonic->sonic_info = config->sonic_info;
     sonic->pitch = sonic->sonic_info.pitch;

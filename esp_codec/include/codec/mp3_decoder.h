@@ -14,7 +14,7 @@ extern "C" {
 #define MP3_DECODER_TASK_STACK_SIZE     (5 * 1024)
 #define MP3_DECODER_TASK_CORE           (0)
 #define MP3_DECODER_TASK_PRIO           (5)
-#define MP3_DECODER_RINGBUFFER_SIZE     (8 * 1024)
+#define MP3_DECODER_RINGBUFFER_SIZE     (2 * 1024)
 
 #define DEFAULT_MP3_DECODER_CONFIG() {\
     .out_rb_size        = MP3_DECODER_RINGBUFFER_SIZE,\

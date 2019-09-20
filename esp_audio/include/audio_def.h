@@ -41,7 +41,7 @@ typedef enum esp_audio_status_t {
     AUDIO_STATUS_UNKNOWN    = 0,
     AUDIO_STATUS_RUNNING    = 1,
     AUDIO_STATUS_PAUSED     = 2,
-    AUDIO_STATUS_STOPED     = 3,
+    AUDIO_STATUS_STOPPED    = 3,
     AUDIO_STATUS_FINISHED   = 4,
     AUDIO_STATUS_ERROR      = 5,
 } esp_audio_status_t;

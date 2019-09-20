@@ -1,4 +1,4 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
+// Copyright (c) 2019 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD.>
 // All rights reserved.
 
 #ifndef _ESP_DOWNMIX_H_
@@ -9,101 +9,103 @@ extern "C"
 {
 #endif
 
-#define GAIN_MAX 100              /*!< the maximum gain of input file  */
-#define GAIN_MIN -100             /*!< the minimum gain of input file */
-#define SAMPLERATE_MAX 100000     /*!< the maximum samplerate of input file  */
-#define SAMPLERATE_MIN 4000       /*!< the minimum samplerate of input file  */
-
+#define GAIN_MAX 100          /*!< the maximum gain of input stream  */
+#define GAIN_MIN -100         /*!< the minimum gain of input stream */
+#define SAMPLERATE_MAX 100000 /*!< the maximum samplerate of input stream  */
+#define SAMPLERATE_MIN 4000   /*!< the minimum samplerate of input stream  */
+#define SOURCE_NUM_MAX 8      /*!< the maximum number of input streams */
 
 /**
-   Function Description
-   Downmixing two audio files (defined as the base audio file and the newcome audio file) into one output audio file with the correspondingly gains.
-   The newcome audio file will be downmixed into the base audio file.
-   The number of channel(s) of the output audio file will be the same with that of the base audio file. The number of channel(s) of the newcome audio file will also be changed to the same with the base audio file, if it is different from that of the base audio file.
-   The downmix process has 3 status:
-        * Bypass Downmixing -- Only the base audio file will be played;
-        * Switch on Downmixing -- The base audio file and the target audio file will first enter the transition period, during which the gains of these two files will be changed from the original level to the target level; then enter the stable period, sharing a same target gain;
-        * Switch off Downmixing -- The base audio file and the target audio file will first enter the transition period, during which the gains of these two files will be changed back to their original levels; then enter the stable period, with their original gains, respectively. After that, the audio device enters the bybass status.
-   Note that, the sample rates of the base audio file and the newcome audio file must be the same. Otherwise, an error occurs.
+Function Description
+Mixing less or equal than`SOURCE_NUM_MAX` of input streams into output stream with the correspondingly gains. And the number of channels of output stream can be set. refer to `esp_downmix_output_type_t`.
+The downmix process has 3 work status:
+* Bypass Downmixing -- Only the first streams will be played;
+* Switch on Downmixing -- All input streams will enter the transition period, during which the gains of these streams will be changed from the original level to the target level; then enter the stable period, sharing a same target gain;
+* Switch off Downmixing -- All input streams and the others stream will enter the transition period, during which the gains of these streams will be changed back to their original levels; then enter the stable period, with their original gains, respectively. After that, the audio device enters the bypass status.
+Note that, the sample rates of all input streams must be the same. Otherwise, an error occurs.
 */
 
-typedef enum {
-    ESP_DOWNMIX_TYPE_OUTPUT_ONE_CHANNEL = 0, /*!< The number channels of output file is one. */
-    ESP_DOWNMIX_TYPE_OUTPUT_TWO_CHANNEL = 1, /*!< The number channels of output file is two. */
-    ESP_DOWNMIX_TYPE_OUTPUT_MAX,             /*!< The max value. */
-} downmix_source_info_t;
-
-typedef enum {
-    DOWNMIX_INVALID = -1,       /*!< Invalid status */
-    DOWNMIX_BYPASS = 0,         /*!< Only the base audio file will be played */
-    DOWNMIX_SWITCH_ON = 1,      /*!< The base audio file and the target audio file will first enter the transition period, during which the gains of these two files will be changed from the original level to the target level; then enter the stable period, sharing a same target gain */
-    DOWNMIX_SWITCH_OFF = 2,     /*!< The base audio file and the target audio file will first enter the transition period, during which the gains of these two files will be changed back to their original levels; then enter the stable period, with their original gains, respectively. After that, the audio device enters the bybass status */
-    DOWNMIX_PLAY_STATUS_MAX,    /*!< The max value. */
-} downmix_play_status_t;
-
 /**
-* @brief      Select whether to proceed to second downmix
+* @brief      The type of output stream
 */
 typedef enum {
-    SELECT_DOWNMIX = 0,       /*!< proceed to second level downmix */
-    SELECT_LEFT_CHANNEL = 1,  /*!< output left channel data of first level downmix output file */
-    SELECT_RIGHT_CHANNEL = 2, /*!< output right channel data of first level downmix output file */
-    SELECT_CHANNEL_MAX,       /*!< The max value. */
-} downmix_select_channel_t;
+    ESP_DOWNMIX_OUTPUT_TYPE_ONE_CHANNEL = 1, /*!< Output stream is mono */
+    ESP_DOWNMIX_OUTPUT_TYPE_TWO_CHANNEL = 2, /*!< Output stream is stereo */
+    ESP_DOWNMIX_OUTPUT_TYPE_MAX,             /*!< The maximum value */
+} esp_downmix_output_type_t;
 
 /**
-* @brief      Gain and transition period of the Downmix
+* @brief      The work status of mixer
+*/
+typedef enum {
+    ESP_DOWNMIX_WORK_MODE_INVALID = -1,    /*!< Invalid status */
+    ESP_DOWNMIX_WORK_MODE_BYPASS = 0,      /*!< Only the first stream will be played */
+    ESP_DOWNMIX_WORK_MODE_SWITCH_ON = 1,   /*!< The all input stream will enter the transition period, during which the gains of these will be changed from the original level to the target level; then enter the stable period, sharing a same target gain */
+    ESP_DOWNMIX_WORK_MODE_SWITCH_OFF = 2,  /*!< The all input stream will enter the transition period, during which the gains of these will be changed back to their original levels; then enter the stable period, with their original gains, respectively. After that, the audio device enters the bypass status */
+    ESP_DOWNMIX_WORK_MODE_MAX,             /*!< The maximum value */
+} esp_downmix_work_mode_t;
+
+/**
+* @brief      Content of per channel of output stream 
+*
+* @note       If output stream is stereo, the function of `ESP_DOWNMIX_OUT_CTX_ONLY_LEFT` and `ESP_DOWNMIX_OUT_CTX_ONLY_RIGHT` is the same as `ESP_DOWNMIX_OUT_CTX_NORMAL`.
+*/
+typedef enum {
+    ESP_DOWNMIX_OUT_CTX_LEFT_RIGHT = 0,       /*!< Include left and right channel content of all input streams in per channel of output stream */
+    ESP_DOWNMIX_OUT_CTX_ONLY_LEFT = 1,        /*!< Include only left channel content of all input streams in per channel of output stream. */
+    ESP_DOWNMIX_OUT_CTX_ONLY_RIGHT = 2,       /*!< Include only right channel content of all input streams in per channel of output stream. */
+    ESP_DOWNMIX_OUT_CTX_NORMAL = 3,           /*!< Include left or right channel content of all input streams in left or right channel of output stream respectively. If all input streams are mono, per channel of output stream contain all content of all input streams.*/
+    ESP_DOWNMIX_OUT_CTX_MAX,                  /*!< The maximum value. */
+} esp_downmix_out_ctx_type_t;
+
+/**
+* @brief      Input stream infomation
 */
 typedef struct {
-    float set_dbgain[2];                /*!< The gain is expressed using the logarithmic decibel (dB) units (dB gain).
-                                             When the downmixing is switched on, the gains of the audio files will be gradually changed from set_gain[0] to set_gain[1] in the transition period, and stay at set_gain[1] in the stable period;
-                                             When the downmixing is switched off, the gains of the audio files will be gradually changed back from set_gain[1] to set_gain[0] in the transition period, and stay at set_gain[0] in the stable period;
-                                               For the base audio file:
-                                                  - set_gain[0]: the original gain of the base audio file before the downmixing process. Usually, if the downmixing is not used, set_gain[0] is usually set to 0 dB.
-                                                  - set_gain[1]: the target gain of the base audio file after the downmixing process.
-                                               For the newcome audio file:
-                                                  - set_gain[0]: the original gain of the newcome audio file before the downmixing process. Usually, if the set_gain[0] is set to a relatively large value, such as -96 dB, it means the newcome audio file can be ignored.
-                                                  - set_gain[1]: the target gain of the base audio file after the downmixing process. Usually, if the set_gain[0] is 0 dB, it means the newcome audio becomes the main audio source.
-                                         */
-    int transit_ms;                     /*!<the length of the transition period in milliseconds, which is the same for "switch on downloading" and "switch off downloading". */
-} esp_downmix_gain_t;
+    int samplerate;    /*!< Sample rate */
+    int channel;       /*!< the number of channel(s) of the input stream;*/
+    int bits_num;      /*!< Only 16-bit PCM audio is supported */
+    float gain[2];     /*!< The gain is expressed using the logarithmic decibel (dB) units (dB gain).
+                            When the downmixing is switched on, the gains of the input streams will be gradually changed from gain[0] to gain[1] in the transition period, and stay at gain[1] in the stable period;
+                            When the downmixing is switched off, the gains of the input streams will be gradually changed back from gain[1] to gain[0] in the transition period, and stay at gain[0] in the stable period;
+                            For the input streams:
+                            - gain[0]: the original gain of the input streams before the downmixing process. Usually, if the downmixing is not used, gain[0] is usually set to 0 dB.
+                            - gain[1]: the target gain of the input streams after the downmixing process.*/
+    int transit_time; /*!< The length of the transition period in milliseconds, which is the same for "switch on down-mixing" and "switch off down-mixing". */
+} esp_downmix_input_info_t;
 
 /**
 * @brief      Downmix information
 */
 typedef struct {
-    int sample_rate;                    /*!<Sample rate */
-    int bits_num;                       /*!<Only 16-bit PCM audio is supported */
-    int channels[2];                    /*!<channel[0]: the number of channel(s) of the base audio file; channel[1]: the number of channel(s) of the newcome audio file; The number of channel of the output audio file should be the same with channel[0]. */
-    downmix_select_channel_t dual_2_mono_select_ch;          /*!<When channels[0] and channel[1] are different, the number of channel(s) of the newcome audio file will change from channel[1] to channel[0], so it is the same with that of the base audio file. If mono channel -> dual channel, just copy. If dual channel -> mono channel, select one channel according to dual_2_mono_select_ch (only 0 or 1). */
-    esp_downmix_gain_t downmix_gain[2]; /*!<Gain and transition period of the Downmix*/
-    downmix_source_info_t output_status;/*!<The number channels of output file by processed downmix*/
+    esp_downmix_input_info_t source_info[SOURCE_NUM_MAX];   /*!< Input streams infomation*/
+    int source_num;                                         /*!< The number of input streams*/
+    esp_downmix_out_ctx_type_t out_ctx;                     /*!< Select content of per channel of output stream. refer to `esp_downmix_out_ctx_type_t`*/
+    esp_downmix_work_mode_t mode;                           /*!< The work status with downmixing. refer to `esp_downmix_work_mode_t`*/
+    esp_downmix_output_type_t output_type;                  /*!< The type of output stream by processed downmix*/
 } esp_downmix_info_t;
 
 /**
 * @brief      Creates the Downmix handle
 *
-* @param      downmix_info         the downmix information
+* @param      downmix         the downmix information
 *
 * @return     The Downmix handle for esp_downmix_process and esp_downmix_close. NULL: creating Downmix handle failed
 */
-void *esp_downmix_open(esp_downmix_info_t *downmix_info);
+void *esp_downmix_open(esp_downmix_info_t *downmix);
 
 /**
-* @brief      Processes the audio data through downmixing.
+* @brief      Processes the stream through downmixing.
 *
 * @param      downmix_handle       the Downmix handle created and returned by esp_downmix_open()
-* @param      inbuf0               the buffer that stores the base audio data, which is in PCM format
-* @param      bytes_in_0           the length of base audio data (in bytes)
-* @param      inbuf1               the buffer that stores the newcome audio data, which is in PCM format
-* @param      bytes_in_1           the length of newcome audio data (in bytes).
-* @param      outbuf               the buffer that stores the output audio data, which is in PCM format
-* @param      downmix_status       the downmix status. For details, please check the description in downmix_play_status_t.
+* @param      inbuf                the buffer that stores the input stream, which is in PCM format
+* @param      outbuf               the buffer that stores the output stream, which is in PCM format
+* @param      sample               The number of sample per downmix processing
+* @param      work_mode            the work mode. For details, please check the description in esp_downmix_work_mode_t.
 *
-* @return     The length of the output audio data (in bytes), which is also in PCM format. A negative return value indicates an error has occurred.
+* @return     The length of the output stream (in bytes), which is also in PCM format. A negative return value indicates an error has occurred.
 */
-int esp_downmix_process(void *downmix_handle, unsigned char *inbuf0, int bytes_in_0,
-                        unsigned char *inbuf1, int bytes_in_1, unsigned char *outbuf, downmix_play_status_t downmix_status);
+int esp_downmix_process(void *downmix_handle, unsigned char *inbuf[], unsigned char *outbuf, int sample, esp_downmix_work_mode_t work_mode);
 
 /**
 * @brief      Releases the Downmix handle.

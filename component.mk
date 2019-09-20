@@ -15,7 +15,7 @@ COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
 
 COMPONENT_SRCDIRS := . esp_codec
 
-LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna esp_sip
+LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna esp_sip esp-mp3
 
 ifdef CONFIG_WAKEUP_WORD_HI_LEXIN
     LIBS += vad esp_wakenet nn_model_hilexin_wn5

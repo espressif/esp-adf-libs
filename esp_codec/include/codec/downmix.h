@@ -1,4 +1,4 @@
-// Copyright 2018 Espressif Systems (Shanghai) PTE LTD
+// Copyright (c) 2019 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD.>
 // All rights reserved.
 
 #ifndef _DOWNMIX_H_
@@ -14,58 +14,32 @@ extern "C"
 {
 #endif
 
-
-/**
-* @brief      Downmix informatiom
-*/
-typedef struct {
-    int samplerate[2];                 /*!< Audio sample rates (in Hz). samplerate[0]: the sample rate of the base audio file. samplerate[1]: the sample rate of the newcome audio file. */
-    int channel[2];                    /*!< Audio channel (Mono=1, Dual=2). channel[0]: the number of channel(s) of the base audio file. channel[1]: the number of channel(s) of the newcome audio file. */
-    float gain[4];                     /*!< The gain is expressed using the logarithmic decibel (dB) units (dB gain).
-                                        When the downmixing is switched on, the gains of the audio files will be gradually changed from gain[0] to gain[1] in the transition period, and stay at gain[1] in the stable period;
-                                        When the downmixing is switched off, the gains of the audio files will be gradually changed back from gain[3] to gain[2] in the transition period, and stay at gain[2] in the stable period;
-
-                                        For the base audio file:
-                                            * gain[0]: the original gain of the base audio file before the downmixing process. Usually, if the downmixing is not used, set_gain[0] is usually set to 0 dB.
-                                            * gain[1]: the target gain of the base audio file after the downmixing process.
-
-                                        For the newcome audio file:
-                                            * gain[2]: the original gain of the newcome audio file before the downmixing process. Usually, if the set_gain[0] is set to a relatively large value, such as -96 dB, it means the newcome audio file can be ignored.
-                                            * gain[3]: the target gain of the base audio file after the downmixing process. Usually, if the set_gain[0] is 0 dB, it means the newcome audio becomes the main audio source.The audio will gradually change from gain[0] to gain[1] in transit period when downmix switch on and downmix with set_gain[1] in stable period.
-                                        */
-    int transform_time[2];                         /*!< the length of the transition period in milliseconds. transform_time[0] is for the base audio file and transform_time[1] is for the newcome audio file.*/
-    downmix_select_channel_t dual_two_mono_select; /*!< When first level downmix output file is stero, and channel number of final output file is set one, Select whether to proceed to second downmix  */
-    downmix_play_status_t play_status;             /*!<The control status in downmixing. refer in esp_downmix.h*/
-    downmix_source_info_t output_status;           /*!<The number channels of output file by processed downmix.refer in esp_downmix.h*/
-} downmix_info_t;
-
 /**
 * @brief      Downmix configuration
 */
 typedef struct {
-    downmix_info_t downmix_info; /*!< Downmix information*/
-    int out_rb_size;             /*!< Size of ring buffer */
-    int task_stack;              /*!< Size of task stack */
-    int task_core;               /*!< Task running in core...*/
-    int task_prio;               /*!< Task priority (based on the FreeRTOS priority) */
-} downmix_cfg_t;
+        esp_downmix_info_t downmix_info; /*!< Downmix information */
+        int max_sample;                  /*!< The number of samples per downmix processing */
+        int out_rb_size;                 /*!< Size of ring buffer */
+        int task_stack;                  /*!< Size of task stack */
+        int task_core;                   /*!< Task running in core... */
+        int task_prio;                   /*!< Task priority (based on the FreeRTOS priority) */
+    } downmix_cfg_t;
 
 #define DOWNMIX_TASK_STACK (8 * 1024)
 #define DOWNMIX_TASK_CORE (0)
 #define DOWNMIX_TASK_PRIO (5)
 #define DOWNMIX_RINGBUFFER_SIZE (8 * 1024)
+#define DM_BUF_SIZE (256)
 
 #define DEFAULT_DOWNMIX_CONFIG()                                      \
     {                                                                 \
         .downmix_info = {                                             \
-            .samplerate = {44100, 44100},                             \
-            .channel = {1, 2},                                        \
-            .gain = {0, 0, 0, 0},                                     \
-            .transform_time = {0, 50},                                \
-            .dual_two_mono_select = SELECT_LEFT_CHANNEL,              \
-            .play_status = DOWNMIX_BYPASS,                            \
-            .output_status = ESP_DOWNMIX_TYPE_OUTPUT_ONE_CHANNEL      \
-            },                                                        \
+            .out_ctx = ESP_DOWNMIX_OUT_CTX_LEFT_RIGHT,                \
+            .mode = ESP_DOWNMIX_WORK_MODE_BYPASS,                     \
+            .output_type = ESP_DOWNMIX_OUTPUT_TYPE_ONE_CHANNEL        \
+        },                                                            \
+        .max_sample = DM_BUF_SIZE,                                    \
         .out_rb_size = DOWNMIX_RINGBUFFER_SIZE,                       \
         .task_stack = DOWNMIX_TASK_STACK,                             \
         .task_core = DOWNMIX_TASK_CORE,                               \
@@ -78,101 +52,104 @@ typedef struct {
 * @param      self               audio element handle
 * @param      ticks_to_wait      input ringbuffer timeout
 */
-void downmix_set_second_input_rb_timeout(audio_element_handle_t self, int ticks_to_wait);
+void downmix_set_input_rb_timeout(audio_element_handle_t self, int ticks_to_wait);
 
 /**
-* @brief      Sets the downmix second input ringbuffer.
+* @brief      Sets the downmix input ringbuffer. refer to `ringbuf.h`
 *
 * @param      self      audio element handle
-* @param      rb        handle of ringbuffer.
+* @param      rb        handle of ringbuffer
+* @param      index     The index of multi input ringbuffer.
 */
-void downmix_set_second_input_rb(audio_element_handle_t self, ringbuf_handle_t rb);
+void downmix_set_input_rb(audio_element_handle_t self, ringbuf_handle_t rb, int index);
 
 /**
-* @brief      Passes the downmix output status.
+* @brief      Passes number of channels for output stream. Only supported mono and dual.
 *
-* @param      self               audio element handle
-* @param      status_value       the value of the downmix output status.
+* @param      self         audio element handle
+* @param      output_type  down-mixer output type.
 *
 * @return
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t downmix_set_output_status(audio_element_handle_t self, downmix_source_info_t status_value);
+esp_err_t downmix_set_output_type(audio_element_handle_t self, esp_downmix_output_type_t output_type);
 
 /**
-* @brief      Passes the downmix play status.
-*
-* @param      self               audio element handle
-* @param      status_value       the value of the downmix play status.
-*
-* @return
-*             ESP_OK
-*             ESP_FAIL
-*/
-esp_err_t downmix_set_play_status(audio_element_handle_t self, downmix_play_status_t status_value);
-
-/**
-* @brief      Passes the downmix dual_two_mono_select status.
-*
-* @param      self                       audio element handle
-* @param      dual_two_mono_select       the value of the downmix dual_two_mono_select status.
-*
-* @return
-*             ESP_OK
-*             ESP_FAIL
-*/
-esp_err_t downmix_set_dual_two_mono_select_info(audio_element_handle_t self, int dual_two_mono_select);
-
-/**
-* @brief      Sets the base audio sample rate and the number of channels to be processed.
+* @brief      Sets BYPASS, ON or OFF status of down-mixer.
 *
 * @param      self       audio element handle
-* @param      rate      sample rate of the base audio file
-* @param      ch        number of channel(s) of the base audio file
+* @param      mode       down-mixer work mode.
 *
 * @return
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t downmix_set_base_file_info(audio_element_handle_t self, int rate, int ch);
+esp_err_t downmix_set_work_mode(audio_element_handle_t self, esp_downmix_work_mode_t mode);
 
 /**
-* @brief      Sets the newcome audio sample rate and the number of channels to be processed.
+* @brief      Passes content of per channel output stream by down-mixer.
 *
 * @param      self       audio element handle
-* @param      rate      sample rate of the newcome audio file
-* @param      ch        number of channel(s) of the newcome audio file
+* @param      out_ctx    content of output stream.
 *
 * @return
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t downmix_set_newcome_file_info(audio_element_handle_t self, int rate, int ch);
+esp_err_t downmix_set_out_ctx_info(audio_element_handle_t self, esp_downmix_out_ctx_type_t out_ctx);
+
+/**
+* @brief      Sets the sample rate and the number of channels of input stream to be processed.
+*
+* @param      self      audio element handle
+* @param      rate      sample rate of the input stream
+* @param      ch        number of channel(s) of the input stream
+* @param      index     The index of input stream. The index must be in [0, SOURCE_NUM_MAX - 1] range.
+*
+* @return
+*             ESP_OK
+*             ESP_FAIL
+*/
+esp_err_t downmix_set_source_stream_info(audio_element_handle_t self, int rate, int ch, int index);
 
 /**
 * @brief      Sets the audio gain to be processed.
 *
-* @param      self                  audio element handle
-* @param      gain                  the reset value of `gain` which in `downmix_info_t`. The `gain` is an array of four elements.
-*
+* @param      self               audio element handle
+* @param      gain               the reset value of `gain`. The `gain` is an array of two elements.
+* @param      index              The index of input stream. The index must be in [0, SOURCE_NUM_MAX - 1] range.
 * @return
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t downmix_set_gain_info(audio_element_handle_t self, float *gain);
+esp_err_t downmix_set_gain_info(audio_element_handle_t self, float *gain, int index);
 
 /**
-* @brief      Sets the audio `transform_time` to be processed.
+* @brief      Sets the audio `transit_time` to be processed.
 *
 * @param      self                  audio element handle
-* @param      transform_time        the reset value of `transform_time` which in `downmix_info_t`. The `transform_time` is an array of two elements.
+* @param      transit_time          the reset value of `transit_time`
+* @param      index                 The index of input stream. The index must be in [0, SOURCE_NUM_MAX - 1] range
 *
 * @return
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t downmix_set_transform_time_info(audio_element_handle_t self, int *transform_time);
+esp_err_t downmix_set_transit_time_info(audio_element_handle_t self, int transit_time, int index);
+
+/**
+* @brief      Initializes information of the source streams for downmixing.
+*
+* @param      self          audio element handle
+* @param      source_num    The information array of source streams
+* @param      length        The number of source streams
+*
+* @return
+*             ESP_OK
+*             ESP_FAIL
+*/
+esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t* source_num, int length);
 
 /**
 * @brief      Initializes the Audio Element handle for downmixing.

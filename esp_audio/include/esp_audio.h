@@ -41,7 +41,7 @@ typedef struct esp_audio_cfg_t {
 
     /**
      * esp_audio works on sepcific type, default memory is preferred.
-     * - `ESP_AUDIO_PREFER_MEM` mode stoped the previous linked elements before the new pipiline starting, except out stream element.
+     * - `ESP_AUDIO_PREFER_MEM` mode stopped the previous linked elements before the new pipiline starting, except out stream element.
      * - `ESP_AUDIO_PREFER_SPEED` mode  kept the previous linked elements before the new pipiline starting, except out stream element.
     */
     esp_audio_prefer_t          prefer_type;
@@ -60,6 +60,7 @@ typedef struct esp_audio_setup_t {
     int                 set_sample_rate;        /*!< Set music sample rate */
     int                 set_channel;            /*!< Set music channels */
     int                 set_pos;                /*!< Set starting position */
+    int                 set_time;               /*!< Set starting position of the microseconds time (optional)*/
     char               *set_uri;                /*!< Set URI */
     char               *set_in_stream;          /*!< Tag of in_stream */
     char               *set_codec;              /*!< Tag of the codec */
@@ -76,6 +77,7 @@ typedef struct {
     audio_element_handle_t          codec_el;           /*!< Handle of the codec */
     audio_element_handle_t          filter_el;          /*!< Handle of the filter */
     esp_audio_state_t               st;                 /*!< The state of esp_audio */
+    int                             time_pos;           /*!< Position of the microseconds time */
 } esp_audio_info_t;
 
 /**
@@ -111,7 +113,7 @@ audio_err_t esp_audio_destroy(esp_audio_handle_t handle);
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
- *      - ESP_ERR_AUDIO_ALREADY_EXISTS: in_stream has already exist or have the same stream tag.
+ *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
  */
 audio_err_t esp_audio_input_stream_add(esp_audio_handle_t handle, audio_element_handle_t in_stream);
 
@@ -124,7 +126,7 @@ audio_err_t esp_audio_input_stream_add(esp_audio_handle_t handle, audio_element_
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
- *      - ESP_ERR_AUDIO_ALREADY_EXISTS: out_stream has already exist or have the same stream tag.
+ *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
  */
 audio_err_t esp_audio_output_stream_add(esp_audio_handle_t handle, audio_element_handle_t out_stream);
 
@@ -138,7 +140,7 @@ audio_err_t esp_audio_output_stream_add(esp_audio_handle_t handle, audio_element
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
- *      - ESP_ERR_AUDIO_ALREADY_EXISTS: lib has already exist or have the same extension.
+ *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
  */
 audio_err_t esp_audio_codec_lib_add(esp_audio_handle_t handle, audio_codec_type_t type, audio_element_handle_t lib);
 
@@ -226,9 +228,9 @@ audio_err_t esp_audio_sync_play(esp_audio_handle_t handle, const char *uri, int 
 /**
  * @brief Stop the esp_audio
  *
- * @note If user queue has been registered by evt_que, AUDIO_STATUS_STOPED event for success
+ * @note If user queue has been registered by evt_que, AUDIO_STATUS_STOPPED event for success
  *       or AUDIO_STATUS_ERROR event for error will be received.
- *       `TERMINATION_TYPE_DONE` only works with input stream which can't stoped by itself,
+ *       `TERMINATION_TYPE_DONE` only works with input stream which can't stopped by itself,
  *       e.g. `raw read/write stream`, others streams are no effect.
  *
  * @param[in] handle The esp_audio instance
@@ -252,7 +254,7 @@ audio_err_t esp_audio_stop(esp_audio_handle_t handle, audio_termination_type_t t
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
- *      - ESP_ERR_AUDIO_NOT_READY: the status is not running.
+ *      - ESP_ERR_AUDIO_NOT_READY：the status is not running.: the status is not running.
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout(8000ms) the pause activity.
  */
 audio_err_t esp_audio_pause(esp_audio_handle_t handle);
@@ -260,7 +262,7 @@ audio_err_t esp_audio_pause(esp_audio_handle_t handle);
 /**
  * @brief Resume the music paused
  *
- * @note Only support music and without live stream. If user queue has been registered by evt_que, AUDIO_STATUS_PLAYING event for success
+ * @note Only support music and without live stream. If user queue has been registered by evt_que, AUDIO_STATUS_RUNNING event for success
  *       or AUDIO_STATUS_ERROR event for error will be received.
  *
  * @param[in] handle The esp_audio instance
@@ -316,14 +318,14 @@ audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *st
  * @note This function works only with decoding music.
  *
  * @param[in] handle    The esp_audio instance
- * @param[out] pos      A pointer to int that indicates esp_audio decoding position.
+ * @param[out] pos      A pointer to int64_t that indicates esp_audio decoding position.
  *
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
- *      - ESP_ERR_AUDIO_NOT_READY:no out stream.
+ *      - ESP_ERR_AUDIO_NOT_READY：the status is not running.:no out stream.
  */
-audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
+audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int64_t *pos);
 
 /**
  * @brief Get the position in microseconds of currently played music.
@@ -336,7 +338,7 @@ audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
- *      - ESP_ERR_AUDIO_NOT_READY:no out stream.
+ *      - ESP_ERR_AUDIO_NOT_READY：the status is not running.:no out stream.
  */
 audio_err_t esp_audio_time_get(esp_audio_handle_t handle, int *time);
 
@@ -376,13 +378,15 @@ audio_err_t esp_audio_media_type_set(esp_audio_handle_t handle, media_source_typ
  *
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
+ *      - ESP_ERR_AUDIO_NOT_READY: the status is not running.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_info_get(esp_audio_handle_t handle, esp_audio_info_t *info);
 
 /* @brief Restore the backup audio information to prevoise state.
  *
- * @note  If ESP_ERR_AUDIO_NO_ERROR returned, the info->codec_info.uri, info->in_el,info->codec_el,
+ * @note  If ESP_ERR_AUDIO_NO_ERROR returned, the info->codec_info.uri, info->in_el, info->codec_el,
  *        info->out_el and info->filter_el are set NULL.
  *
  * @param[in] handle    The esp_audio instance
@@ -392,6 +396,7 @@ audio_err_t esp_audio_info_get(esp_audio_handle_t handle, esp_audio_info_t *info
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_FAIL: elements relink fail
  *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
+ *      - ESP_ERR_AUDIO_TIMEOUT: timeout for relink
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_info_set(esp_audio_handle_t handle, esp_audio_info_t *info);

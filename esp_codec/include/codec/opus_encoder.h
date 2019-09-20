@@ -14,7 +14,7 @@ extern "C" {
 #define OPUS_ENCODER_TASK_STACK          (40 * 1024)
 #define OPUS_ENCODER_TASK_CORE           (0)
 #define OPUS_ENCODER_TASK_PRIO           (3)
-#define OPUS_ENCODER_RINGBUFFER_SIZE     (8 * 1024)
+#define OPUS_ENCODER_RINGBUFFER_SIZE     (2 * 1024)
 #define DEFAULT_OPUS_ENCODER_CONFIG() {\
         .sample_rate        = 16000,\
         .channel            = 1,\

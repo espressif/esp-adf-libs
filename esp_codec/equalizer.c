@@ -42,8 +42,8 @@ static esp_err_t is_valid_equalizer_samplerate(int samplerate)
         && (samplerate != 22050)
         && (samplerate != 44100)
         && (samplerate != 48000)) {
-        ESP_LOGE(TAG, "The sample rate should be only 11025Hz, 22050Hz, 44100Hz, 48000Hz, here is %dHz.", samplerate);
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "The sample rate should be only 11025Hz, 22050Hz, 44100Hz, 48000Hz, here is %dHz. (line %d)", samplerate, __LINE__);
+        return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
 }
@@ -52,8 +52,8 @@ static esp_err_t is_valid_equalizer_channel(int channel)
 {
     if ((channel != 1)
         && (channel != 2)) {
-        ESP_LOGE(TAG, "The number of channels should be only 1 or 2, here is %d.", channel);
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "The number of channels should be only 1 or 2, here is %d. (line %d)", channel, __LINE__);
+        return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
 }
@@ -66,7 +66,7 @@ esp_err_t equalizer_set_info(audio_element_handle_t self, int rate, int ch)
     }
     if ((is_valid_equalizer_samplerate(rate) != ESP_OK)
         || (is_valid_equalizer_channel(ch) != ESP_OK)) {
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;
     } else {
         ESP_LOGI(TAG, "The reset sample rate and channel of audio stream are %d %d.", rate, ch);
         equalizer->gain_flag = 1; 
@@ -83,8 +83,8 @@ esp_err_t equalizer_set_gain_info(audio_element_handle_t self, int index, int va
         && (is_channels_gain_equal == true)) {
         if ((index < 0)
             || (index > NUMBER_BAND)){
-            ESP_LOGE(TAG, "The range of index for audio gain of equalizer should be [0 9]. Here is %d.", index);
-            return ESP_FAIL;
+            ESP_LOGE(TAG, "The range of index for audio gain of equalizer should be [0 9]. Here is %d. (line %d)", index, __LINE__);
+            return ESP_ERR_INVALID_ARG;
         }
         int pos_index_channel = index + (equalizer->channel - 1) * NUMBER_BAND;
         if ((equalizer->set_gain[index] == value_gain)
@@ -99,8 +99,8 @@ esp_err_t equalizer_set_gain_info(audio_element_handle_t self, int index, int va
     } else {
         if ((index < 0)
             || (index > NUMBER_BAND *2)){
-            ESP_LOGE(TAG, "The number of channels is %d. The range of index for audio gain of equalizer should be [0 %d]. Here is %d.", equalizer->channel,(equalizer->channel * NUMBER_BAND - 1), index);
-            return ESP_FAIL;
+            ESP_LOGE(TAG, "The number of channels is %d. The range of index for audio gain of equalizer should be [0 %d]. Here is %d. (line %d)", equalizer->channel,(equalizer->channel * NUMBER_BAND - 1), index, __LINE__);
+            return ESP_ERR_INVALID_ARG;
         }
         if (equalizer->set_gain[index] == value_gain) {
             return ESP_OK;
@@ -128,8 +128,8 @@ static esp_err_t equalizer_open(audio_element_handle_t self)
     ESP_LOGD(TAG, "equalizer_open");
     equalizer_t *equalizer = (equalizer_t *)audio_element_getdata(self);
     if (equalizer->set_gain == NULL) {
-        ESP_LOGE(TAG, "The gain array should be set.");
-        return ESP_FAIL; 
+        ESP_LOGE(TAG, "The gain array should be set. (line %d)", __LINE__);
+        return ESP_ERR_INVALID_ARG; 
     }
     audio_element_info_t info = {0};
     audio_element_getinfo(self, &info);
@@ -147,28 +147,28 @@ static esp_err_t equalizer_open(audio_element_handle_t self)
         && equalizer->num_band != 15
         && equalizer->num_band != 25
         && equalizer->num_band != 31) {
-        ESP_LOGE(TAG, "The number of bands should be one of 10, 15, 25, 31, here is %d", equalizer->num_band);
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "The number of bands should be one of 10, 15, 25, 31, here is %d. (line %d)", equalizer->num_band, __LINE__);
+        return ESP_ERR_INVALID_ARG;
     }
     if (is_valid_equalizer_samplerate(equalizer->samplerate) != ESP_OK
         || is_valid_equalizer_channel(equalizer->channel) != ESP_OK) {
-        return ESP_FAIL;
+        return ESP_ERR_INVALID_ARG;
     }
     if (equalizer->use_xmms_original_freqs != 0
         && equalizer->use_xmms_original_freqs != 1) {
-        ESP_LOGE(TAG, "The use_xmms_original_freqs should be only 0 or 1, here is %d", equalizer->use_xmms_original_freqs);
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "The use_xmms_original_freqs should be only 0 or 1, here is %d. (line %d)", equalizer->use_xmms_original_freqs, __LINE__);
+        return ESP_ERR_INVALID_ARG;
     }
     equalizer->buf = (unsigned char *)calloc(1, BUF_SIZE);
     if (equalizer->buf == NULL) {
-        ESP_LOGE(TAG, "calloc buffer failed");
-        return ESP_FAIL;
+        ESP_LOGE(TAG, "calloc buffer failed. (line %d)", __LINE__);
+        return ESP_ERR_NO_MEM;
     }
     memset(equalizer->buf, 0, BUF_SIZE);
     equalizer->eq_handle = esp_equalizer_init(equalizer->channel, equalizer->samplerate, equalizer->num_band,
                                               equalizer->use_xmms_original_freqs);
     if (equalizer->eq_handle == NULL) {
-        ESP_LOGE(TAG, "failed to do equalizer initialization");
+        ESP_LOGE(TAG, "failed to do equalizer initialization. (line %d)", __LINE__);
         return ESP_FAIL;
     }
     for (int i = 0; i < equalizer->channel; i++) {
@@ -194,7 +194,10 @@ static esp_err_t equalizer_close(audio_element_handle_t self)
     ESP_LOGD(TAG, "equalizer_close");
     equalizer_t *equalizer = (equalizer_t *)audio_element_getdata(self);
     esp_equalizer_uninit(equalizer->eq_handle);
-    audio_free(equalizer->buf);
+    if(equalizer->buf == NULL){
+        audio_free(equalizer->buf);
+        equalizer->buf = NULL;
+    }   
 
 #ifdef EQUALIZER_MEMORY_ANALYSIS
     AUDIO_MEM_SHOW(TAG);
@@ -209,13 +212,20 @@ static esp_err_t equalizer_close(audio_element_handle_t self)
 static int equalizer_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     equalizer_t *equalizer = (equalizer_t *)audio_element_getdata(self);
+    int ret = 0;
     if (equalizer->gain_flag == 1){
         equalizer_close(self);
+        if (ret != ESP_OK) {
+            return AEL_PROCESS_FAIL;
+        }
         equalizer_open(self);
+        if (ret != ESP_OK) {
+            return AEL_PROCESS_FAIL;
+        }
+        ESP_LOGI(TAG, "Reopen equalizer");
         return ESP_CODEC_ERR_CONTINUE;
     }
-    int r_size = 0;
-    int ret = 0;
+    int r_size = 0;    
     if (equalizer->at_eof == 0) {
 #ifdef DEBUG_EQUALIZER_ENC_ISSUE
         r_size = fread((char *)equalizer->buf, 1, BUF_SIZE, infile);
@@ -239,7 +249,15 @@ static int equalizer_process(audio_element_handle_t self, char *in_buffer, int i
 
 audio_element_handle_t equalizer_init(equalizer_cfg_t *config)
 {
+    if (config == NULL) {
+        ESP_LOGE(TAG, "config is NULL. (line %d)", __LINE__);
+        return NULL;
+    }
     equalizer_t *equalizer = audio_calloc(1, sizeof(equalizer_t));
+    if (equalizer == NULL) {
+        ESP_LOGE(TAG, "audio_calloc failed for equalizer. (line %d)", __LINE__);
+        return NULL;
+    }
     mem_assert(equalizer);
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = equalizer_destroy;
@@ -253,7 +271,10 @@ audio_element_handle_t equalizer_init(equalizer_cfg_t *config)
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
-    mem_assert(el);
+    if(el == NULL){
+        audio_free(equalizer);
+        return NULL;
+    }
     equalizer->samplerate = config->samplerate;
     equalizer->channel = config->channel;
     equalizer->set_gain = config->set_gain;
