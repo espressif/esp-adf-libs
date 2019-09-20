@@ -26,7 +26,7 @@ typedef void *esp_audio_handle_t;
 /**
  * @brief esp_audio configuration parameters
  */
-typedef struct esp_audio_cfg_t {
+typedef struct {
     int                         in_stream_buf_size;         /*!< Input buffer size */
     int                         out_stream_buf_size;        /*!< Output buffer size */
     /**
@@ -55,7 +55,7 @@ typedef struct esp_audio_cfg_t {
 /**
  * @brief esp_audio setup parameters by manual
  */
-typedef struct esp_audio_setup_t {
+typedef struct {
     audio_codec_type_t  set_type;               /*!< Set codec type */
     int                 set_sample_rate;        /*!< Set music sample rate */
     int                 set_channel;            /*!< Set music channels */
@@ -318,14 +318,14 @@ audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *st
  * @note This function works only with decoding music.
  *
  * @param[in] handle    The esp_audio instance
- * @param[out] pos      A pointer to int64_t that indicates esp_audio decoding position.
+ * @param[out] pos      A pointer to int that indicates esp_audio decoding position.
  *
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  *      - ESP_ERR_AUDIO_NOT_READY：the status is not running.:no out stream.
  */
-audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int64_t *pos);
+audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
 
 /**
  * @brief Get the position in microseconds of currently played music.
