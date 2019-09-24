@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "esp_log.h"
+#include "audio_error.h"
 #include "audio_mem.h"
 #include "audio_common.h"
 #include "audio_element.h"
@@ -196,17 +197,9 @@ audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config)
         return NULL;
     }
     rsp_filter_t *filter = (rsp_filter_t *)audio_calloc(1, sizeof(rsp_filter_t));
-    if (filter == NULL) {
-        ESP_LOGE(TAG, "The filter failed to allocate memory");
-        return NULL;
-    }
+    AUDIO_MEM_CHECK(TAG, filter, return NULL);
     resample_info_t *resample_info = audio_calloc(1, sizeof(resample_info_t));
-    if (resample_info == NULL) {
-        ESP_LOGE(TAG, "The resample_info failed to allocate memory");
-        audio_free(filter);
-        return NULL;
-    }
-
+    AUDIO_MEM_CHECK(TAG, resample_info, {audio_free(filter); return NULL;});
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = rsp_filter_destroy;
     cfg.process = rsp_filter_process;
@@ -219,11 +212,7 @@ audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config)
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
-    if (el == NULL) {
-        audio_free(filter);
-        audio_free(resample_info);
-        return NULL;
-    }
+    AUDIO_MEM_CHECK(TAG, el, {audio_free(filter); audio_free(resample_info); return NULL;});
     memcpy(resample_info, config, sizeof(resample_info_t));
     filter->resample_info = resample_info;
     audio_element_setdata(el, filter);

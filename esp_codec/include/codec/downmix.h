@@ -37,7 +37,8 @@ typedef struct {
         .downmix_info = {                                             \
             .out_ctx = ESP_DOWNMIX_OUT_CTX_LEFT_RIGHT,                \
             .mode = ESP_DOWNMIX_WORK_MODE_BYPASS,                     \
-            .output_type = ESP_DOWNMIX_OUTPUT_TYPE_ONE_CHANNEL        \
+            .output_type = ESP_DOWNMIX_OUTPUT_TYPE_ONE_CHANNEL,       \
+            .source_num = SOURCE_NUM_MAX,                             \
         },                                                            \
         .max_sample = DM_BUF_SIZE,                                    \
         .out_rb_size = DOWNMIX_RINGBUFFER_SIZE,                       \
@@ -143,13 +144,12 @@ esp_err_t downmix_set_transit_time_info(audio_element_handle_t self, int transit
 *
 * @param      self          audio element handle
 * @param      source_num    The information array of source streams
-* @param      length        The number of source streams
 *
 * @return
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t* source_num, int length);
+esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t* source_num);
 
 /**
 * @brief      Initializes the Audio Element handle for downmixing.
