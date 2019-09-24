@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "esp_log.h"
+#include "audio_error.h"
 #include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
@@ -254,11 +255,11 @@ audio_element_handle_t equalizer_init(equalizer_cfg_t *config)
         return NULL;
     }
     equalizer_t *equalizer = audio_calloc(1, sizeof(equalizer_t));
+    AUDIO_MEM_CHECK(TAG, equalizer, return NULL);     
     if (equalizer == NULL) {
         ESP_LOGE(TAG, "audio_calloc failed for equalizer. (line %d)", __LINE__);
         return NULL;
     }
-    mem_assert(equalizer);
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = equalizer_destroy;
     cfg.process = equalizer_process;
@@ -271,10 +272,7 @@ audio_element_handle_t equalizer_init(equalizer_cfg_t *config)
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
-    if(el == NULL){
-        audio_free(equalizer);
-        return NULL;
-    }
+    AUDIO_MEM_CHECK(TAG, el, {audio_free(equalizer); return NULL;});
     equalizer->samplerate = config->samplerate;
     equalizer->channel = config->channel;
     equalizer->set_gain = config->set_gain;

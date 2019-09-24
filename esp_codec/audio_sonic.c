@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "esp_log.h"
+#include "audio_error.h"
 #include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
@@ -246,10 +247,7 @@ audio_element_handle_t sonic_init(sonic_cfg_t *config)
         return NULL;
     }
     sonic_t *sonic = audio_calloc(1, sizeof(sonic_t));
-    if(sonic == NULL){
-        ESP_LOGE(TAG, "audio_calloc failed for sonic. (line %d)", __LINE__);
-        return NULL;
-    }
+    AUDIO_MEM_CHECK(TAG, sonic, return NULL); 
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = sonic_destroy;
     cfg.process = sonic_process;
@@ -262,11 +260,7 @@ audio_element_handle_t sonic_init(sonic_cfg_t *config)
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
     audio_element_handle_t el = audio_element_init(&cfg);
-    if(el == NULL){
-        audio_free(sonic);
-        return NULL;
-    }
-    mem_assert(el);
+    AUDIO_MEM_CHECK(TAG, el, {audio_free(sonic); return NULL;});
     sonic->sonic_info = config->sonic_info;
     sonic->pitch = sonic->sonic_info.pitch;
     sonic->speed = sonic->sonic_info.speed;

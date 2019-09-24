@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "esp_log.h"
+#include "audio_error.h"
 #include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
@@ -398,17 +399,12 @@ esp_err_t downmix_set_transit_time_info(audio_element_handle_t self, int transit
     return ESP_OK;
 }
 
-esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t *source_num, int length)
+esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t *source_num)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
-    if (length > SOURCE_NUM_MAX) {
-        ESP_LOGE(TAG, "the array size of source number is out of range. line %d", __LINE__);
-        return ESP_ERR_INVALID_ARG;
-    }
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < downmix->downmix_info.source_num; i++) {
         downmix->downmix_info.source_info[i] = source_num[i];
     }
-    downmix->downmix_info.source_num = length;
     return ESP_OK;
 }
 
@@ -420,7 +416,7 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     }
 
     downmix_t *downmix = audio_calloc(1, sizeof(downmix_t));
-    mem_assert(downmix);
+    AUDIO_MEM_CHECK(TAG, downmix, return NULL);   
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = downmix_destroy;
     cfg.process = downmix_process;
@@ -432,9 +428,14 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
-    cfg.enable_multi_io = true;
+    if (config->downmix_info.source_num > SOURCE_NUM_MAX) {
+        ESP_LOGE(TAG, "the array size of source number is out of range. line %d", __LINE__);
+        audio_free(downmix);
+        return NULL;
+    }
+    cfg.multi_in_rb_num = config->downmix_info.source_num;
     audio_element_handle_t el = audio_element_init(&cfg);
-    mem_assert(el);
+    AUDIO_MEM_CHECK(TAG, el, {audio_free(downmix); return NULL;});
     memcpy(downmix, config, sizeof(esp_downmix_info_t));
     downmix->max_sample = config->max_sample;
     downmix->reset_flag = 0;
