@@ -82,9 +82,15 @@ static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, in
             }
             return r_size;
         }
-        out_len = audio_element_output(self, in_buffer, r_size);
+        if (audio_info.byte_pos + r_size >= audio_info.total_bytes) {
+            out_len = audio_info.total_bytes - audio_info.byte_pos;
+        }
+        out_len = audio_element_output(self, in_buffer, out_len);
         audio_info.byte_pos += out_len;
         audio_element_setinfo(self, &audio_info);
+    }
+    if (out_len != r_size) {
+        return ESP_OK;
     }
     return out_len;
 }
