@@ -1,45 +1,5 @@
-menu "Speech Recognition Configuration"
+menu "Recorder Engine Configuration"
 
-choice SR_MODEL_SEL
-    prompt "Speech recognition wake net to use"
-    default SR_MODEL_WN5_QUANT
-    help
-        Select the wake net to be used.
-
-config SR_MODEL_WN3_QUANT
-    bool "WakeNet 3 (quantized)"
-
-config SR_MODEL_WN4_QUANT
-    bool "WakeNet 4 (quantized)"
-
-config SR_MODEL_WN5_QUANT
-    bool "WakeNet 5 (quantized)"
-
-endchoice
-
-choice NAME_OF_WAKEUP_WORD
-    prompt "Name of wakeup word"
-    default WAKEUP_WORD_HI_LEXIN
-    help
-        Select wakeup word
-
-config WAKEUP_WORD_HI_LEXIN
-    bool "Wakeup word is Hi Lexin"
-    depends on SR_MODEL_WN3_QUANT || SR_MODEL_WN5_QUANT
-
-config WAKEUP_WORD_ALEXA
-    bool "Wakeup word is Alexa"
-    depends on SR_MODEL_WN3_QUANT || SR_MODEL_WN5_QUANT
-
-config WAKEUP_WORD_LIGHT_CONTROL_CH
-    bool "Light control commands with Chinese"
-    depends on SR_MODEL_WN4_QUANT
-
-config WAKEUP_WORD_SPEECH_CMD_CH
-    bool "Music control commands with Chinese"
-    depends on SR_MODEL_WN4_QUANT
-
-endchoice
 
 choice RECORD_ENGINE_MODE
     prompt "Choose recorder engine functionality"
