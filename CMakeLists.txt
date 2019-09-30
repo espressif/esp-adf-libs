@@ -14,6 +14,7 @@ set(COMPONENT_PRIV_REQUIRES audio_pipeline audio_sal)
 
 set(COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./esp_codec/audio_sonic.c
+                    ./esp_codec/audio_forge.c
                     ./esp_codec/downmix.c
                     ./esp_codec/equalizer.c
                     ./esp_codec/filter_resample.c
