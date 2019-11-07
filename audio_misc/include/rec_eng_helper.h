@@ -1,7 +1,7 @@
 /*
  * ESPRESSIF MIT License
  *
- * Copyright (c) 2018 <ESPRESSIF SYSTEMS (SHANGHAI) PTE LTD>
+ * Copyright (c) 2019 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
  *
  * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
  * it is free of charge, to any person obtaining a copy of this software and associated
@@ -22,14 +22,25 @@
  *
  */
 
-#pragma once
-#include "esp_sr_iface.h"
+#ifndef _RECORDER_ENGINE_HELPER_H_
+#define _RECORDER_ENGINE_HELPER_H_
 
-// Contains declarations of all available speech recognion models.
-// Pair this up with the right coefficients and you have a model that can recognize
-// a specific phrase or word.
+/**
+ * @breif Get a wake net interface
+ *
+ * @param[out]  wakenet_iface  The handle of wakenet interface
+ *
+ * @return      void 
+ */
+void get_wakenet_iface(esp_wn_iface_t **wakenet_iface);
 
-extern const esp_sr_iface_t esp_sr_wakenet3_quantized;
-extern const esp_sr_iface_t esp_sr_wakenet4_quantized;
-extern const esp_sr_iface_t esp_sr_wakenet5_float;
-extern const esp_sr_iface_t esp_sr_wakenet5_quantized;
+/**
+ * @brief Get coefficient of the model
+ *
+ * @param    model_coeff       The handle of model coefficient
+ *
+ * @return   void
+ */
+void get_wakenet_coeff(model_coeff_getter_t **model_coeff);
+
+#endif
