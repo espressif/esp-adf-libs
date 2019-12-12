@@ -1,13 +1,7 @@
 // Copyright 2018 Espressif Systems (Shanghai) PTE LTD
 // All rights reserved.
 
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/ringbuf.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
 #include "esp_log.h"
-#include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
 #include "wav_encoder.h"

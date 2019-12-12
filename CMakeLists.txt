@@ -33,5 +33,5 @@ target_link_libraries(${COMPONENT_NAME} "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_audi
                                 "-L ${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib")
 target_link_libraries(${COMPONENT_NAME}
                         esp_processing esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
-                        esp_audio esp_dlna esp_ssdp esp_upnp esp_sip esp-mp3
+                        esp_audio esp_dlna esp_ssdp esp_upnp esp_sip esp-mp3 codec-utils
                         recorder_engine)

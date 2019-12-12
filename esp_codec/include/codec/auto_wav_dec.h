@@ -22,7 +22,7 @@ esp_err_t wav_decoder_open(audio_element_handle_t el);
  *
  * @param      el   The audio element handle
  *
- * @return    
+ * @return
  *             ESP_OK
  *             ESP_FAIL
  */
@@ -33,10 +33,25 @@ esp_err_t wav_decoder_close(audio_element_handle_t el);
  *
  * @param      el   The audio element handle
  *
- * @return    
+ * @return
  *             ESP_OK
  *             ESP_FAIL
  */
 esp_codec_err_t wav_decoder_process(audio_element_handle_t el);
+
+/**
+ * @brief      Seek postion of music data to decode
+ *
+ * @param      self         The audio element handle
+ * @param      in_data      The parameter required by callback function format. Not used by this function.
+ * @param      in_size      The parameter required by callback function format. Not used by this function.
+ * @param      out_data     The position of music data
+ * @param      out_size     the size of `outdata`
+ *
+ * @return
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t wav_decoder_get_pos_auto(audio_element_handle_t self, void *in_data, int in_size, void *out_data, int *out_size);
 
 #endif
