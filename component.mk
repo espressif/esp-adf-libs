@@ -15,7 +15,7 @@ COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
 
 COMPONENT_SRCDIRS := . esp_codec audio_misc
 
-LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna esp_sip esp-mp3
+LIBS := esp_processing esp_audio esp-amr esp-amrwbenc esp-aac esp-ogg-container esp-opus esp-tremor esp-flac esp_ssdp esp_upnp esp_dlna esp_sip esp-mp3 codec-utils
 
 ifdef CONFIG_REC_ENG_ENABLE_VAD_ONLY
  LIBS += recorder_engine_vad

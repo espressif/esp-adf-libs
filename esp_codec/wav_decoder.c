@@ -1,22 +1,17 @@
 // Copyright 2018 Espressif Systems (Shanghai) PTE LTD
 // All rights reserved.
 
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/ringbuf.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
 #include "esp_log.h"
-#include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
 #include "wav_decoder.h"
 #include "wav_head.h"
 
 static const char *TAG = "WAV_DECODER";
-
+#define HEAD_SIZE (44)
 typedef struct wav_decoder {
     bool parsed_header;
+    bool is_opened;
 } wav_decoder_t;
 
 static esp_err_t _wav_decoder_destroy(audio_element_handle_t self)
@@ -28,10 +23,21 @@ static esp_err_t _wav_decoder_destroy(audio_element_handle_t self)
 static esp_err_t _wav_decoder_open(audio_element_handle_t self)
 {
     ESP_LOGD(TAG, "_wav_decoder_open");
-    // if (AEL_STATE_PAUSED == audio_element_get_state(self)) {
-    // TODO
-    // }
-
+    wav_decoder_t *wav = (wav_decoder_t *)audio_element_getdata(self);
+    if (wav == NULL) {
+        ESP_LOGE(TAG, "wav_codec_get failed, line %d", __LINE__);
+        return ESP_FAIL;
+    }
+    audio_element_info_t info = {0};
+    audio_element_getinfo(self, &info);
+    if (info.byte_pos == 0) {
+        audio_element_info_t wav_info = {0};
+        audio_element_getinfo(self, &wav_info);
+        wav_info.codec_fmt = AUDIO_CODEC_WAV;
+        audio_element_setinfo(self, &wav_info);
+        wav->parsed_header = false;
+        wav->is_opened = true;
+    }
     return ESP_OK;
 }
 
@@ -46,7 +52,7 @@ static esp_err_t _wav_decoder_close(audio_element_handle_t self)
         info.total_bytes = 0;
         audio_element_setinfo(self, &info);
         wav_decoder_t *wav = (wav_decoder_t *)audio_element_getdata(self);
-        wav->parsed_header = false;
+        wav->is_opened = false;
     }
     return ESP_OK;
 }
@@ -54,6 +60,10 @@ static esp_err_t _wav_decoder_close(audio_element_handle_t self)
 static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
     wav_decoder_t *wav = (wav_decoder_t *)audio_element_getdata(self);
+    if (wav == NULL) {
+        ESP_LOGE(TAG, "wav_codec_get failed, line %d", __LINE__);
+        return ESP_FAIL;
+    }
     audio_element_info_t audio_info = { 0 };
     wav_info_t info;
     int r_size = audio_element_input(self, in_buffer, in_len);
@@ -73,6 +83,7 @@ static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, in
             audio_info.bits = info.bits;
             audio_info.total_bytes = info.dataSize;
             audio_info.byte_pos = remain_data;
+            audio_info.bps = info.sampleRate * info.channels * info.bits;
 
             audio_element_setinfo(self, &audio_info);
             audio_element_report_info(self);
@@ -95,6 +106,21 @@ static int _wav_decoder_process(audio_element_handle_t self, char *in_buffer, in
     return out_len;
 }
 
+esp_err_t wav_decoder_get_pos(audio_element_handle_t self, void *in_data, int in_size, void *out_data, int *out_size)
+{
+    wav_decoder_t *codec = (wav_decoder_t *)audio_element_getdata(self);
+    if (codec == NULL) {
+        ESP_LOGE(TAG, "codec handle is null, decoder may be has been stopped");
+        return ESP_FAIL;
+    }
+    audio_element_info_t wav_info = {0};
+    audio_element_getinfo(self, &wav_info);
+    int time = *(int *)in_data;
+    int pos = (time * wav_info.bps >> 3) + HEAD_SIZE;
+    *(int *)out_data = pos;
+    *out_size = sizeof(pos);
+    return ESP_OK;
+}
 
 audio_element_handle_t wav_decoder_init(wav_decoder_cfg_t *config)
 {
@@ -105,6 +131,7 @@ audio_element_handle_t wav_decoder_init(wav_decoder_cfg_t *config)
     cfg.process = _wav_decoder_process;
     cfg.open = _wav_decoder_open;
     cfg.close = _wav_decoder_close;
+    cfg.seek = wav_decoder_get_pos;
     cfg.task_stack = config->task_stack;
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;

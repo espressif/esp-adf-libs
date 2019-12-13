@@ -35,10 +35,11 @@ extern "C"
  * @brief      To provide audio stream element
  */
 typedef struct{
-    esp_err_t (*decoder_open)(audio_element_handle_t el);             /*!< Open an Audio Element type data */
-    esp_codec_err_t (*decoder_process)(audio_element_handle_t el);    /*!< Do Audio data to decode */
-    esp_err_t (*decoder_close)(audio_element_handle_t el);            /*!< Close an Audio Element type data */
-    esp_codec_type_t decoder_type;                                    /*!< Type of Audio file */
+    esp_err_t (*decoder_open)(audio_element_handle_t el);                         /*!< Open an Audio Element type data */
+    esp_codec_err_t (*decoder_process)(audio_element_handle_t el);                /*!< Audio data to decoding */
+    esp_err_t (*decoder_close)(audio_element_handle_t el);                        /*!< Close an Audio Element type data */
+    esp_err_t (*decoder_seek)(audio_element_handle_t self, void *in_data, int in_size, void *out_data, int *out_size);  /*!< Seek Audio data in `timePos` to decode */
+    esp_codec_type_t decoder_type;                                                /*!< Type of Audio file */
 } audio_decoder_t;
 
 /**
@@ -59,75 +60,85 @@ typedef struct{
     int task_prio;                                                  /*!< Task priority (based on freeRTOS priority) */
 } esp_decoder_cfg_t;
 
-#define DEFAULT_ESP_WAV_DECODER_CONFIG()        \
-    {                                           \
-        .decoder_open = wav_decoder_open,       \
-        .decoder_process = wav_decoder_process, \
-        .decoder_close = wav_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_WAV,     \
-    }
-#define DEFAULT_ESP_MP3_DECODER_CONFIG()        \
-    {                                           \
-        .decoder_open = mp3_decoder_open,       \
-        .decoder_process = mp3_decoder_process, \
-        .decoder_close = mp3_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_MP3,     \
-    }
-#define DEFAULT_ESP_AMRNB_DECODER_CONFIG()      \
-    {                                           \
-        .decoder_open = amr_decoder_open,       \
-        .decoder_process = amr_decoder_process, \
-        .decoder_close = amr_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_AMRNB,   \
-    }
-#define DEFAULT_ESP_AMRWB_DECODER_CONFIG()      \
-    {                                           \
-        .decoder_open = amr_decoder_open,       \
-        .decoder_process = amr_decoder_process, \
-        .decoder_close = amr_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_AMRWB,   \
-    }
-#define DEFAULT_ESP_AAC_DECODER_CONFIG()        \
-    {                                           \
-        .decoder_open = aac_decoder_open,       \
-        .decoder_process = aac_decoder_process, \
-        .decoder_close = aac_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_AAC,     \
-    }
-#define DEFAULT_ESP_M4A_DECODER_CONFIG()        \
-    {                                           \
-        .decoder_open = aac_decoder_open,       \
-        .decoder_process = aac_decoder_process, \
-        .decoder_close = aac_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_M4A,     \
-    }
-#define DEFAULT_ESP_TS_DECODER_CONFIG()         \
-    {                                           \
-        .decoder_open = aac_decoder_open,       \
-        .decoder_process = aac_decoder_process, \
-        .decoder_close = aac_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_TSAAC,   \
-    }
-#define DEFAULT_ESP_OGG_DECODER_CONFIG()        \
-    {                                           \
-        .decoder_open = ogg_decoder_open,       \
-        .decoder_process = ogg_decoder_process, \
-        .decoder_close = ogg_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_VORBIS,  \
-    }
-#define DEFAULT_ESP_OPUS_DECODER_CONFIG()        \
-    {                                            \
-        .decoder_open = opus_decoder_open,       \
-        .decoder_process = opus_decoder_process, \
-        .decoder_close = opus_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_OPUS,     \
-    }
-#define DEFAULT_ESP_FLAC_DECODER_CONFIG()        \
-    {                                            \
-        .decoder_open = flac_decoder_open,       \
-        .decoder_process = flac_decoder_process, \
-        .decoder_close = flac_decoder_close,     \
-        .decoder_type = ESP_CODEC_TYPE_RAWFLAC,  \
+#define DEFAULT_ESP_WAV_DECODER_CONFIG()          \
+    {                                             \
+        .decoder_open = wav_decoder_open,         \
+        .decoder_process = wav_decoder_process,   \
+        .decoder_close = wav_decoder_close,       \
+        .decoder_seek = wav_decoder_get_pos_auto,     \
+        .decoder_type = ESP_CODEC_TYPE_WAV,       \
+    }  
+#define DEFAULT_ESP_MP3_DECODER_CONFIG()          \
+    {                                             \
+        .decoder_open = mp3_decoder_open,         \
+        .decoder_process = mp3_decoder_process,   \
+        .decoder_close = mp3_decoder_close,       \
+        .decoder_seek = mp3_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_MP3,       \
+    }  
+#define DEFAULT_ESP_AMRNB_DECODER_CONFIG()        \
+    {                                             \
+        .decoder_open = amr_decoder_open,         \
+        .decoder_process = amr_decoder_process,   \
+        .decoder_close = amr_decoder_close,       \
+        .decoder_seek = amr_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_AMRNB,     \
+    }  
+#define DEFAULT_ESP_AMRWB_DECODER_CONFIG()        \
+    {                                             \
+        .decoder_open = amr_decoder_open,         \
+        .decoder_process = amr_decoder_process,   \
+        .decoder_close = amr_decoder_close,       \
+        .decoder_seek = amr_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_AMRWB,     \
+    }  
+#define DEFAULT_ESP_AAC_DECODER_CONFIG()          \
+    {                                             \
+        .decoder_open = aac_decoder_open,         \
+        .decoder_process = aac_decoder_process,   \
+        .decoder_close = aac_decoder_close,       \
+        .decoder_seek = aac_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_AAC,       \
+    }  
+#define DEFAULT_ESP_M4A_DECODER_CONFIG()          \
+    {                                             \
+        .decoder_open = aac_decoder_open,         \
+        .decoder_process = aac_decoder_process,   \
+        .decoder_close = aac_decoder_close,       \
+        .decoder_seek = aac_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_M4A,       \
+    }  
+#define DEFAULT_ESP_TS_DECODER_CONFIG()           \
+    {                                             \
+        .decoder_open = aac_decoder_open,         \
+        .decoder_process = aac_decoder_process,   \
+        .decoder_close = aac_decoder_close,       \
+        .decoder_seek = aac_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_TSAAC,     \
+    }  
+#define DEFAULT_ESP_OGG_DECODER_CONFIG()          \
+    {                                             \
+        .decoder_open = ogg_decoder_open,         \
+        .decoder_process = ogg_decoder_process,   \
+        .decoder_close = ogg_decoder_close,       \
+        .decoder_seek = ogg_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_VORBIS,    \
+    }  
+#define DEFAULT_ESP_OPUS_DECODER_CONFIG()          \
+    {                                              \
+        .decoder_open = opus_decoder_open,         \
+        .decoder_process = opus_decoder_process,   \
+        .decoder_close = opus_decoder_close,       \
+        .decoder_seek = opus_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_OPUS,       \
+    }  
+#define DEFAULT_ESP_FLAC_DECODER_CONFIG()          \
+    {                                              \
+        .decoder_open = flac_decoder_open,         \
+        .decoder_process = flac_decoder_process,   \
+        .decoder_close = flac_decoder_close,       \
+        .decoder_seek = flac_decoder_get_pos,      \
+        .decoder_type = ESP_CODEC_TYPE_RAWFLAC,    \
     }
 
 #define DEFAULT_ESP_DECODER_CONFIG()                \
@@ -140,7 +151,7 @@ typedef struct{
 
 /**
 * @brief      Create an Audio Element handler to decode incoming audio data.
-*             - The handler is created to automatically recognize audio formats. 
+*             - The handler is created to automatically recognize audio formats.
 *             - The creation of the handler is dependent on the array of user’s audio decoder list.
 *
 * @param      config              The configuration
