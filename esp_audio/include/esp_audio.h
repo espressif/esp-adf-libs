@@ -213,6 +213,7 @@ audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, c
  *     - All features are same with `esp_audio_play`
  *     - Synchronous interface
  *     - Support decoder mode only
+ *     - No any events post during playing
  *
  * @param handle The esp_audio_handle_t instance
  * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3",
@@ -418,12 +419,12 @@ audio_err_t esp_audio_info_set(esp_audio_handle_t handle, esp_audio_info_t *info
 audio_err_t esp_audio_callback_set(esp_audio_handle_t handle, esp_audio_event_callback cb, void *cb_ctx);
 
 /**
- * @brief Seek the position in microseconds of currently played music.
+ * @brief Seek the position in second of currently played music.
  *
  * @note This function works only with decoding music.
  *
  * @param[in] handle            The esp_audio instance
- * @param[out] seek_time_ms     A pointer to int that indicates esp_audio decoding position.
+ * @param[out] seek_time_sec     A pointer to int that indicates esp_audio decoding position.
  *
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
@@ -434,7 +435,7 @@ audio_err_t esp_audio_callback_set(esp_audio_handle_t handle, esp_audio_event_ca
  *      - ESP_ERR_AUDIO_OUT_OF_RANGE: the seek_time_ms is out of the range
  *      - ESP_ERR_AUDIO_NOT_READY: the status is neither running nor paused
  */
-audio_err_t esp_audio_seek(esp_audio_handle_t handle, int seek_time_ms);
+audio_err_t esp_audio_seek(esp_audio_handle_t handle, int seek_time_sec);
 
 /**
  * @brief Get the duration in microseconds of playing music.
