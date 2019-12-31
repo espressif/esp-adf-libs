@@ -19,7 +19,6 @@
 extern "C" {
 #endif
 
-
 #define UPNP_MEM_CHECK(addr, action) if (addr == NULL) { ESP_LOGE(TAG, "Memory exhausted at %d", __LINE__); action; }
 
 /**
@@ -54,6 +53,5 @@ char *utils_trim(char *str);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

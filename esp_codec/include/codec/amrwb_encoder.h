@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define AMRWB_ENCODER_TASK_STACK          (15 * 1024)
 #define AMRWB_ENCODER_TASK_CORE           (0)
 #define AMRWB_ENCODER_TASK_PRIO           (5)

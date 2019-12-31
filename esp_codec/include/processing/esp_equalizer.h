@@ -76,3 +76,4 @@ float esp_equalizer_get_band_value(void *handle, int index, int nch);
 #endif
 
 #endif
+

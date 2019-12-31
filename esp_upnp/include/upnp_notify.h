@@ -110,5 +110,4 @@ esp_err_t upnp_notify_destroy(upnp_notify_handle_t notify);
 }
 #endif
 
-
 #endif

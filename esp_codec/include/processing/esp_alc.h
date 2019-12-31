@@ -25,6 +25,9 @@
 #ifndef _ESP_AUDIO_ALC_H_
 #define _ESP_AUDIO_ALC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief      ALC Configuration
@@ -63,5 +66,9 @@ void alc_volume_setup_close(void *handle);
  *              0         success
  */
 int alc_volume_setup_process(void *buffer, unsigned int bytes, int channels, void *handle, int volume);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -31,6 +31,7 @@
 #include "esp_equalizer.h"
 #include "esp_resample.h"
 #include "esp_sonic.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define MP3_DECODER_TASK_STACK_SIZE     (5 * 1024)
 #define MP3_DECODER_TASK_CORE           (0)
 #define MP3_DECODER_TASK_PRIO           (5)

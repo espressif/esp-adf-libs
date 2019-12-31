@@ -4,6 +4,10 @@
 #ifndef _ESPRESSIF_RESAMPLE_H_
 #define _ESPRESSIF_RESAMPLE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PCM_INOUT_NUM_RESTRICT (2)
 #define COMPLEXITY_MAX_NUM  (5)
 
@@ -96,5 +100,9 @@ esp_resp_err_t esp_resample_run(void *handle, void *info, unsigned char *p_in, u
  * @param      handle         the resampling handle
  */
 void esp_resample_destroy(void *handle);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

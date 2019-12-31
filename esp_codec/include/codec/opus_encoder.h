@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define OPUS_ENCODER_TASK_STACK          (40 * 1024)
 #define OPUS_ENCODER_TASK_CORE           (0)
 #define OPUS_ENCODER_TASK_PRIO           (3)

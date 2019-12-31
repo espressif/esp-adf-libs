@@ -6,6 +6,10 @@
 
 #include "esp_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ESP_ERR_AUDIO_BASE                  (0x80000 + 0x1000) /*!< Starting number of ESP audio error codes */
 
 typedef enum {
@@ -90,5 +94,9 @@ typedef struct {
 typedef void (*esp_audio_event_callback)(esp_audio_state_t *audio, void *ctx);
 typedef esp_err_t (*audio_volume_set)(void *hd, int vol);
 typedef esp_err_t (*audio_volume_get)(void *hd, int *vol);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

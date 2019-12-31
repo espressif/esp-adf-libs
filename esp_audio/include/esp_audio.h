@@ -7,6 +7,10 @@
 #include "audio_common.h"
 #include "audio_element.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef void *esp_audio_handle_t;
 
 #define DEFAULT_ESP_AUDIO_CONFIG() {\
@@ -451,5 +455,9 @@ audio_err_t esp_audio_seek(esp_audio_handle_t handle, int seek_time_sec);
  *      - ESP_ERR_AUDIO_NOT_READY：no codec element or no in element
  */
 audio_err_t esp_audio_duration_get(esp_audio_handle_t handle, int *duration);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

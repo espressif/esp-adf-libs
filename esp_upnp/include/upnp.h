@@ -115,6 +115,4 @@ esp_err_t upnp_register_service(upnp_handle_t               upnp,
 }
 #endif
 
-
 #endif
-
