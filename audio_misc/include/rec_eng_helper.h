@@ -25,6 +25,10 @@
 #ifndef _RECORDER_ENGINE_HELPER_H_
 #define _RECORDER_ENGINE_HELPER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @breif Get a wake net interface
  *
@@ -42,5 +46,9 @@ void get_wakenet_iface(esp_wn_iface_t **wakenet_iface);
  * @return   void
  */
 void get_wakenet_coeff(model_coeff_getter_t **model_coeff);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

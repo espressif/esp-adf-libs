@@ -6,6 +6,10 @@
 
 #include "audio_type_def.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief      Open an Audio Element type data
  *
@@ -53,4 +57,9 @@ esp_codec_err_t opus_decoder_process(audio_element_handle_t el);
  *             ESP_FAIL
  */
 esp_err_t opus_decoder_get_pos(audio_element_handle_t self, void *in_data, int in_size, void *out_data, int *out_size);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

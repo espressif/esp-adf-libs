@@ -219,5 +219,4 @@ esp_err_t esp_sip_send_dtmf(sip_handle_t sip, const uint8_t dtmf_event);
 }
 #endif
 
-
 #endif

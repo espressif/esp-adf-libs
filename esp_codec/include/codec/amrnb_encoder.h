@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define AMRNB_ENCODER_TASK_STACK          (15 * 1024)
 #define AMRNB_ENCODER_TASK_CORE           (0)
 #define AMRNB_ENCODER_TASK_PRIO           (5)

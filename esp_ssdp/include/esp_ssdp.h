@@ -95,5 +95,4 @@ void sspd_free_query_result(ssdp_query_result_t *result);
 }
 #endif
 
-
 #endif

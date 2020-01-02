@@ -4,7 +4,6 @@
 #include <string.h>
 #include "esp_log.h"
 #include "audio_error.h"
-#include "audio_common.h"
 #include "audio_mem.h"
 #include "audio_element.h"
 #include "esp_downmix.h"

@@ -27,6 +27,10 @@
 
 #define REC_ONE_BLOCK_SIZE 2880     // 90ms[16k,16bit,1channel]
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DEFAULT_REC_ENGINE_CONFIG() {\
     .one_frame_duration_ms      = 10,\
     .sensitivity                = 0,\
@@ -314,5 +318,9 @@ esp_err_t rec_engine_mute_enable(bool mute_enable);
  *     - -1: Error
  */
 esp_err_t rec_engine_get_wakeup_stat(bool *wakeup_start_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

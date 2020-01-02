@@ -8,6 +8,7 @@
 #include "audio_element.h"
 #include "audio_common.h"
 #include "esp_resample.h"
+
 #ifdef __cplusplus
 extern "C"
 {

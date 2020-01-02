@@ -25,6 +25,10 @@
 #ifndef _AUDIO_ALC_H_
 #define _AUDIO_ALC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief      ALC Configuration
  */
@@ -83,6 +87,10 @@ int alc_volume_setup_get_volume(audio_element_handle_t self);
  * @return     the audio element handler
  */
 audio_element_handle_t alc_volume_setup_init(alc_volume_setup_cfg_t *config);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

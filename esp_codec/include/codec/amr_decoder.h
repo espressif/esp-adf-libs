@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define AMR_DECODER_TASK_STACK_SIZE     (5 * 1024)
 #define AMR_DECODER_TASK_CORE           (0)
 #define AMR_DECODER_TASK_PRIO           (5)

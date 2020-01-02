@@ -153,5 +153,4 @@ esp_err_t upnp_service_send_notify(upnp_service_handle_t services,
 }
 #endif
 
-
 #endif

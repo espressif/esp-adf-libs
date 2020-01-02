@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #define FLAC_DECODER_TASK_STACK_SIZE     (10 * 1024)
 #define FLAC_DECODER_TASK_CORE           (0)
 #define FLAC_DECODER_TASK_PRIO           (5)

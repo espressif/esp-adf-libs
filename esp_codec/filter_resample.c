@@ -5,7 +5,6 @@
 #include "esp_log.h"
 #include "audio_error.h"
 #include "audio_mem.h"
-#include "audio_common.h"
 #include "audio_element.h"
 #include "filter_resample.h"
 #include "audio_type_def.h"
