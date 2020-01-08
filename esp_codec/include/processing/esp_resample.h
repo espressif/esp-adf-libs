@@ -56,17 +56,17 @@ typedef enum {
  * @brief      Resampling Filter Configuration
  */
 typedef struct {
-    int src_rate;            /*!< The sampling rate of the source PCM file */
-    int src_ch;              /*!< The number of channel(s) of the source PCM file */
-    int dest_rate;           /*!< The sampling rate of the destination PCM file */
-    int dest_ch;             /*!< The number of channel(s) of the destination PCM file */
-    int sample_bits;         /*!< The bit width of the PCM file. Currently, the only supported bit width is 16 bits. */
-    int mode;                /*!< The resampling mode (the encoding mode and the decoding mode) */
-    int max_indata_bytes;    /*!< The maximum buffer size of the input PCM (in bytes) */
-    int out_len_bytes;       /*!< The buffer length of the output stream data. This parameter must be configured in encoding mode. */
-    int type;                /*!< The resampling type (Automatic, Upsampling and Downsampling), which can be selected manually at the integer multiples of the resampling cycle. */
-    int complexity;          /*!< Indicates the complexity of the resampling. This parameter is only valid when a FIR filter is used. Range: 0~4; O indicates the lowest complexity, which means the accuracy is the lowest and the speed is the fastest; Meanwhile, 4 indicates the highest complexity, which means the accuracy is the highest and the speed is the slowest.*/
-    int down_ch_idx;         /*!< Indicates the channel that is selected (the right channel or the left channel). This parameter is only valid when the complexity parameter is set to 0 and the number of channel(s) of the input file has changed from dual to mono. */
+    int src_rate;             /*!< The sampling rate of the source PCM file */
+    int src_ch;               /*!< The number of channel(s) of the source PCM file */
+    int dest_rate;            /*!< The sampling rate of the destination PCM file */
+    int dest_ch;              /*!< The number of channel(s) of the destination PCM file */
+    int sample_bits;          /*!< The bit width of the PCM file. Currently, the only supported bit width is 16 bits. */
+    esp_resample_mode_t mode; /*!< The resampling mode (the encoding mode and the decoding mode) */
+    int max_indata_bytes;     /*!< The maximum buffer size of the input PCM (in bytes) */
+    int out_len_bytes;        /*!< The buffer length of the output stream data. This parameter must be configured in encoding mode. */
+    esp_resample_type_t type; /*!< The resampling type (Automatic, Upsampling and Downsampling), which can be selected manually at the integer multiples of the resampling cycle. */
+    int complexity;           /*!< Indicates the complexity of the resampling. This parameter is only valid when a FIR filter is used. Range: 0~4; O indicates the lowest complexity, which means the accuracy is the lowest and the speed is the fastest; Meanwhile, 4 indicates the highest complexity, which means the accuracy is the highest and the speed is the slowest.*/
+    int down_ch_idx;          /*!< Indicates the channel that is selected (the right channel or the left channel). This parameter is only valid when the complexity parameter is set to 0 and the number of channel(s) of the input file has changed from dual to mono. */
 } resample_info_t;
 
 /**
