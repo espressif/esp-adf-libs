@@ -194,6 +194,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *       even if other decoders are added.
  *     - Enabled `CONFIG_FATFS_API_ENCODING_UTF_8`, the URI can be support Chinese characters.
  *     - Asynchronous interface
+ *     - The maximum of block time can be modify by `esp_audio_set_play_timeout`, default value is 25 seconds.
  *
  * @param handle The esp_audio_handle_t instance
  * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3".
@@ -455,6 +456,18 @@ audio_err_t esp_audio_seek(esp_audio_handle_t handle, int seek_time_sec);
  *      - ESP_ERR_AUDIO_NOT_READY：no codec element or no in element
  */
 audio_err_t esp_audio_duration_get(esp_audio_handle_t handle, int *duration);
+
+/**
+ * @brief Setting the maximum amount of time to waiting for `esp_audio_play` only.
+ *
+ * @param[in] handle        The esp_audio instance
+ * @param[in] time_ms       The maximum amount of time
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_set_play_timeout(esp_audio_handle_t handle, int time_ms);
 
 #ifdef __cplusplus
 }
