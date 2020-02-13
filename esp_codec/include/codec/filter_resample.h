@@ -35,7 +35,7 @@ typedef struct {
     int task_prio;             /*!< Task priority */
 } rsp_filter_cfg_t;
 
-#define RSP_FILTER_BUFFER_BYTE              (1024)
+#define RSP_FILTER_BUFFER_BYTE              (512)
 #define RSP_FILTER_TASK_STACK               (4 * 1024)
 #define RSP_FILTER_TASK_CORE                (0)
 #define RSP_FILTER_TASK_PRIO                (5)

@@ -194,7 +194,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *       even if other decoders are added.
  *     - Enabled `CONFIG_FATFS_API_ENCODING_UTF_8`, the URI can be support Chinese characters.
  *     - Asynchronous interface
- *     - The maximum of block time can be modify by `esp_audio_set_play_timeout`, default value is 25 seconds.
+ *     - The maximum of block time can be modify by `esp_audio_play_timeout_set`, default value is 25 seconds.
  *
  * @param handle The esp_audio_handle_t instance
  * @param uri    Such as "file://sdcard/test.wav" or "http://iot.espressif.com/file/example.mp3".
@@ -264,7 +264,7 @@ audio_err_t esp_audio_stop(esp_audio_handle_t handle, audio_termination_type_t t
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
- *      - ESP_ERR_AUDIO_NOT_READY：the status is not running.: the status is not running.
+ *      - ESP_ERR_AUDIO_NOT_READY: the status is not running
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout(8000ms) the pause activity.
  */
 audio_err_t esp_audio_pause(esp_audio_handle_t handle);
@@ -333,7 +333,7 @@ audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *st
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
- *      - ESP_ERR_AUDIO_NOT_READY：no codec element
+ *      - ESP_ERR_AUDIO_NOT_READY: no codec element
  */
 audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
 
@@ -348,7 +348,7 @@ audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
- *      - ESP_ERR_AUDIO_NOT_READY：no out stream
+ *      - ESP_ERR_AUDIO_NOT_READY: no out stream
  */
 audio_err_t esp_audio_time_get(esp_audio_handle_t handle, int *time);
 
@@ -453,7 +453,7 @@ audio_err_t esp_audio_seek(esp_audio_handle_t handle, int seek_time_sec);
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
- *      - ESP_ERR_AUDIO_NOT_READY：no codec element or no in element
+ *      - ESP_ERR_AUDIO_NOT_READY: no codec element or no in element
  */
 audio_err_t esp_audio_duration_get(esp_audio_handle_t handle, int *duration);
 
@@ -467,7 +467,19 @@ audio_err_t esp_audio_duration_get(esp_audio_handle_t handle, int *duration);
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
-audio_err_t esp_audio_set_play_timeout(esp_audio_handle_t handle, int time_ms);
+audio_err_t esp_audio_play_timeout_set(esp_audio_handle_t handle, int time_ms);
+
+/**
+ * @brief Get the type of `esp_audio_prefer_t`
+ *
+ * @param[in] handle        The esp_audio instance
+ * @param[out] type         A pointer to esp_audio_prefer_t
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
+ */
+audio_err_t esp_audio_prefer_type_get(esp_audio_handle_t handle, esp_audio_prefer_t *type);
 
 #ifdef __cplusplus
 }
