@@ -6,6 +6,7 @@
 #include "audio_element.h"
 #include "wav_encoder.h"
 #include "wav_head.h"
+#include "audio_error.h"
 
 static const char *TAG = "WAV_ENCODER";
 
@@ -57,7 +58,7 @@ static int _wav_encoder_process(audio_element_handle_t self, char *in_buffer, in
 audio_element_handle_t wav_encoder_init(wav_encoder_cfg_t *config)
 {
     wav_encoder_t *wav = audio_calloc(1, sizeof(wav_encoder_t));
-    mem_assert(wav);
+    AUDIO_MEM_CHECK(TAG, wav, {return NULL;});
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = _wav_encoder_destroy;
     cfg.process = _wav_encoder_process;
@@ -73,7 +74,7 @@ audio_element_handle_t wav_encoder_init(wav_encoder_cfg_t *config)
     cfg.tag = "wav";
 
     audio_element_handle_t el = audio_element_init(&cfg);
-    mem_assert(el);
+    AUDIO_MEM_CHECK(TAG, el, {audio_free(wav); return NULL;});
     audio_element_setdata(el, wav);
     ESP_LOGD(TAG, "wav_encoder_init");
     return el;
