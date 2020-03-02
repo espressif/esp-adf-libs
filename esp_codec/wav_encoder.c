@@ -64,13 +64,16 @@ audio_element_handle_t wav_encoder_init(wav_encoder_cfg_t *config)
     cfg.process = _wav_encoder_process;
     cfg.open = _wav_encoder_open;
     cfg.close = _wav_encoder_close;
-    cfg.task_stack = config->task_stack;
-    cfg.task_prio = config->task_prio;
-    cfg.task_core = config->task_core;
-    cfg.out_rb_size = config->out_rb_size;
-    if (cfg.task_stack == 0) {
-        cfg.task_stack = WAV_ENCODER_TASK_STACK;
+    cfg.task_stack = WAV_ENCODER_TASK_STACK;
+    if (config) {
+        if (config->task_stack) {
+            cfg.task_stack = config->task_stack;
+        }
+        cfg.task_prio = config->task_prio;
+        cfg.task_core = config->task_core;
+        cfg.out_rb_size = config->out_rb_size;
     }
+
     cfg.tag = "wav";
 
     audio_element_handle_t el = audio_element_init(&cfg);

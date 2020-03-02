@@ -120,6 +120,7 @@ static esp_err_t rsp_filter_close(audio_element_handle_t self)
     rsp_filter_t *filter = (rsp_filter_t *)audio_element_getdata(self);
     if (filter->rsp_hd != NULL) {
         esp_resample_destroy(filter->rsp_hd);
+        filter->rsp_hd = 0;
     }
     return ESP_OK;
 }
