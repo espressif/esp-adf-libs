@@ -16,15 +16,20 @@ extern "C" {
 #define OPUS_ENCODER_TASK_CORE           (0)
 #define OPUS_ENCODER_TASK_PRIO           (3)
 #define OPUS_ENCODER_RINGBUFFER_SIZE     (2 * 1024)
-#define DEFAULT_OPUS_ENCODER_CONFIG() {\
-        .sample_rate        = 16000,\
-        .channel            = 1,\
-        .bitrate            = 64000,\
-        .complexity         = 10,\
-        .out_rb_size        = OPUS_ENCODER_RINGBUFFER_SIZE,\
-        .task_stack         = OPUS_ENCODER_TASK_STACK,\
-        .task_core          = OPUS_ENCODER_TASK_CORE,\
-        .task_prio          = OPUS_ENCODER_TASK_PRIO,\
+#define OPUS_ENCODER_SAMPLE_RATE         (16000)
+#define OPUS_ENCODER_CHANNELS            (1)
+#define OPUS_ENCODER_BITRATE             (64000)
+#define OPUS_ENCODER_COMPLEXITY          (10)
+
+#define DEFAULT_OPUS_ENCODER_CONFIG() {                     \
+        .sample_rate        = OPUS_ENCODER_SAMPLE_RATE,     \
+        .channel            = OPUS_ENCODER_CHANNELS,        \
+        .bitrate            = OPUS_ENCODER_BITRATE,         \
+        .complexity         = OPUS_ENCODER_COMPLEXITY,      \
+        .out_rb_size        = OPUS_ENCODER_RINGBUFFER_SIZE, \
+        .task_stack         = OPUS_ENCODER_TASK_STACK,      \
+        .task_core          = OPUS_ENCODER_TASK_CORE,       \
+        .task_prio          = OPUS_ENCODER_TASK_PRIO,       \
     }
 
 /**

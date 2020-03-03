@@ -133,13 +133,16 @@ audio_element_handle_t wav_decoder_init(wav_decoder_cfg_t *config)
     cfg.open = _wav_decoder_open;
     cfg.close = _wav_decoder_close;
     cfg.seek = wav_decoder_get_pos;
-    cfg.task_stack = config->task_stack;
-    cfg.task_prio = config->task_prio;
-    cfg.task_core = config->task_core;
-    cfg.out_rb_size = config->out_rb_size;
-    if (cfg.task_stack == 0) {
-        cfg.task_stack = WAV_DECODER_TASK_STACK;
+    cfg.task_stack = WAV_DECODER_TASK_STACK;
+    if (config) {
+        if (config->task_stack) {
+            cfg.task_stack = config->task_stack;
+        }
+        cfg.task_prio = config->task_prio;
+        cfg.task_core = config->task_core;
+        cfg.out_rb_size = config->out_rb_size;
     }
+
     cfg.tag = "wav";
 
     audio_element_handle_t el = audio_element_init(&cfg);
