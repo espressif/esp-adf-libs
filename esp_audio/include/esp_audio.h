@@ -187,6 +187,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *     - "file://sdcard/test.mp3"
  *     - "iis://16000:2@from.pcm/rec.wav#file"
  *     - "iis://16000:1@record.pcm/record.wav#raw"
+ *     - "aadp://44100:2@bt/sink/stream.pcm"
  *
  * @note
  *     - The URI parse by `http_parser_parse_url`,any illegal string will be return `ESP_ERR_AUDIO_INVALID_URI`.

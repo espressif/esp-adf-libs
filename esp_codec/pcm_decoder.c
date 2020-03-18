@@ -42,6 +42,8 @@ static esp_err_t _pcm_decoder_destroy(audio_element_handle_t self)
 
 static esp_err_t _pcm_decoder_open(audio_element_handle_t self)
 {
+    pcm_decoder_t *pcm = (pcm_decoder_t *)audio_element_getdata(self);
+    pcm->reserved = false;
     return ESP_OK;
 }
 
@@ -63,7 +65,13 @@ static int _pcm_decoder_process(audio_element_handle_t self, char *in_buffer, in
     audio_element_info_t audio_info = { 0 };
     int r_size = audio_element_input(self, in_buffer, in_len);
     int out_len = r_size;
+    pcm_decoder_t *pcm = (pcm_decoder_t *)audio_element_getdata(self);
     if (r_size > 0) {
+        if (pcm->reserved == false) {
+            audio_element_report_info(self);
+            pcm->reserved = true;
+        }
+
         out_len = audio_element_output(self, in_buffer, out_len);
         audio_element_getinfo(self, &audio_info);
         audio_info.byte_pos += out_len;
@@ -78,7 +86,12 @@ static int _pcm_decoder_process(audio_element_handle_t self, char *in_buffer, in
 esp_err_t pcm_decoder_get_pos(audio_element_handle_t self, void *in_data, int in_size, void *out_data, int *out_size)
 {
     ESP_LOGI(TAG, "pcm_decoder_get_pos");
-    *out_size = 0;
+    audio_element_info_t info = {0};
+    audio_element_getinfo(self, &info);
+    int time = *(int *)in_data;
+    uint32_t pos = ((time * info.bits * info.channels) * (info.sample_rates >> 3));
+    *(uint32_t *)out_data = pos;
+    *out_size = sizeof(pos);
     return ESP_OK;
 }
 
@@ -106,6 +119,13 @@ audio_element_handle_t pcm_decoder_init(pcm_decoder_cfg_t *config)
     audio_element_handle_t el = audio_element_init(&cfg);
     AUDIO_MEM_CHECK(TAG, el, {audio_free(pcm); return NULL;});
     audio_element_setdata(el, pcm);
+    audio_element_info_t info = {0};
+    audio_element_getinfo(el, &info);
+    info.sample_rates = config->rate;
+    info.channels = config->channels;
+    info.bits = config->bits;
+    info.bps = config->bits * config->rate * config->channels;
+    audio_element_setinfo(el, &info);
     ESP_LOGD(TAG, "pcm_decoder_init");
     return el;
 }
