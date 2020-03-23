@@ -19,6 +19,7 @@
 #include "auto_flac_dec.h"
 #include "auto_ogg_dec.h"
 #include "auto_opus_dec.h"
+#include "auto_pcm_dec.h"
 #include "audio_type_def.h"
 
 #ifdef __cplusplus
@@ -139,6 +140,15 @@ typedef struct{
         .decoder_close = flac_decoder_close,       \
         .decoder_seek = flac_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_RAWFLAC,    \
+    }
+
+#define DEFAULT_ESP_PCM_DECODER_CONFIG()           \
+    {                                              \
+        .decoder_open = pcm_decoder_open,          \
+        .decoder_process = pcm_decoder_process,    \
+        .decoder_close = pcm_decoder_close,        \
+        .decoder_seek = pcm_decoder_get_pos,       \
+        .decoder_type = ESP_CODEC_TYPE_PCM,        \
     }
 
 #define DEFAULT_ESP_DECODER_CONFIG()                \
