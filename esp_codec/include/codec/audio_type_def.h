@@ -22,8 +22,9 @@ typedef enum
     ESP_CODEC_TYPE_M4A           = 8,
     ESP_CODEC_TYPE_TSAAC         = 9,    
     ESP_CODEC_TYPE_VORBIS        = 10,
-    ESP_CODEC_TYPE_OPUS          = 11,    
-    ESP_CODEC_TYPE_UNSUPPORT     = 12,
+    ESP_CODEC_TYPE_OPUS          = 11,
+    ESP_CODEC_TYPE_PCM           = 12,    
+    ESP_CODEC_TYPE_UNSUPPORT     = 13,
 } esp_codec_type_t;
 
 typedef enum
