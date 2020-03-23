@@ -4,7 +4,8 @@ set(COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_upnp/include
                             ./esp_ssdp/include
                             ./recorder_engine/include
-                            ./esp_sip/include)
+                            ./esp_sip/include
+                            ./audio_misc/include)
 
 # Edit following two lines to set component requirements (see docs)
 set(COMPONENT_REQUIRES )
