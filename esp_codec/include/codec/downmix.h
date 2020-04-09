@@ -18,13 +18,14 @@ extern "C"
 * @brief      Downmix configuration
 */
 typedef struct {
-        esp_downmix_info_t downmix_info; /*!< Downmix information */
-        int max_sample;                  /*!< The number of samples per downmix processing */
-        int out_rb_size;                 /*!< Size of ring buffer */
-        int task_stack;                  /*!< Size of task stack */
-        int task_core;                   /*!< Task running in core... */
-        int task_prio;                   /*!< Task priority (based on the FreeRTOS priority) */
-    } downmix_cfg_t;
+    esp_downmix_info_t downmix_info; /*!< Downmix information */
+    int max_sample;                  /*!< The number of samples per downmix processing */
+    int out_rb_size;                 /*!< Size of ring buffer */
+    int task_stack;                  /*!< Size of task stack */
+    int task_core;                   /*!< Task running in core... */
+    int task_prio;                   /*!< Task priority (based on the FreeRTOS priority) */
+    bool stack_in_ext;               /*!< Try to allocate stack in external memory */
+} downmix_cfg_t;
 
 #define DOWNMIX_TASK_STACK (8 * 1024)
 #define DOWNMIX_TASK_CORE (0)
@@ -45,6 +46,7 @@ typedef struct {
         .task_stack = DOWNMIX_TASK_STACK,                             \
         .task_core = DOWNMIX_TASK_CORE,                               \
         .task_prio = DOWNMIX_TASK_PRIO,                               \
+        .stack_in_ext = true,                                         \
     }
 
 /**
@@ -149,7 +151,7 @@ esp_err_t downmix_set_transit_time_info(audio_element_handle_t self, int transit
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t* source_num);
+esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t *source_num);
 
 /**
 * @brief      Initializes the Audio Element handle for downmixing.

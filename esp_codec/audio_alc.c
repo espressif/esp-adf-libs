@@ -16,12 +16,12 @@ static esp_err_t _alc_volume_setup_open(audio_element_handle_t self)
 {
     volume_set_t *vol_setup_info = (volume_set_t *)audio_element_getdata(self);
     vol_setup_info->in_buf = audio_calloc(1, ALC_INBUFFER_LENGTH);
-    if(vol_setup_info->in_buf == NULL){
+    if (vol_setup_info->in_buf == NULL) {
         ESP_LOGE(TAG, "audio_calloc failed for in_buf. (line %d)", __LINE__);
         return ESP_ERR_NO_MEM;
     }
     vol_setup_info->handle = alc_volume_setup_open();
-    if(vol_setup_info->handle == NULL){
+    if (vol_setup_info->handle == NULL) {
         ESP_LOGE(TAG, "Failed to create ALC handle. (line %d)", __LINE__);
         return ESP_FAIL;
     }
@@ -44,7 +44,7 @@ static esp_err_t _alc_volume_setup_process(audio_element_handle_t self, char *in
     volume_set_t *vol_setup_info = (volume_set_t *)audio_element_getdata(self);
     int read_len = audio_element_input(self, (char *)vol_setup_info->in_buf, ALC_INBUFFER_LENGTH);
     if (read_len < 0) {
-        return read_len; 
+        return read_len;
     }
     int ret = alc_volume_setup_process((char *)vol_setup_info->in_buf, read_len,
                                        vol_setup_info->channel, vol_setup_info->handle, vol_setup_info->volume);
@@ -73,10 +73,10 @@ int alc_volume_setup_get_volume(audio_element_handle_t self)
 static esp_err_t alc_volume_setup_destroy(audio_element_handle_t self)
 {
     volume_set_t *vol_setup_info = (volume_set_t *)audio_element_getdata(self);
-    if(vol_setup_info){
+    if (vol_setup_info) {
         audio_free(vol_setup_info);
     }
-    return ESP_OK;   
+    return ESP_OK;
 }
 
 audio_element_handle_t alc_volume_setup_init(alc_volume_setup_cfg_t *config)
@@ -97,6 +97,7 @@ audio_element_handle_t alc_volume_setup_init(alc_volume_setup_cfg_t *config)
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
+    cfg.stack_in_ext = config->stack_in_ext;
     cfg.tag = "alc_volume";
     el = audio_element_init(&cfg);
     AUDIO_MEM_CHECK(TAG, el, {audio_free(vol_setup_info); return NULL;});

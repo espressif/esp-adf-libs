@@ -33,6 +33,7 @@ typedef struct {
     int task_stack;            /*!< Task stack size */
     int task_core;             /*!< Task running on core */
     int task_prio;             /*!< Task priority */
+    bool stack_in_ext;         /*!< Try to allocate stack in external memory */
 } rsp_filter_cfg_t;
 
 #define RSP_FILTER_BUFFER_BYTE              (512)
@@ -57,6 +58,7 @@ typedef struct {
         .task_stack = RSP_FILTER_TASK_STACK,        \
         .task_core = RSP_FILTER_TASK_CORE,          \
         .task_prio = RSP_FILTER_TASK_PRIO,          \
+        .stack_in_ext = true,                       \
     }
 
 /**
