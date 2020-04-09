@@ -34,9 +34,12 @@ target_link_libraries(${COMPONENT_TARGET} "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_au
 IF (IDF_VER MATCHES "v4.")
 add_prebuilt_library(esp_audio "${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/libesp_audio.a"
              PRIV_REQUIRES esp-adf-libs)
+target_link_libraries(${COMPONENT_TARGET} INTERFACE esp_sip-v4x)
+ELSE ()
+target_link_libraries(${COMPONENT_TARGET} INTERFACE esp_sip)
 ENDIF (IDF_VER MATCHES "v4.")
 
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
                         esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
-                        esp_ssdp esp_upnp esp_sip esp-mp3 codec-utils
+                        esp_ssdp esp_upnp esp-mp3 codec-utils
                         recorder_engine  "-Wl,--end-group")

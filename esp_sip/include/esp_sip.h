@@ -76,6 +76,16 @@ typedef enum {
 } sip_event_t;
 
 /**
+ * @brief SIP Messages header info
+ */
+typedef struct {
+    char *via;         /*!< SIP Messages via fields  */
+    char *from;        /*!< SIP Messages from fields  */
+    char *to;          /*!< SIP Messages to fields  */
+    char *contact;     /*!< SIP Messages contact fields  */
+} sip_messages_info_t;
+
+/**
  * @brief SIP session event message
  */
 typedef struct {
@@ -214,6 +224,32 @@ sip_state_t esp_sip_get_state(sip_handle_t sip);
  *     - ESP_ERR_INVALID_ARG
  */
 esp_err_t esp_sip_send_dtmf(sip_handle_t sip, const uint8_t dtmf_event);
+
+/**
+ * @brief      Set custom invite info
+ *
+ * @param[in]  sip              The sip handle
+ * @param[in]  sip_set_info     Set Via, From, To, Contact fields
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_set_invite_info(sip_handle_t sip, const sip_messages_info_t *sip_set_info);
+
+/**
+ * @brief      Read incomming sip message
+ *
+ * @param[in]  sip                      The sip handle
+ * @param[in]  sip_messages_info_t      Read Via, From, To, Contact fields, we will copy to user buffer.
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+esp_err_t esp_sip_read_incomming_messages(sip_handle_t sip, sip_messages_info_t *sip_read_info);
 
 #ifdef __cplusplus
 }
