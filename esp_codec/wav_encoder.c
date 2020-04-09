@@ -69,6 +69,7 @@ audio_element_handle_t wav_encoder_init(wav_encoder_cfg_t *config)
         if (config->task_stack) {
             cfg.task_stack = config->task_stack;
         }
+        cfg.stack_in_ext = config->stack_in_ext;
         cfg.task_prio = config->task_prio;
         cfg.task_core = config->task_core;
         cfg.out_rb_size = config->out_rb_size;

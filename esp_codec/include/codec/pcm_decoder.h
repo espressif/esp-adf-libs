@@ -32,6 +32,22 @@
 extern "C" {
 #endif
 
+#define PCM_DECODER_TASK_STACK          (3 * 1024)
+#define PCM_DECODER_TASK_CORE           (0)
+#define PCM_DECODER_TASK_PRIO           (5)
+#define PCM_DECODER_RINGBUFFER_SIZE     (8 * 1024)
+
+#define DEFAULT_PCM_DECODER_CONFIG() {                  \
+    .out_rb_size        = PCM_DECODER_RINGBUFFER_SIZE,  \
+    .task_stack         = PCM_DECODER_TASK_STACK,       \
+    .task_core          = PCM_DECODER_TASK_CORE,        \
+    .task_prio          = PCM_DECODER_TASK_PRIO,        \
+    .stack_in_ext       = true,                         \
+    .rate               = 44100,                        \
+    .bits               = 16,                           \
+    .channels           = 2,                            \
+}
+
 /**
  * @note The sample rate and channle of PCM should be specific by user with `audio_element_setinfo`.
  */
@@ -44,25 +60,11 @@ typedef struct {
     int                     task_stack;     /*!< Task stack size */
     int                     task_core;      /*!< Task running in core (0 or 1) */
     int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+    bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
     int                     rate;           /*!< Sample rates in Hz */
     int                     bits;           /*!< Bit wide */
     int                     channels;       /*!< Number of audio channel, mono is 1, stereo is 2 */
 } pcm_decoder_cfg_t;
-
-#define PCM_DECODER_TASK_STACK          (3 * 1024)
-#define PCM_DECODER_TASK_CORE           (0)
-#define PCM_DECODER_TASK_PRIO           (5)
-#define PCM_DECODER_RINGBUFFER_SIZE     (8 * 1024)
-
-#define DEFAULT_PCM_DECODER_CONFIG() {\
-    .out_rb_size        = PCM_DECODER_RINGBUFFER_SIZE,\
-    .task_stack         = PCM_DECODER_TASK_STACK,\
-    .task_core          = PCM_DECODER_TASK_CORE,\
-    .task_prio          = PCM_DECODER_TASK_PRIO,\
-    .rate               = 44100,\
-    .bits               = 16,\
-    .channels            = 2,\
-}
 
 /**
  * @brief      Create an Audio Element handle to decode incoming PCM data

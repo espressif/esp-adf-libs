@@ -59,6 +59,7 @@ typedef struct{
     int task_stack;                                                 /*!< Task stack size */
     int task_core;                                                  /*!< CPU core number (0 or 1) where decoder task in running */
     int task_prio;                                                  /*!< Task priority (based on freeRTOS priority) */
+    bool stack_in_ext;                                              /*!< Try to allocate stack in external memory */
 } esp_decoder_cfg_t;
 
 #define DEFAULT_ESP_WAV_DECODER_CONFIG()          \
@@ -66,9 +67,9 @@ typedef struct{
         .decoder_open = wav_decoder_open,         \
         .decoder_process = wav_decoder_process,   \
         .decoder_close = wav_decoder_close,       \
-        .decoder_seek = wav_decoder_get_pos_auto,     \
+        .decoder_seek = wav_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_WAV,       \
-    }  
+    }
 #define DEFAULT_ESP_MP3_DECODER_CONFIG()          \
     {                                             \
         .decoder_open = mp3_decoder_open,         \
@@ -76,7 +77,7 @@ typedef struct{
         .decoder_close = mp3_decoder_close,       \
         .decoder_seek = mp3_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_MP3,       \
-    }  
+    }
 #define DEFAULT_ESP_AMRNB_DECODER_CONFIG()        \
     {                                             \
         .decoder_open = amr_decoder_open,         \
@@ -84,7 +85,7 @@ typedef struct{
         .decoder_close = amr_decoder_close,       \
         .decoder_seek = amr_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_AMRNB,     \
-    }  
+    }
 #define DEFAULT_ESP_AMRWB_DECODER_CONFIG()        \
     {                                             \
         .decoder_open = amr_decoder_open,         \
@@ -92,7 +93,7 @@ typedef struct{
         .decoder_close = amr_decoder_close,       \
         .decoder_seek = amr_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_AMRWB,     \
-    }  
+    }
 #define DEFAULT_ESP_AAC_DECODER_CONFIG()          \
     {                                             \
         .decoder_open = aac_decoder_open,         \
@@ -100,7 +101,7 @@ typedef struct{
         .decoder_close = aac_decoder_close,       \
         .decoder_seek = aac_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_AAC,       \
-    }  
+    }
 #define DEFAULT_ESP_M4A_DECODER_CONFIG()          \
     {                                             \
         .decoder_open = aac_decoder_open,         \
@@ -108,7 +109,7 @@ typedef struct{
         .decoder_close = aac_decoder_close,       \
         .decoder_seek = aac_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_M4A,       \
-    }  
+    }
 #define DEFAULT_ESP_TS_DECODER_CONFIG()           \
     {                                             \
         .decoder_open = aac_decoder_open,         \
@@ -116,15 +117,15 @@ typedef struct{
         .decoder_close = aac_decoder_close,       \
         .decoder_seek = aac_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_TSAAC,     \
-    }  
+    }
 #define DEFAULT_ESP_OGG_DECODER_CONFIG()          \
     {                                             \
         .decoder_open = ogg_decoder_open,         \
         .decoder_process = ogg_decoder_process,   \
         .decoder_close = ogg_decoder_close,       \
         .decoder_seek = ogg_decoder_get_pos,      \
-        .decoder_type = ESP_CODEC_TYPE_VORBIS,    \
-    }  
+        .decoder_type = ESP_CODEC_TYPE_OGG,    \
+    }
 #define DEFAULT_ESP_OPUS_DECODER_CONFIG()          \
     {                                              \
         .decoder_open = opus_decoder_open,         \
@@ -132,14 +133,14 @@ typedef struct{
         .decoder_close = opus_decoder_close,       \
         .decoder_seek = opus_decoder_get_pos,      \
         .decoder_type = ESP_CODEC_TYPE_OPUS,       \
-    }  
+    }
 #define DEFAULT_ESP_FLAC_DECODER_CONFIG()          \
     {                                              \
         .decoder_open = flac_decoder_open,         \
         .decoder_process = flac_decoder_process,   \
         .decoder_close = flac_decoder_close,       \
         .decoder_seek = flac_decoder_get_pos,      \
-        .decoder_type = ESP_CODEC_TYPE_RAWFLAC,    \
+        .decoder_type = ESP_CODEC_TYPE_FLAC,    \
     }
 
 #define DEFAULT_ESP_PCM_DECODER_CONFIG()           \
@@ -157,6 +158,7 @@ typedef struct{
         .task_stack = ESP_DECODER_TASK_STACK_SIZE,  \
         .task_core = ESP_DECODER_TASK_CORE,         \
         .task_prio = ESP_DECODER_TASK_PRIO,         \
+        .stack_in_ext = true,                       \
     }
 
 /**

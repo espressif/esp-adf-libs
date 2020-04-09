@@ -30,6 +30,7 @@ extern "C" {
         .task_stack         = OPUS_ENCODER_TASK_STACK,      \
         .task_core          = OPUS_ENCODER_TASK_CORE,       \
         .task_prio          = OPUS_ENCODER_TASK_PRIO,       \
+        .stack_in_ext       = true,                         \
     }
 
 /**
@@ -44,6 +45,7 @@ typedef struct {
     int                     task_stack;     /*!< Task stack size */
     int                     task_core;      /*!< Task running in core (0 or 1) */
     int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+    bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
 } opus_encoder_cfg_t;
 
 /**

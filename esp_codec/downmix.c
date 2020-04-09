@@ -228,7 +228,7 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
 #ifdef DEBUG_DOWNMIX_ISSUE
     for (int i = 0; i < downmix->downmix_info.source_num; i++) {
         bytes[i] = fread((char *)downmix->inbuf[i], 1,
-                             r_size * downmix->downmix_info.source_info[i].channel, inputtwo[i]);
+                         r_size * downmix->downmix_info.source_info[i].channel, inputtwo[i]);
         if (bytes[i] <= 0) {
             memset(downmix->inbuf[i], 0, downmix->max_sample * 2 * sizeof(short));
         } else if (bytes[i] != r_size * downmix->downmix_info.source_info[i].channel) {
@@ -243,7 +243,7 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
         memset(downmix->inbuf[index], 0, downmix->max_sample * 2 * sizeof(short));
         bytes[index] = audio_element_multi_input(self, (char *)downmix->inbuf[index],
                        r_size * downmix_info.source_info[index].channel, index, downmix->ticks_to_wait);
-        if (bytes[index] < 0) {         
+        if (bytes[index] < 0) {
             memset(downmix->inbuf[index], 0, downmix->max_sample * 2 * sizeof(short));
             if ((bytes[index] != AEL_IO_TIMEOUT)) {
                 status_end++;
@@ -254,7 +254,7 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
         ESP_LOGD(TAG, "bytes[ %d ] = %d", index, bytes[index]);
     }
 #endif
-   //down-mixer finished
+    //down-mixer finished
     if (status_end == downmix->downmix_info.source_num || (status_end == 1 && downmix->downmix_info.mode == ESP_DOWNMIX_WORK_MODE_BYPASS)) {
         return ESP_OK;
     }
@@ -334,7 +334,7 @@ esp_err_t downmix_set_source_stream_info(audio_element_handle_t self, int rate, 
         ESP_LOGE(TAG, "the index of source number is out of range. line %d", __LINE__);
         return ESP_ERR_INVALID_ARG;
     }
-    
+
     if (rate != downmix->downmix_info.source_info[index].samplerate) {
         ESP_LOGE(TAG, "The samplerates must be same as origin. set sample rate: %d, origin sample rate: %d (line %d)", rate, downmix->downmix_info.source_info[index].samplerate, __LINE__);
         return ESP_ERR_INVALID_ARG;
@@ -360,7 +360,7 @@ esp_err_t downmix_set_gain_info(audio_element_handle_t self, float *gain, int in
         ESP_LOGE(TAG, "the index of source number is out of range. line %d", __LINE__);
         return ESP_ERR_INVALID_ARG;
     }
-    
+
     if ((downmix->downmix_info.source_info[index].gain[0] - gain[0] < 0.01)
         && (downmix->downmix_info.source_info[index].gain[0] - gain[0] > 0.01)
         && (downmix->downmix_info.source_info[index].gain[1] - gain[1] < 0.01)
@@ -415,7 +415,7 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     }
 
     downmix_t *downmix = audio_calloc(1, sizeof(downmix_t));
-    AUDIO_MEM_CHECK(TAG, downmix, return NULL);   
+    AUDIO_MEM_CHECK(TAG, downmix, return NULL);
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = downmix_destroy;
     cfg.process = downmix_process;
@@ -427,6 +427,7 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
+    cfg.stack_in_ext = config->stack_in_ext;
     if (config->downmix_info.source_num > SOURCE_NUM_MAX) {
         ESP_LOGE(TAG, "the array size of source number is out of range. line %d", __LINE__);
         audio_free(downmix);

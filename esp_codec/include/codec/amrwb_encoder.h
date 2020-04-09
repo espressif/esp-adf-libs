@@ -17,11 +17,12 @@ extern "C" {
 #define AMRWB_ENCODER_TASK_PRIO           (5)
 #define AMRWB_ENCODER_RINGBUFFER_SIZE     (2 * 1024)
 
-#define DEFAULT_AMRWB_ENCODER_CONFIG() {\
-        .out_rb_size        = AMRWB_ENCODER_RINGBUFFER_SIZE,\
-        .task_stack         = AMRWB_ENCODER_TASK_STACK,\
-        .task_core          = AMRWB_ENCODER_TASK_CORE,\
-        .task_prio          = AMRWB_ENCODER_TASK_PRIO,\
+#define DEFAULT_AMRWB_ENCODER_CONFIG() {                        \
+        .out_rb_size        = AMRWB_ENCODER_RINGBUFFER_SIZE,    \
+        .task_stack         = AMRWB_ENCODER_TASK_STACK,         \
+        .task_core          = AMRWB_ENCODER_TASK_CORE,          \
+        .task_prio          = AMRWB_ENCODER_TASK_PRIO,          \
+        .stack_in_ext       = true,                             \
     }
 
 /**
@@ -32,6 +33,7 @@ typedef struct {
     int                     task_stack;     /*!< Task stack size */
     int                     task_core;      /*!< Task running in core (0 or 1) */
     int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+    bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
 } amrwb_encoder_cfg_t;
 
 /**

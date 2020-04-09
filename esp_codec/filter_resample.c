@@ -10,7 +10,7 @@
 #include "audio_type_def.h"
 
 #ifndef MAX
-#define MAX(a,b)	((a) > (b) ? (a) : (b))
+#define MAX(a,b)    ((a) > (b) ? (a) : (b))
 #endif
 
 static const char *TAG = "RSP_FILTER";
@@ -87,15 +87,15 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
         ESP_LOGE(TAG, "Currently, the only supported bit width is 16 bits.");
         return ESP_ERR_INVALID_ARG;
     }
-    if (resample_info->complexity < 0){
+    if (resample_info->complexity < 0) {
         ESP_LOGI(TAG, "Currently, the complexity is %d, that is less than 0, it has been set 0.", resample_info->complexity);
         resample_info->complexity = 0;
-    } else if (resample_info->complexity > COMPLEXITY_MAX_NUM ){
+    } else if (resample_info->complexity > COMPLEXITY_MAX_NUM ) {
         ESP_LOGI(TAG, "Currently, the complexity is %d, that is more than the maximal of complexity, it has been set the maximal of complexity.", resample_info->complexity);
         resample_info->complexity = COMPLEXITY_MAX_NUM;
     }
     if (filter->resample_info->mode == RESAMPLE_DECODE_MODE) {
-        resample_info->max_indata_bytes = MAX(resample_info->max_indata_bytes, RESAMPLING_POINT_NUM * resample_info->src_ch); //`RESAMPLING_POINT_NUM * resample_info->src_ch` is for mininum of `resample_info->max_indata_bytes`, enough extra buffer for safety 
+        resample_info->max_indata_bytes = MAX(resample_info->max_indata_bytes, RESAMPLING_POINT_NUM * resample_info->src_ch); //`RESAMPLING_POINT_NUM * resample_info->src_ch` is for mininum of `resample_info->max_indata_bytes`, enough extra buffer for safety
     } else if (filter->resample_info->mode == RESAMPLE_ENCODE_MODE) {
         float tmp = ((float)resample_info->src_rate * resample_info->src_ch) / ((float)resample_info->dest_rate * resample_info->dest_ch);
         tmp = tmp > 1.0f ? tmp : 1.0f;
@@ -140,23 +140,23 @@ static int rsp_filter_process(audio_element_handle_t self, char *in_buffer, int 
         ret = rsp_filter_open(self);
         if (ret != ESP_OK) {
             return AEL_PROCESS_FAIL;
-        }     
+        }
     }
     if (filter->resample_info->mode == RESAMPLE_DECODE_MODE) {
-        filter->in_offset = filter->resample_info->max_indata_bytes;       
+        filter->in_offset = filter->resample_info->max_indata_bytes;
         read_len = audio_element_input(self, (char *)filter->in_buf, filter->in_offset);
         if (read_len == filter->in_offset) {
             in_bytes_consumed = esp_resample_run(filter->rsp_hd, filter->resample_info,
-                                                (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
-                                                &filter->resample_info->out_len_bytes);
+                                                 (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
+                                                 &filter->resample_info->out_len_bytes);
             if (in_bytes_consumed != filter->in_offset) {
                 return ESP_FAIL;
             }
         } else if (read_len > 0) {
             memset(filter->in_buf, 0, filter->in_offset);
             in_bytes_consumed = esp_resample_run(filter->rsp_hd, filter->resample_info,
-                                    (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
-                                    &filter->resample_info->out_len_bytes);
+                                                 (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
+                                                 &filter->resample_info->out_len_bytes);
             if (in_bytes_consumed != filter->in_offset) {
                 return ESP_FAIL;
             }
@@ -174,15 +174,15 @@ static int rsp_filter_process(audio_element_handle_t self, char *in_buffer, int 
                 filter->in_offset += read_len;
             }
         }
-        if (read_len > 0){
+        if (read_len > 0) {
             in_bytes_consumed = esp_resample_run(filter->rsp_hd, filter->resample_info,
-                                                (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
-                                                &filter->resample_info->out_len_bytes);
-            if (in_bytes_consumed < 0){
+                                                 (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
+                                                 &filter->resample_info->out_len_bytes);
+            if (in_bytes_consumed < 0) {
                 return ESP_FAIL;
             } else {
                 filter->in_offset -= in_bytes_consumed;
-            }            
+            }
         } else {
             return read_len;
         }
@@ -212,6 +212,7 @@ audio_element_handle_t rsp_filter_init(rsp_filter_cfg_t *config)
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
+    cfg.stack_in_ext = config->stack_in_ext;
     audio_element_handle_t el = audio_element_init(&cfg);
     AUDIO_MEM_CHECK(TAG, el, {audio_free(filter); audio_free(resample_info); return NULL;});
     memcpy(resample_info, config, sizeof(resample_info_t));

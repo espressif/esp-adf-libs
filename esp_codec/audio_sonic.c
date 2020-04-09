@@ -32,7 +32,7 @@ typedef struct {
     float pitch;
     float speed;
     int samplerate;
-    int channel; 
+    int channel;
     short *inbuf;
     short *outbuf;
 } sonic_t;
@@ -93,11 +93,11 @@ esp_err_t sonic_set_pitch_and_speed_info(audio_element_handle_t self, float pitc
 
     if ((speed >= 0.1)
         && (speed <= 8.0)) {
-        sonic->speed = speed;       
+        sonic->speed = speed;
     } else if ((speed - 0) > 0.0001) {
         ESP_LOGE(TAG, "The speed must be in [0.1 8.0],reset speed of stream data is  %.2f . ", speed);
         return ESP_ERR_INVALID_ARG;;
-    } 
+    }
 
     ESP_LOGI(TAG, "The reset pitch and speed of stream data are  %.2f and %.2f respectively ", sonic->pitch, sonic->speed);
     return ESP_OK;
@@ -138,7 +138,7 @@ static esp_err_t sonic_open(audio_element_handle_t self)
     sonic->sonic_info.channel = sonic->channel;
 
     sonic->sonic_handle = esp_sonic_create_stream(sonic->sonic_info.samplerate, sonic->sonic_info.channel);
-    if (sonic->sonic_handle == NULL){
+    if (sonic->sonic_handle == NULL) {
         ESP_LOGE(TAG, "The handle of sonic is NULL");
         return ESP_FAIL;
     }
@@ -199,7 +199,7 @@ static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_le
     if ((sonic->samplerate != sonic->sonic_info.samplerate)
         || (sonic->channel != sonic->sonic_info.channel)
         || (sonic->pitch != sonic->sonic_info.pitch)
-        || (sonic->speed != sonic->sonic_info.speed)){
+        || (sonic->speed != sonic->sonic_info.speed)) {
         ret = sonic_close(self);
         if (ret != ESP_OK) {
             return AEL_PROCESS_FAIL;
@@ -246,7 +246,7 @@ audio_element_handle_t sonic_init(sonic_cfg_t *config)
         return NULL;
     }
     sonic_t *sonic = audio_calloc(1, sizeof(sonic_t));
-    AUDIO_MEM_CHECK(TAG, sonic, return NULL); 
+    AUDIO_MEM_CHECK(TAG, sonic, return NULL);
     audio_element_cfg_t cfg = DEFAULT_AUDIO_ELEMENT_CONFIG();
     cfg.destroy = sonic_destroy;
     cfg.process = sonic_process;
@@ -258,14 +258,15 @@ audio_element_handle_t sonic_init(sonic_cfg_t *config)
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
+    cfg.stack_in_ext = config->stack_in_ext;
     audio_element_handle_t el = audio_element_init(&cfg);
     AUDIO_MEM_CHECK(TAG, el, {audio_free(sonic); return NULL;});
     sonic->sonic_info = config->sonic_info;
     sonic->pitch = sonic->sonic_info.pitch;
     sonic->speed = sonic->sonic_info.speed;
     sonic->samplerate = sonic->sonic_info.samplerate;
-    sonic->channel = sonic->sonic_info.channel;   
-    
+    sonic->channel = sonic->sonic_info.channel;
+
     audio_element_setdata(el, sonic);
     audio_element_info_t info = {0};
     audio_element_setinfo(el, &info);

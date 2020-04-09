@@ -33,6 +33,7 @@ typedef struct {
     int task_stack;          /*!< Task stack size */
     int task_core;           /*!< Task running in core */
     int task_prio;           /*!< Task priority */
+    bool stack_in_ext;       /*!< Try to allocate stack in external memory */
 } sonic_cfg_t;
 
 #define SONIC_SET_VALUE_FOR_INITIALIZATION (1.0f)
@@ -54,6 +55,7 @@ typedef struct {
         .task_stack = SONIC_TASK_STACK,                    \
         .task_core = SONIC_TASK_CORE,                      \
         .task_prio = SONIC_TASK_PRIO,                      \
+        .stack_in_ext = true,                              \
     }
 
 /**
