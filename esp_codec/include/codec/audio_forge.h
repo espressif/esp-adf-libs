@@ -37,15 +37,15 @@ extern "C" {
 #endif
 
 /**
- * 
+ *
  * The module is multifunctional audio forge which contains  resample, downmix, ALC, equalizer and sonic. Choose a combination of several function by `component_select`.
- * 
+ *
  *  resample: Change sample rate or number of channels for source stream.
  *  downmix: Down-mix different source streams or stereo source stream.The downmix supports less and equal than  `SOURCE_NUM_MAX` source files.
  *  ALC: Change volume of source file.
  *  equalizer: Modify a frequency response to compensate for distortion.
  *  sonic: Change the speed and pitch of source file.
- *  
+ *
 */
 
 extern int audio_forge_set_gain_value[];  /*!< the paramenter is for equalizer */
@@ -68,16 +68,16 @@ typedef struct {
 } audio_forge_downmix_t;
 
 /**
- * @brief      The select of audio forge component. 
+ * @brief      The select of audio forge component.
  *               eg. To use resample and downmix together, please enter AUDIO_FORGE_SELECT_RESAMPLE | AUDIO_FORGE_SELECT_DOWNMIX.
  */
- 
+
 typedef enum {
-    AUDIO_FORGE_SELECT_RESAMPLE  = 0x01,     /*!< Resample selected */ 
-    AUDIO_FORGE_SELECT_DOWNMIX   = 0x02,     /*!< Downmix selected */ 
-    AUDIO_FORGE_SELECT_ALC       = 0x04,     /*!< ALC selected */ 
-    AUDIO_FORGE_SELECT_EQUALIZER = 0x08,     /*!< Equalizer selected */ 
-    AUDIO_FORGE_SELECT_SONIC     = 0x10,     /*!< Sonic selected */ 
+    AUDIO_FORGE_SELECT_RESAMPLE  = 0x01,     /*!< Resample selected */
+    AUDIO_FORGE_SELECT_DOWNMIX   = 0x02,     /*!< Downmix selected */
+    AUDIO_FORGE_SELECT_ALC       = 0x04,     /*!< ALC selected */
+    AUDIO_FORGE_SELECT_EQUALIZER = 0x08,     /*!< Equalizer selected */
+    AUDIO_FORGE_SELECT_SONIC     = 0x10,     /*!< Sonic selected */
 } audio_forge_select_t;
 
 /**
@@ -104,6 +104,7 @@ typedef struct {
     int                     task_stack;         /*!< Task stack size */
     int                     task_core;          /*!< Task running in core (0 or 1) */
     int                     task_prio;          /*!< Task priority (based on freeRTOS priority) */
+    bool                    stack_in_ext;       /*!< Try to allocate stack in external memory */
 } audio_forge_cfg_t;
 
 #define AUDIO_FORGE_TASK_STACK           (4096)
@@ -111,11 +112,11 @@ typedef struct {
 #define AUDIO_FORGE_TASK_PRIO            (5)
 #define AUDIO_FORGE_TASK_CORE            (1)
 #define AUDIO_FORGE_RINGBUFFER_SIZE      (8 * 1024)
-#define AUDIO_FORGE_SAMPLE_SIZE          (256) 
+#define AUDIO_FORGE_SAMPLE_SIZE          (256)
 
 /**
-* @note  `audio_forge_set_gain_value` is defined in c file. 
-*         values is {-13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13}; 
+* @note  `audio_forge_set_gain_value` is defined in c file.
+*         values is {-13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13, -13};
 */
 #define AUDIO_FORGE_CFG_DEFAULT() {                                        \
     .audio_forge = {                                                       \
@@ -133,6 +134,7 @@ typedef struct {
     .task_core = AUDIO_FORGE_TASK_CORE,                                    \
     .task_stack = AUDIO_FORGE_TASK_STACK,                                  \
     .out_rb_size = AUDIO_FORGE_RINGBUFFER_SIZE,                            \
+    .stack_in_ext = true,                                                  \
 }
 
 /**
@@ -183,7 +185,7 @@ esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, float *gain,
  *
  * @param     self           audio element handle
  * @param     volume         the volume of stream will be set.
- * 
+ *
  * @return
  *            ESP_OK
  *            ESP_FAIL
@@ -197,8 +199,8 @@ esp_err_t audio_forge_alc_set_volume(audio_element_handle_t self, int volume);
  * @param      volume        the volume of stream
  *
  * @return
- *             ESP_OK  
- *             ESP_FAIL  
+ *             ESP_OK
+ *             ESP_FAIL
  */
 esp_err_t audio_forge_alc_get_volume(audio_element_handle_t self, int *volume);
 
@@ -207,9 +209,9 @@ esp_err_t audio_forge_alc_get_volume(audio_element_handle_t self, int *volume);
  *
  * @param      self          audio element handle
  * @param      eq_gain       the value of audio gain which in `index`
- * @param      band_index    the position of center frequencies of equalizer 
+ * @param      band_index    the position of center frequencies of equalizer
  *
- * @return     
+ * @return
  *             ESP_OK
  *             ESP_FAIL
  */
@@ -254,7 +256,7 @@ esp_err_t audio_forge_sonic_set_speed(audio_element_handle_t self, float sonic_s
 esp_err_t audio_forge_set_src_info(audio_element_handle_t self, int samplerate, int channel, int index);
 
 /**
-* @brief      Initialize information of the source files for audio forge. 
+* @brief      Initialize information of the source files for audio forge.
 *
 * @param      self          audio element handle
 * @param      source_num    the information array of source files
@@ -267,7 +269,7 @@ esp_err_t audio_forge_source_info_init(audio_element_handle_t self, audio_forge_
 
 /**
  * @brief      Create a handle to an audio forge to processing the audio stream
- * 
+ *
  * @param      config       the configuration
  *
  * @return     the Audio Element handle

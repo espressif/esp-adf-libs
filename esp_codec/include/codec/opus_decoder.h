@@ -17,11 +17,12 @@ extern "C" {
 #define OPUS_DECODER_TASK_PRIO           (5)
 #define OPUS_DECODER_RINGBUFFER_SIZE     (2 * 1024)
 
-#define DEFAULT_OPUS_DECODER_CONFIG() {\
-    .out_rb_size        = OPUS_DECODER_RINGBUFFER_SIZE,\
-    .task_stack         = OPUS_DECODER_TASK_STACK_SIZE,\
-    .task_core          = OPUS_DECODER_TASK_CORE,\
-    .task_prio          = OPUS_DECODER_TASK_PRIO,\
+#define DEFAULT_OPUS_DECODER_CONFIG() {                 \
+    .out_rb_size        = OPUS_DECODER_RINGBUFFER_SIZE, \
+    .task_stack         = OPUS_DECODER_TASK_STACK_SIZE, \
+    .task_core          = OPUS_DECODER_TASK_CORE,       \
+    .task_prio          = OPUS_DECODER_TASK_PRIO,       \
+    .stack_in_ext       = true,                         \
 }
 
 /**
@@ -32,6 +33,7 @@ typedef struct {
     int                     task_stack;     /*!< Task stack size */
     int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
     int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
+    bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
 } opus_decoder_cfg_t;
 
 /**

@@ -39,6 +39,7 @@ typedef struct {
     int task_stack;                     /*!< Task stack size */
     int task_core;                      /*!< Task running in core (0 or 1) */
     int task_prio;                      /*!< Task priority (based on freeRTOS priority) */
+    bool stack_in_ext;                  /*!< Try to allocate stack in external memory */
 } alc_volume_setup_cfg_t;
 
 #define ALC_VOLUME_SET_TASK_STACK       (4 * 1024)
@@ -53,6 +54,7 @@ typedef struct {
         .task_stack = ALC_VOLUME_SET_TASK_STACK,                                    \
         .task_core = ALC_VOLUME_SET_TASK_CORE,                                      \
         .task_prio = ALC_VOLUME_SET_TASK_PRIO,                                      \
+        .stack_in_ext = true,                                                       \
     }
 
 /**
@@ -74,8 +76,8 @@ void alc_volume_setup_set_volume(audio_element_handle_t self, int volume);
 /**
  * @brief      Get the volume of input audio stream
  *
- * @param      self       Audio element handle 
- * 
+ * @param      self       Audio element handle
+ *
  * @return     the volume of input audio stream
  */
 int alc_volume_setup_get_volume(audio_element_handle_t self);

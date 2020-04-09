@@ -875,6 +875,7 @@ audio_element_handle_t audio_forge_init(audio_forge_cfg_t *config)
     cfg.task_prio = config->task_prio;
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
+    cfg.stack_in_ext = config->stack_in_ext;
     config->audio_forge.source_num = config->audio_forge.source_num >= 1 ? config->audio_forge.source_num : 1;
     cfg.multi_in_rb_num = config->audio_forge.source_num;
     cfg.tag = "audio_forge";
