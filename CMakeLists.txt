@@ -17,7 +17,6 @@ set(COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./esp_codec/downmix.c
                     ./esp_codec/equalizer.c
                     ./esp_codec/filter_resample.c
-                    ./esp_codec/wav_decoder.c
                     ./esp_codec/wav_encoder.c
                     ./audio_misc/rec_eng_helper.c)
 
@@ -31,15 +30,17 @@ target_link_libraries(${COMPONENT_TARGET} "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_au
                                 "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_upnp/lib"
                                 "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_sip/lib"
                                 "-L ${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib")
+
 IF (IDF_VER MATCHES "v4.")
 add_prebuilt_library(esp_audio "${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/libesp_audio.a"
              PRIV_REQUIRES esp-adf-libs)
-target_link_libraries(${COMPONENT_TARGET} INTERFACE esp_sip-v4x)
-ELSE ()
-target_link_libraries(${COMPONENT_TARGET} INTERFACE esp_sip)
-ENDIF (IDF_VER MATCHES "v4.")
-
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
                         esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
-                        esp_ssdp esp_upnp esp-mp3 codec-utils
+                        esp_ssdp esp_sip-v4x esp_upnp esp-mp3 codec-utils
                         recorder_engine  "-Wl,--end-group")
+ELSE ()
+target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
+                        esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
+                        esp_ssdp esp_upnp esp_sip esp-mp3 codec-utils
+                        recorder_engine  "-Wl,--end-group")
+ENDIF (IDF_VER MATCHES "v4.")
