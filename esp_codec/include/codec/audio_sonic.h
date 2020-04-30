@@ -6,7 +6,6 @@
 
 #include "esp_err.h"
 #include "audio_element.h"
-#include "audio_common.h"
 
 #ifdef __cplusplus
 extern "C"
