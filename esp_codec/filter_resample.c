@@ -15,7 +15,7 @@
 
 static const char *TAG = "RSP_FILTER";
 
-#define RESAMPLING_POINT_NUM (128 + 4)
+#define RESAMPLING_POINT_NUM (512)
 
 typedef struct rsp_filter {
     resample_info_t *resample_info;
@@ -29,8 +29,8 @@ typedef struct rsp_filter {
 static esp_err_t is_valid_rsp_filter_samplerate(int samplerate)
 {
     if (samplerate < 8000
-        || samplerate > 48000) {
-        ESP_LOGE(TAG, "The sample rate should be within range [8000,48000], here is %d Hz", samplerate);
+        || samplerate > 96000) {
+        ESP_LOGE(TAG, "The sample rate should be within range [8000,96000], here is %d Hz", samplerate);
         return ESP_FAIL;
     }
     return ESP_OK;
@@ -96,12 +96,13 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
     }
     if (filter->resample_info->mode == RESAMPLE_DECODE_MODE) {
         resample_info->max_indata_bytes = MAX(resample_info->max_indata_bytes, RESAMPLING_POINT_NUM * resample_info->src_ch); //`RESAMPLING_POINT_NUM * resample_info->src_ch` is for mininum of `resample_info->max_indata_bytes`, enough extra buffer for safety
+        filter->in_offset = resample_info->max_indata_bytes;
     } else if (filter->resample_info->mode == RESAMPLE_ENCODE_MODE) {
-        float tmp = ((float)resample_info->src_rate * resample_info->src_ch) / ((float)resample_info->dest_rate * resample_info->dest_ch);
-        tmp = tmp > 1.0f ? tmp : 1.0f;
-        resample_info->max_indata_bytes =  (int)((float)resample_info->out_len_bytes * tmp) + RESAMPLING_POINT_NUM * resample_info->src_ch; //`RESAMPLING_POINT_NUM * resample_info->src_ch` has no meaning, just enought extra buffer for safety
+        int tmp = (int)((float)resample_info->src_rate * resample_info->src_ch) / ((float)resample_info->dest_rate * resample_info->dest_ch);
+        tmp = tmp > 1.0 ? tmp : 1.0;
+        resample_info->max_indata_bytes =  (int)(resample_info->out_len_bytes * tmp) + RESAMPLING_POINT_NUM * resample_info->src_ch; //`RESAMPLING_POINT_NUM * resample_info->src_ch` has no meaning, just enought extra buffer for safety
+        filter->in_offset = 0;
     }
-    filter->in_offset = 0;
     filter->flag = 0;
     filter->rsp_hd = esp_resample_create((void *)filter->resample_info,
                                          (unsigned char **)&filter->in_buf, (unsigned char **)&filter->out_buf);
@@ -142,8 +143,7 @@ static int rsp_filter_process(audio_element_handle_t self, char *in_buffer, int 
             return AEL_PROCESS_FAIL;
         }
     }
-    if (filter->resample_info->mode == RESAMPLE_DECODE_MODE) {
-        filter->in_offset = filter->resample_info->max_indata_bytes;
+    if (filter->resample_info->mode == RESAMPLE_DECODE_MODE) {        
         read_len = audio_element_input(self, (char *)filter->in_buf, filter->in_offset);
         if (read_len == filter->in_offset) {
             in_bytes_consumed = esp_resample_run(filter->rsp_hd, filter->resample_info,
@@ -153,7 +153,7 @@ static int rsp_filter_process(audio_element_handle_t self, char *in_buffer, int 
                 return ESP_FAIL;
             }
         } else if (read_len > 0) {
-            memset(filter->in_buf, 0, filter->in_offset);
+            memset(filter->in_buf + read_len, 0, filter->in_offset - read_len);
             in_bytes_consumed = esp_resample_run(filter->rsp_hd, filter->resample_info,
                                                  (unsigned char *)filter->in_buf, (unsigned char *)filter->out_buf, filter->in_offset,
                                                  &filter->resample_info->out_len_bytes);

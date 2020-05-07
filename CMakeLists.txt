@@ -4,8 +4,8 @@ set(COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_upnp/include
                             ./esp_ssdp/include
                             ./recorder_engine/include
-                            ./esp_sip/include
-                            ./audio_misc/include)
+                            ./audio_misc/include
+                            ./esp_sip/include)
 
 # Edit following two lines to set component requirements (see docs)
 set(COMPONENT_REQUIRES )
@@ -24,19 +24,31 @@ register_component()
 
 set(COMPONENT_PRIV_REQUIRES audio_pipeline audio_sal)
 
-target_link_libraries(${COMPONENT_TARGET} "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_ssdp/lib"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_upnp/lib"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_sip/lib"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib")
+IF (CONFIG_IDF_TARGET MATCHES "esp32s2")
+set(adf_libs_target_dir "esp32s2")
+set(esp_sip_name "esp_sip")
+
+ELSEIF (CONFIG_IDF_TARGET MATCHES "esp32")
+set(adf_libs_target_dir "esp32")
+set(esp_sip_name "esp_sip-v4x")
+
+ENDIF (CONFIG_IDF_TARGET MATCHES "esp32s2")
+
+message(STATUS "${CMAKE_CURRENT_SOURCE_DIR}, Chip is ${adf_libs_target_dir}")
+
+target_link_libraries(${COMPONENT_TARGET} "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${adf_libs_target_dir}"
+                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${adf_libs_target_dir}"
+                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_ssdp/lib/${adf_libs_target_dir}"
+                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_upnp/lib/${adf_libs_target_dir}"
+                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_sip/lib/${adf_libs_target_dir}"
+                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib/${adf_libs_target_dir}")
 
 IF (IDF_VER MATCHES "v4.")
-add_prebuilt_library(esp_audio "${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/libesp_audio.a"
+add_prebuilt_library(esp_audio "${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${adf_libs_target_dir}/libesp_audio.a"
              PRIV_REQUIRES esp-adf-libs)
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
                         esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
-                        esp_ssdp esp_sip-v4x esp_upnp esp-mp3 codec-utils
+                        esp_ssdp ${adf_libs_target_dir} esp_upnp esp-mp3 codec-utils
                         recorder_engine  "-Wl,--end-group")
 ELSE ()
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
