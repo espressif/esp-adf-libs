@@ -483,6 +483,18 @@ audio_err_t esp_audio_play_timeout_set(esp_audio_handle_t handle, int time_ms);
  */
 audio_err_t esp_audio_prefer_type_get(esp_audio_handle_t handle, esp_audio_prefer_t *type);
 
+/**
+ * @brief Set event queue to notify the esp_audio status
+ *
+ * @param[in] handle        The esp_audio instance
+ * @param[out] que          A pointer to QueueHandle_t
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
+ */
+audio_err_t esp_audio_event_que_set(esp_audio_handle_t handle, QueueHandle_t que);
+
 #ifdef __cplusplus
 }
 #endif
