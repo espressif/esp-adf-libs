@@ -27,10 +27,12 @@ set(COMPONENT_PRIV_REQUIRES audio_pipeline audio_sal)
 IF (CONFIG_IDF_TARGET MATCHES "esp32s2")
 set(adf_libs_target_dir "esp32s2")
 set(esp_sip_name "esp_sip")
+set(esp_ssdp_name "esp_ssdp")
 
 ELSEIF (CONFIG_IDF_TARGET MATCHES "esp32")
 set(adf_libs_target_dir "esp32")
 set(esp_sip_name "esp_sip-v4x")
+set(esp_ssdp_name "esp_ssdp-v4x")
 
 ENDIF (CONFIG_IDF_TARGET MATCHES "esp32s2")
 
@@ -47,12 +49,12 @@ IF (IDF_VER MATCHES "v4.")
 add_prebuilt_library(esp_audio "${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${adf_libs_target_dir}/libesp_audio.a"
              PRIV_REQUIRES esp-adf-libs)
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
-                        esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
-                        esp_ssdp ${adf_libs_target_dir} esp_upnp esp-mp3 codec-utils
+                        esp_processing esp_audio esp-aac  esp-amr esp-amrwbenc esp-flac ${esp_ssdp_name} esp-ogg-container esp-opus esp-tremor
+                         ${esp_sip_name} esp_upnp esp-mp3 codec-utils
                         recorder_engine  "-Wl,--end-group")
 ELSE ()
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
-                        esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp-ogg-container esp-opus esp-tremor
-                        esp_ssdp esp_upnp esp_sip esp-mp3 codec-utils
+                        esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp_ssdp esp-ogg-container esp-opus esp-tremor
+                         esp_upnp esp_sip esp-mp3 codec-utils
                         recorder_engine  "-Wl,--end-group")
 ENDIF (IDF_VER MATCHES "v4.")
