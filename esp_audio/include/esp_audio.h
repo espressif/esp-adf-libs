@@ -227,7 +227,7 @@ audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, c
  *
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
- *      - ESP_ERR_AUDIO_TIMEOUT: timeout(8000ms) the play activity
+ *      - ESP_ERR_AUDIO_TIMEOUT: timeout the play activity
  *      - ESP_ERR_AUDIO_NOT_SUPPORT: Currently status is AUDIO_STATUS_RUNNING
  *      - ESP_ERR_AUDIO_INVALID_URI: URI is illegal
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
@@ -267,7 +267,7 @@ audio_err_t esp_audio_stop(esp_audio_handle_t handle, audio_termination_type_t t
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  *      - ESP_ERR_AUDIO_NOT_READY: the status is not running
- *      - ESP_ERR_AUDIO_TIMEOUT: timeout(8000ms) the pause activity.
+ *      - ESP_ERR_AUDIO_TIMEOUT: timeout the pause activity.
  */
 audio_err_t esp_audio_pause(esp_audio_handle_t handle);
 
@@ -282,7 +282,7 @@ audio_err_t esp_audio_pause(esp_audio_handle_t handle);
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on succss
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
- *      - ESP_ERR_AUDIO_TIMEOUT: timeout(8000ms) the resume activity.
+ *      - ESP_ERR_AUDIO_TIMEOUT: timeout the resume activity.
  */
 audio_err_t esp_audio_resume(esp_audio_handle_t handle);
 
