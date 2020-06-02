@@ -28,7 +28,7 @@ typedef struct {
     esp_resample_type_t type;  /*!< The resampling type (Automatic, Upsampling and Downsampling) */
     int complexity;            /*!< Indicates the complexity of the resampling. This parameter is only valid when a FIR filter is used. Range: 0~5; O indicates the lowest complexity, which means the accuracy is the lowest and the speed is the fastest; Meanwhile, 4 indicates the highest complexity, which means the accuracy is the highest and the speed is the slowest.If user set `complexity` less than 0,  `complexity` can be set 0. If user set `complexity` more than 5,  `complexity` can be set 5. */
     int down_ch_idx;           /*!< Indicates the channel that is selected (the right channel or the left channel). This parameter is only valid when the complexity parameter is set to 0 and the number of channel(s) of the input file has changed from dual to mono. */
-    esp_rsp_prefer_type_t prefer_flag; /*!< The select flag about lesser CPU usage or lower INRAM usage, refer to esp_resample.h */ 
+    esp_rsp_prefer_type_t prefer_flag; /*!< The select flag about lesser CPU usage or lower INRAM usage, refer to esp_resample.h */
     int out_rb_size;           /*!< Output ringbuffer size*/
     int task_stack;            /*!< Task stack size */
     int task_core;             /*!< Task running on core */
@@ -52,7 +52,7 @@ typedef struct {
         .max_indata_bytes = RSP_FILTER_BUFFER_BYTE, \
         .out_len_bytes = RSP_FILTER_BUFFER_BYTE,    \
         .type = ESP_RESAMPLE_TYPE_AUTO,             \
-        .complexity = 0,                            \
+        .complexity = 2,                            \
         .down_ch_idx = 0,                           \
         .prefer_flag = ESP_RSP_PREFER_TYPE_SPEED,   \
         .out_rb_size = RSP_FILTER_RINGBUFFER_SIZE,  \
