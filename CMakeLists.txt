@@ -50,11 +50,11 @@ add_prebuilt_library(esp_audio "${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${adf_
              PRIV_REQUIRES esp-adf-libs)
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
                         esp_processing esp_audio esp-aac  esp-amr esp-amrwbenc esp-flac ${esp_ssdp_name} esp-ogg-container esp-opus esp-tremor
-                         ${esp_sip_name} esp_upnp esp-mp3 codec-utils
+                         ${esp_sip_name} esp_upnp esp-mp3 codec-utils esp-g711
                         recorder_engine  "-Wl,--end-group")
 ELSE ()
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
                         esp_processing esp_audio esp-aac esp-amr esp-amrwbenc esp-flac esp_ssdp esp-ogg-container esp-opus esp-tremor
-                         esp_upnp esp_sip esp-mp3 codec-utils
+                         esp_upnp esp_sip esp-mp3 codec-utils esp-g711
                         recorder_engine  "-Wl,--end-group")
 ENDIF (IDF_VER MATCHES "v4.")

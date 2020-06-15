@@ -39,6 +39,8 @@ typedef struct sip_* sip_handle_t;
 typedef enum {
     SIP_ACODEC_G711A,
     SIP_ACODEC_G711U,
+    SIP_ACODEC_OPUS,
+    SIP_ACODEC_SPEEX,
 } sip_audio_codec_t;
 
 /**
@@ -105,6 +107,7 @@ typedef struct {
     const char                  *cert_pem;           /*!< SSL server certification, PEM format as string, if the client requires to verify server */
     const char                  *client_cert_pem;    /*!< SSL client certification, PEM format as string, if the server requires to verify client */
     const char                  *client_key_pem;     /*!< SSL client key, PEM format as string, if the server requires to verify client */
+    bool                        send_options;        /*!< Send 'OPTIONS' messages to Server for keep NAT hole opened*/
     sip_audio_codec_t           acodec_type;         /*!< Audio codec type */
 } sip_config_t;
 
