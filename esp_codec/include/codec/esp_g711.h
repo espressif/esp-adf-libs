@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef _G711_H
-#define _G711_H
+#ifndef _ESP_G711_H
+#define _ESP_G711_H
 
 #include <stdint.h>
 
@@ -58,7 +58,7 @@ int16_t esp_g711a_decode(unsigned char pcm_val);
  *
  * @return     u-law pcm
  */
-unsigned char esp_g711u_encode(int16_t pcm_val) ;
+unsigned char esp_g711u_encode(int16_t pcm_val);
 
 /**
  * @brief      Convert a u-law value to 16-bit linear PCM
@@ -67,7 +67,7 @@ unsigned char esp_g711u_encode(int16_t pcm_val) ;
  *
  * @return     16-bits pcm
  */
-int16_t esp_g711u_decode(unsigned char pcm_val) ;
+int16_t esp_g711u_decode(unsigned char pcm_val);
 
 
 #ifdef __cplusplus
