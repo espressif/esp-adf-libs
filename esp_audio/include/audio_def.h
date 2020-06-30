@@ -32,6 +32,7 @@ typedef enum {
     ESP_ERR_AUDIO_LINK_FAIL                 = ESP_ERR_AUDIO_BASE + 13,
     ESP_ERR_AUDIO_UNKNOWN                   = ESP_ERR_AUDIO_BASE + 14,
     ESP_ERR_AUDIO_OUT_OF_RANGE              = ESP_ERR_AUDIO_BASE + 15,
+    ESP_ERR_AUDIO_STOP_BY_USER              = ESP_ERR_AUDIO_BASE + 16,
 
     ESP_ERR_AUDIO_OPEN                      = ESP_ERR_AUDIO_BASE + 0x100,// 0x81100
     ESP_ERR_AUDIO_INPUT                     = ESP_ERR_AUDIO_BASE + 0x101,
