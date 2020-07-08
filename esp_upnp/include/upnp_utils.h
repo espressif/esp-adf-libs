@@ -19,6 +19,9 @@
 extern "C" {
 #endif
 
+#include "audio_mem.h"
+
+#define UPNP_MEM_FREE(a) if(a) { audio_free(a); a = NULL; }
 #define UPNP_MEM_CHECK(addr, action) if (addr == NULL) { ESP_LOGE(TAG, "Memory exhausted at %d", __LINE__); action; }
 
 /**
