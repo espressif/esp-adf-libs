@@ -135,19 +135,44 @@ esp_err_t upnp_service_register_actions(upnp_service_handle_t     services,
 char *upnp_service_get_xml_description(upnp_service_handle_t services);
 
 /**
- * @brief      Send the notification to the client
+ * @brief      Send all service actions notification to the client
  *
  * @param[in]  services       The services
  * @param[in]  service_name   The service name
- * @param[in]  delay_send_ms  The delay timeout, after a period of milliseconds the message will be sent
  *
  * @return
  *     -    ESP_OK
  *     -    ESP_xx if any errors
  */
 esp_err_t upnp_service_send_notify(upnp_service_handle_t services,
-                                   const char            *service_name,
-                                   int                   delay_send_ms);
+                                   const char            *service_name);
+
+/**
+ * @brief      Send single AVTransport actions notification to the client
+ *
+ * @param[in]  services       The services
+ * @param[in]  service_name   The service name
+ *
+ * @return
+ *     -    ESP_OK
+ *     -    ESP_xx if any errors
+ */
+esp_err_t upnp_service_send_avt_notify(upnp_service_handle_t services,
+                                       const char            *action_name);
+
+/**
+ * @brief      Send custom notification to the client
+ *
+ * @param[in]  services       The services
+ * @param[in]  service_name   The service name
+ * @param[in]  event_xml      custom event xml (ref: EventLastChange.xml)
+ * @param[in]  xml_length     The xml length
+ *
+ * @return
+ *     -    ESP_OK
+ *     -    ESP_xx if any errors
+ */
+esp_err_t upnp_service_send_custom_notify(upnp_service_handle_t services, const char *service_name, const char *event_xml, int32_t xml_length);
 
 #ifdef __cplusplus
 }

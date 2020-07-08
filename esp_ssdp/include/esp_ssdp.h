@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef _SSDP_H_
-#define _SSDP_H_
+#ifndef _ESP_SSDP_H_
+#define _ESP_SSDP_H_
 
 #include "freertos/FreeRTOS.h"
 #include "esp_err.h"
@@ -41,19 +41,39 @@ typedef struct {
                                  or http://${ip}/path which ${ip} will be replaced by device ip address */
     int port;               /*!< SSDP listening on this port, default port will be used if not set */
     int notify_interval_ms; /*!< SSDP notify interval */
+    int task_stack;         /*!< Task stack size */
+    int task_core;          /*!< Task running in core (0 or 1) */
+    int task_prio;          /*!< Task priority (based on freeRTOS priority) */
+    bool stack_in_ext;      /*!< Try to allocate stack in external memory */
 } ssdp_config_t;
+
+#define DEFAULT_SSDP_UDN                "ESP32_DMR"
+#define DEFAULT_SSDP_LOCATION           "http://${ip}/rootDesc.xml"
+#define DEFAULT_SSDP_PORT               (1900)
+#define DEFAULT_SSDP_TASK_STACK         (4*1024)
+#define DEFAULT_SSDP_TASK_CORE          (0)
+#define DEFAULT_SSDP_TASK_PRIORITY      (6)
+#define DEFAULT_SSDP_NOTIFY_INTERVAL_MS (30000)
+
+#define SSDP_DEFAULT_CONFIG() {\
+    .udn = DEFAULT_SSDP_UDN, \
+    .location = DEFAULT_SSDP_LOCATION, \
+    .port = DEFAULT_SSDP_PORT, \
+    .notify_interval_ms = DEFAULT_SSDP_NOTIFY_INTERVAL_MS, \
+    .task_stack = DEFAULT_SSDP_TASK_STACK, \
+    .task_core = DEFAULT_SSDP_TASK_CORE, \
+    .task_prio = DEFAULT_SSDP_TASK_PRIORITY, \
+    .stack_in_ext = true, \
+}
 
 /**
  * @brief SSDP service description
  */
 typedef struct {
+    char *uuid;
     char *usn;       //Unique Service Name
     char *location;
 } ssdp_service_t;
-
-typedef struct {
-
-} ssdp_query_result_t;
 
 /**
  * @brief Start SSDP responder service
@@ -73,23 +93,13 @@ esp_err_t ssdp_start(ssdp_config_t *config, const ssdp_service_t services[]);
 void ssdp_stop();
 
 /**
- * @brief      SSDP Query msearch
+ * @brief Send SSDP byebye multicast
  *
- * @param[in]  addr     The address
- * @param[in]  port     The port
- * @param      target   The target
- * @param[in]  timeout  The timeout
- *
- * @return     { description_of_the_return_value }
+ * @return
+ *  - ESP_OK
+ *  - ESP_FAIL
  */
-ssdp_query_result_t *ssdp_query_msearch(const char addr, int port, const char *target[], TickType_t timeout);
-
-/**
- * @brief      Free query result
- *
- * @param      result  The result
- */
-void sspd_free_query_result(ssdp_query_result_t *result);
+esp_err_t ssdp_send_byebye();
 
 #ifdef __cplusplus
 }

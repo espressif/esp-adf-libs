@@ -19,34 +19,15 @@
 extern "C" {
 #endif
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
-#include "freertos/queue.h"
-
-
 typedef struct upnp_notify_* upnp_notify_handle_t;
 
-#define NOTIFY_TIMEOUT  (1800*1000) //millisec
-
 /**
- * UPnP notify configuration
- */
-typedef struct {
-    size_t buffer_size; /*!< Notify buffer size (depends on size of message, typically 4KB) */
-    int task_stack;     /*!< Notify task stack */
-    int task_prio;      /*!< Notify task priority */
-} upnp_notify_config_t;
-
-/**
- * @brief      Initialize UPnP notify, the value returned by this function can be used to 
+ * @brief      Initialize UPnP notify, the value returned by this function can be used to
  *             subscribe/unsubscribe and to send an event to a client
- *
- * @param      config  The configuration
  *
  * @return     The upnp notify handle
  */
-upnp_notify_handle_t upnp_notify_init(upnp_notify_config_t *config);
+upnp_notify_handle_t upnp_notify_init();
 
 /**
  * @brief      Subscribe/Re-new the subscriptions for UPnP events
@@ -65,16 +46,28 @@ char *upnp_notify_subscribe(upnp_notify_handle_t notify,
                             int                  timeout_sec);
 
 /**
- * @brief      Unsubscribe the notify
+ * @brief      Unsubscribe the notify by sid
  *
  * @param[in]  notify  The notify handle
- * @param      sid     The sid
+ * @param[in]  sid     The sid
  *
  * @return
  *     -    ESP_OK
  *     -    ESP_xx if any errors
  */
 esp_err_t upnp_notify_unsubscribe(upnp_notify_handle_t notify, char *sid);
+
+/**
+ * @brief      Unsubscribe the notify by service name
+ *
+ * @param[in]  notify           The notify handle
+ * @param[in]  service_name     The service name
+ *
+ * @return
+ *     -    ESP_OK
+ *     -    ESP_xx if any errors
+ */
+esp_err_t upnp_notify_unsubscribe_by_name(upnp_notify_handle_t notify, const char *service_name);
 
 /**
  * @brief      Send the notification to the client
@@ -92,8 +85,7 @@ esp_err_t upnp_notify_unsubscribe(upnp_notify_handle_t notify, char *sid);
 esp_err_t upnp_notify_send(upnp_notify_handle_t notify,
                            char                 *data,
                            int                  data_len,
-                           const char           *service_name,
-                           int                  delay_send_ms);
+                           const char           *service_name);
 
 /**
  * @brief      Clean up & destroy the notify

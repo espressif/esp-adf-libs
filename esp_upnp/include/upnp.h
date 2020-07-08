@@ -21,7 +21,6 @@ extern "C" {
 
 #include "esp_http_server.h"
 #include "upnp_service.h"
-#include "upnp_utils.h"
 
 typedef struct upnp_* upnp_handle_t;
 
@@ -33,7 +32,7 @@ typedef struct upnp_* upnp_handle_t;
 typedef struct {
     const char              *friendly_name;     /*!< Short user-friendly title */
     const char              *serial;            /*!< Device manufacturer's serial number */
-    const char              *udn;               /*!< Unique device name - uuid:UUID */
+    const char              *uuid;              /*!< Device UUID */
     const char              *root_path;         /*!< The custom XML root path */
     const char              *device_type;       /*!< Will replace for deviceType in UPnP schema urn:schemas-upnp-org:device:deviceType:version */
     const char              *version;           /*!< Will replace for version in UPnP schema urn:schemas-upnp-org:device:deviceType:version */
@@ -48,6 +47,7 @@ typedef struct {
     httpd_handle_t          httpd;              /*!< UPnP needs a HTTP server to work */
     int                     port;               /*!< Server port (for advertise)*/
     void                    *user_ctx;          /*!< User context, it be will passed to attribute/notify and action callback */
+    bool                    device_list;        /*<! Support Device List */
 } upnp_config_t;
 
 
@@ -65,13 +65,38 @@ upnp_handle_t upnp_init(const upnp_config_t *config);
  *
  * @param[in]  upnp           The upnp handle
  * @param[in]  service_name   The service name
- * @param[in]  delay_send_ms  The delay timeout, after a period of milliseconds the message will be sent
  *
  * @return
  *     - ESP_OK
  *     - ESP_xx if any errors
  */
-esp_err_t upnp_send_notify(upnp_handle_t upnp, const char *service_name, int delay_send_ms);
+esp_err_t upnp_send_notify(upnp_handle_t upnp, const char *service_name);
+
+/**
+ * @brief      Send the AVTransport notification to the client
+ *
+ * @param[in]  upnp           The upnp handle
+ * @param[in]  action_name    The action name
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_xx if any errors
+ */
+esp_err_t upnp_send_avt_notify(upnp_handle_t upnp, const char *action_name);
+
+/**
+ * @brief      Send custom notification to the client
+ *
+ * @param[in]  upnp           The upnp handle
+ * @param[in]  service_name   The service name
+ * @param[in]  event_xml      custom event xml (ref: EventLastChange.xml)
+ * @param[in]  xml_length     The xml length
+ *
+ * @return
+ *     -    ESP_OK
+ *     -    ESP_xx if any errors
+ */
+esp_err_t upnp_send_custom_notify(upnp_handle_t upnp, const char *service_name, const char *event_xml, int32_t xml_length);
 
 /**
  * @brief      Clean up and destroy the UPnP handle
