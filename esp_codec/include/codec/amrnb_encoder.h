@@ -17,23 +17,25 @@ extern "C" {
 #define AMRNB_ENCODER_TASK_PRIO           (5)
 #define AMRNB_ENCODER_RINGBUFFER_SIZE     (2 * 1024)
 
-#define DEFAULT_AMRNB_ENCODER_CONFIG() {                        \
-        .out_rb_size        = AMRNB_ENCODER_RINGBUFFER_SIZE,    \
-        .task_stack         = AMRNB_ENCODER_TASK_STACK,         \
-        .task_core          = AMRNB_ENCODER_TASK_CORE,          \
-        .task_prio          = AMRNB_ENCODER_TASK_PRIO,          \
-        .stack_in_ext       = true,                             \
+#define DEFAULT_AMRNB_ENCODER_CONFIG() {                           \
+        .out_rb_size           = AMRNB_ENCODER_RINGBUFFER_SIZE,    \
+        .task_stack            = AMRNB_ENCODER_TASK_STACK,         \
+        .task_core             = AMRNB_ENCODER_TASK_CORE,          \
+        .task_prio             = AMRNB_ENCODER_TASK_PRIO,          \
+        .contain_amrnb_header  = false,                            \
+        .stack_in_ext          = true,                             \
     }
 
 /**
  * @brief      AMRNB Encoder configurations
  */
 typedef struct {
-    int                     out_rb_size;    /*!< Size of output ringbuffer */
-    int                     task_stack;     /*!< Task stack size */
-    int                     task_core;      /*!< Task running in core (0 or 1) */
-    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
-    bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
+    int                     out_rb_size;            /*!< Size of output ringbuffer */
+    int                     task_stack;             /*!< Task stack size */
+    int                     task_core;              /*!< Task running in core (0 or 1) */
+    int                     task_prio;              /*!< Task priority (based on freeRTOS priority) */
+    bool                    contain_amrnb_header;   /*!< Choose to contain amrnb header in amrnb encoder whether or not (true or false, true means choose to contain amrnb header) */
+    bool                    stack_in_ext;           /*!< Try to allocate stack in external memory */
 } amrnb_encoder_cfg_t;
 
 /**
