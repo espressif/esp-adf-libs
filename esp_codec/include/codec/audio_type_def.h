@@ -36,12 +36,17 @@ typedef enum
     ESP_DECODER_WORK_MODE_AUTO   = 1,
 } esp_decoder_work_mode_t;
 
+/**
+ * @brief the enum value from `ESP_CODEC_ERR_OK` to `ESP_CODEC_ERR_TIMEOUT` rely on `audio_element_err_t` which in `audio_element.h`.
+ */
 typedef enum
 {   
     ESP_CODEC_ERR_CONTINUE       = 1,
     ESP_CODEC_ERR_OK             = 0,
     ESP_CODEC_ERR_FAIL           = -1,
     ESP_CODEC_ERR_DONE           = -2,
+    ESP_CODEC_ERR_ABORT          = -3,
+    ESP_CODEC_ERR_TIMEOUT        = -4,
 } esp_codec_err_t;
 
 /**

@@ -31,25 +31,21 @@ static esp_err_t _wav_encoder_close(audio_element_handle_t self)
 {
     ESP_LOGD(TAG, "_wav_encoder_close");
     if (AEL_STATE_PAUSED != audio_element_get_state(self)) {
-        audio_element_info_t info = {0};
-        audio_element_getinfo(self, &info);
-        info.byte_pos = 0;
-        info.total_bytes = 0;
-        audio_element_setinfo(self, &info);
+        audio_element_set_byte_pos(self, 0);
+        audio_element_set_total_bytes(self, 0);
     }
     return ESP_OK;
 }
 
 static int _wav_encoder_process(audio_element_handle_t self, char *in_buffer, int in_len)
 {
-    audio_element_info_t audio_info = { 0 };
     int r_size = audio_element_input(self, in_buffer, in_len);
     int out_len = r_size;
     if (r_size > 0) {
         out_len = audio_element_output(self, in_buffer, r_size);
-        audio_element_getinfo(self, &audio_info);
-        audio_info.byte_pos += out_len;
-        audio_element_setinfo(self, &audio_info);
+        if (out_len > 0) {
+            audio_element_update_byte_pos(self, out_len);
+        }
     }
 
     return out_len;
