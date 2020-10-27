@@ -283,7 +283,7 @@ esp_err_t rec_engine_enc_enable(bool enc_enable);
  * @note `support_encoding` and `rec_engine_enc_enable` must be set.
  *
  * @param buffer        data pointer
- * @param buffer_size   Size of buffer.
+ * @param buffer_size   Size of buffer, must be equal to REC_ONE_BLOCK_SIZE.
  * @param waiting_time  Timeout for reading data.
  * @param out_size      Valid size of buffer.
  *
