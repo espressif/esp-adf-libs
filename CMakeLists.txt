@@ -8,8 +8,7 @@ set(COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_sip/include)
 
 # Edit following two lines to set component requirements (see docs)
-set(COMPONENT_REQUIRES )
-set(COMPONENT_PRIV_REQUIRES audio_pipeline audio_sal esp-sr)
+set(COMPONENT_REQUIRES audio_pipeline audio_sal esp-sr nghttp)
 
 set(COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./esp_codec/audio_sonic.c
@@ -21,8 +20,6 @@ set(COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./audio_misc/rec_eng_helper.c)
 
 register_component()
-
-set(COMPONENT_PRIV_REQUIRES audio_pipeline audio_sal)
 
 IF (CONFIG_IDF_TARGET MATCHES "esp32s2")
 set(adf_libs_target_dir "esp32s2")
