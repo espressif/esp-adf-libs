@@ -15,7 +15,9 @@ static const char *TAG = "SONIC";
 #define BUF_SIZE (512)
 // #define DEBUG_SONIC_ENC_ISSUE
 // #define SONIC_MEMORY_ANALYSIS
-
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+#include "codec_tick.h"
+#endif
 #ifdef DEBUG_SONIC_ENC_ISSUE
 FILE *inone;
 FILE *outone;
@@ -35,6 +37,9 @@ typedef struct {
     int channel;
     short *inbuf;
     short *outbuf;
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+    codec_tick_handle_t *sonic_tick_handle;
+#endif
 } sonic_t;
 
 static esp_err_t is_valid_sonic_samplerate(int samplerate)
@@ -117,6 +122,15 @@ static esp_err_t sonic_open(audio_element_handle_t self)
 #endif
     ESP_LOGD(TAG, "sonic_open");
     sonic_t *sonic = (sonic_t *)audio_element_getdata(self);
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+    codec_tick_config_t tick_config[4] = {
+        { (const char *)"sonic_whole_time",  esp_tick_time_ms},
+        { (const char *)"sonic_write_time",  cpu_tick_time_ms},
+        { (const char *)"sonic_read_time",  cpu_tick_time_ms},
+        { (const char *)"sonic_write_to_stream_time",  cpu_tick_time_ms},
+    };
+    sonic->sonic_tick_handle = codec_tick_init(tick_config, 4);
+#endif
     sonic->inbuf = (short *)calloc(sizeof(short), BUF_SIZE);
     if (sonic->inbuf == NULL) {
         ESP_LOGE(TAG, "Failed to allocate input buffer");
@@ -164,6 +178,9 @@ static esp_err_t sonic_open(audio_element_handle_t self)
         return ESP_FAIL;
     }
 #endif
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+    codec_tick_count_start(sonic->sonic_tick_handle, 0);
+#endif
     return ESP_OK;
 }
 
@@ -171,6 +188,15 @@ static esp_err_t sonic_close(audio_element_handle_t self)
 {
     ESP_LOGD(TAG, "sonic_close");
     sonic_t *sonic = (sonic_t *)audio_element_getdata(self);
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+    codec_tick_count_stop(sonic->sonic_tick_handle, 0, false);
+    //int realtime = 1000 * audio_forge->pcm_cnt / (audio_forge->rsp_info[0].src_ch * audio_forge->rsp_info[0].src_rate * sizeof(short));
+    //int realtime = 1000 * audio_forge->pcm_cnt / (audio_forge->sample_rate * audio_forge->channel * sizeof(short));
+    //audio_forge->pcm_cnt = 0;
+    codec_tick_printf(sonic->sonic_tick_handle, 1);
+    codec_tick_deinit(sonic->sonic_tick_handle);
+    sonic->sonic_tick_handle = NULL;
+#endif
     if (sonic->sonic_handle != NULL) {
         esp_sonic_destroy_stream(sonic->sonic_handle);
     }
@@ -220,15 +246,33 @@ static int sonic_process(audio_element_handle_t self, char *in_buffer, int in_le
 #endif
     if (samplesRead > 0) {
         samplesRead = samplesRead / (sonic->sonic_info.channel * sizeof(short));
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+        codec_tick_count_start(sonic->sonic_tick_handle, 3);
+#endif
         esp_sonic_write_to_stream(sonic->sonic_handle, sonic->inbuf, samplesRead);
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+        codec_tick_count_stop(sonic->sonic_tick_handle, 3, true);
+#endif
         do {
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+            codec_tick_count_start(sonic->sonic_tick_handle, 2);
+#endif
             samplesWritten = esp_sonic_read_from_stream(sonic->sonic_handle, sonic->outbuf, BUF_SIZE / sonic->sonic_info.channel);
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+            codec_tick_count_stop(sonic->sonic_tick_handle, 2, true);
+#endif
             if (samplesWritten > 0) {
 #ifdef DEBUG_SONIC_ENC_ISSUE
                 ret = fwrite(sonic->outbuf, sizeof(short), samplesWritten, outone);
 #else
                 out_buffer_len = samplesWritten * sonic->sonic_info.channel > BUF_SIZE ? BUF_SIZE : samplesWritten * sonic->sonic_info.channel;
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+                codec_tick_count_start(sonic->sonic_tick_handle, 1);
+#endif
                 ret = audio_element_output(self, (char *)sonic->outbuf, out_buffer_len * sizeof(short));
+#ifdef AUDIO_SONIC_SPEED_ANALYSIS
+                codec_tick_count_stop(sonic->sonic_tick_handle, 1, true);
+#endif
 #endif
             }
         } while (samplesWritten > 0);

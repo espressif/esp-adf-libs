@@ -53,8 +53,9 @@ typedef struct {
 *
 * @param      self               audio element handle
 * @param      ticks_to_wait      input ringbuffer timeout
+* @param      index              The index of multi input ringbuffer.
 */
-void downmix_set_input_rb_timeout(audio_element_handle_t self, int ticks_to_wait);
+void downmix_set_input_rb_timeout(audio_element_handle_t self, int ticks_to_wait, int index);
 
 /**
 * @brief      Sets the downmix input ringbuffer. refer to `ringbuf.h`
