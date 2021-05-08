@@ -6,8 +6,7 @@ set(COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_ssdp/include
                             ./recorder_engine/include
                             ./audio_misc/include
-                            ./esp_sip/include
-                            ./mrm_client/include)
+                            ./esp_sip/include)
 ELSE ()
 set(COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_codec/include/codec
@@ -16,7 +15,8 @@ set(COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_ssdp/include
                             ./recorder_engine/include
                             ./audio_misc/include
-                            ./esp_sip/include)
+                            ./esp_sip/include
+                            ./mrm_client/include)
 ENDIF (CONFIG_IDF_TARGET MATCHES "esp32s2")
 
 # Edit following two lines to set component requirements (see docs)
