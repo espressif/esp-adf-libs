@@ -17,10 +17,10 @@ static const char *TAG = "DOWNMIX";
 typedef struct {
     esp_downmix_info_t downmix_info;
     int max_sample;
-    unsigned char *inbuf[SOURCE_NUM_MAX];
+    unsigned char **inbuf;
     unsigned char *outbuf;
     void *downmix_handle;
-    int ticks_to_wait;
+    int* ticks_to_wait;
     int reset_flag;
 } downmix_t;
 
@@ -35,6 +35,13 @@ int loocpcm = 0;
 static esp_err_t downmix_destroy(audio_element_handle_t self)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix->downmix_info.source_info) {
+        audio_free(downmix->downmix_info.source_info);
+    }
+    if (downmix->ticks_to_wait) {
+        audio_free(downmix->ticks_to_wait);
+        downmix->ticks_to_wait = NULL;
+    }
     audio_free(downmix);
     downmix = NULL;
     return ESP_OK;
@@ -48,8 +55,8 @@ static esp_err_t downmix_open(audio_element_handle_t self)
     ESP_LOGD(TAG, "downmix_open");
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
 
-    if (downmix->downmix_info.source_num <= 0 || downmix->downmix_info.source_num > SOURCE_NUM_MAX) {
-        ESP_LOGE(TAG, "the number of source stream is out of range [0, %d]", SOURCE_NUM_MAX);
+    if (downmix->downmix_info.source_num <= 0) {
+        ESP_LOGE(TAG, "the number of source stream is less than 1");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -75,7 +82,11 @@ static esp_err_t downmix_open(audio_element_handle_t self)
         ESP_LOGE(TAG, "The number of sample per downmix processing must greater than zero. (line %d)", __LINE__);
         return ESP_ERR_INVALID_ARG;
     }
-
+    downmix->inbuf = (unsigned char **)audio_calloc(1, downmix->downmix_info.source_num * sizeof(unsigned char *));
+    if (downmix->inbuf == NULL) {
+        ESP_LOGE(TAG, "Failed to audio_calloc. (line %d)", __LINE__);
+        return ESP_ERR_NO_MEM;
+    }
     int samplerate = downmix->downmix_info.source_info[0].samplerate;
     for (int i = 0; i < downmix->downmix_info.source_num; i++) {
         if ((samplerate != downmix->downmix_info.source_info[i].samplerate)
@@ -119,7 +130,6 @@ static esp_err_t downmix_open(audio_element_handle_t self)
         ESP_LOGE(TAG, "audio_calloc failed for downmix->outbuf. (line %d)", __LINE__);
         return ESP_ERR_NO_MEM;
     }
-
     downmix->reset_flag = 0;
     esp_downmix_info_t esp_downmix_info;
     memcpy(&esp_downmix_info, &downmix->downmix_info, sizeof(esp_downmix_info_t));
@@ -239,10 +249,14 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
         }
     }
 #else
-    for (int index = 0; index < downmix_info.source_num; index++) {
+    int len = downmix_info.source_num;
+    if (downmix->downmix_info.mode == ESP_DOWNMIX_WORK_MODE_BYPASS) {
+        len = 1;
+    }
+    for (int index = 0; index < len; index++) {
         memset(downmix->inbuf[index], 0, downmix->max_sample * 2 * sizeof(short));
         bytes[index] = audio_element_multi_input(self, (char *)downmix->inbuf[index],
-                       r_size * downmix_info.source_info[index].channel, index, downmix->ticks_to_wait);
+                       r_size * downmix_info.source_info[index].channel, index, downmix->ticks_to_wait[index]);
         if (bytes[index] < 0) {
             memset(downmix->inbuf[index], 0, downmix->max_sample * 2 * sizeof(short));
             if ((bytes[index] != AEL_IO_TIMEOUT)) {
@@ -271,10 +285,18 @@ static int downmix_process(audio_element_handle_t self, char *in_buffer, int in_
     return ret;
 }
 
-void downmix_set_input_rb_timeout(audio_element_handle_t self, int ticks_to_wait)
+void downmix_set_input_rb_timeout(audio_element_handle_t self, int ticks_to_wait, int index)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
-    downmix->ticks_to_wait = ticks_to_wait;
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return;
+    }
+    if (index >= downmix->downmix_info.source_num) {
+        ESP_LOGE(TAG, "the index of source number is out of range. line %d", __LINE__);
+        return;
+    }
+    downmix->ticks_to_wait[index] = ticks_to_wait;
 }
 
 void downmix_set_input_rb(audio_element_handle_t self, ringbuf_handle_t rb, int index)
@@ -285,6 +307,10 @@ void downmix_set_input_rb(audio_element_handle_t self, ringbuf_handle_t rb, int 
 esp_err_t downmix_set_work_mode(audio_element_handle_t self, esp_downmix_work_mode_t mode)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
     if (downmix->downmix_info.mode == mode) {
         return ESP_OK;
     }
@@ -293,13 +319,16 @@ esp_err_t downmix_set_work_mode(audio_element_handle_t self, esp_downmix_work_mo
         return ESP_ERR_INVALID_ARG;
     }
     downmix->downmix_info.mode = mode;
-    downmix->reset_flag = 1;
     return ESP_OK;
 }
 
 esp_err_t downmix_set_output_type(audio_element_handle_t self, esp_downmix_output_type_t output_type)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
     if (downmix->downmix_info.output_type == output_type) {
         return ESP_OK;
     }
@@ -315,6 +344,10 @@ esp_err_t downmix_set_output_type(audio_element_handle_t self, esp_downmix_outpu
 esp_err_t downmix_set_out_ctx_info(audio_element_handle_t self, esp_downmix_out_ctx_type_t out_ctx)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
     if (downmix->downmix_info.out_ctx == out_ctx) {
         return ESP_OK;
     }
@@ -330,6 +363,10 @@ esp_err_t downmix_set_out_ctx_info(audio_element_handle_t self, esp_downmix_out_
 esp_err_t downmix_set_source_stream_info(audio_element_handle_t self, int rate, int ch, int index)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
     if (index >= downmix->downmix_info.source_num) {
         ESP_LOGE(TAG, "the index of source number is out of range. line %d", __LINE__);
         return ESP_ERR_INVALID_ARG;
@@ -356,6 +393,10 @@ esp_err_t downmix_set_source_stream_info(audio_element_handle_t self, int rate, 
 esp_err_t downmix_set_gain_info(audio_element_handle_t self, float *gain, int index)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
     if (index >= downmix->downmix_info.source_num) {
         ESP_LOGE(TAG, "the index of source number is out of range. line %d", __LINE__);
         return ESP_ERR_INVALID_ARG;
@@ -380,6 +421,10 @@ esp_err_t downmix_set_gain_info(audio_element_handle_t self, float *gain, int in
 esp_err_t downmix_set_transit_time_info(audio_element_handle_t self, int transit_time, int index)
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
+    if (downmix == NULL) {
+        ESP_LOGE(TAG, "the down-mix handle is NULL, line %d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
     if (index >= downmix->downmix_info.source_num) {
         ESP_LOGE(TAG, "the index of source number is out of range. line %d", __LINE__);
         return ESP_ERR_INVALID_ARG;
@@ -402,7 +447,12 @@ esp_err_t source_info_init(audio_element_handle_t self, esp_downmix_input_info_t
 {
     downmix_t *downmix = (downmix_t *)audio_element_getdata(self);
     for (int i = 0; i < downmix->downmix_info.source_num; i++) {
-        downmix->downmix_info.source_info[i] = source_num[i];
+        downmix->downmix_info.source_info[i].samplerate = source_num[i].samplerate;
+        downmix->downmix_info.source_info[i].channel = source_num[i].channel;
+        downmix->downmix_info.source_info[i].bits_num = source_num[i].bits_num;
+        downmix->downmix_info.source_info[i].gain[0] = source_num[i].gain[0];
+        downmix->downmix_info.source_info[i].gain[1] = source_num[i].gain[1];
+        downmix->downmix_info.source_info[i].transit_time = source_num[i].transit_time;
     }
     return ESP_OK;
 }
@@ -428,19 +478,26 @@ audio_element_handle_t downmix_init(downmix_cfg_t *config)
     cfg.task_core = config->task_core;
     cfg.out_rb_size = config->out_rb_size;
     cfg.stack_in_ext = config->stack_in_ext;
-    if (config->downmix_info.source_num > SOURCE_NUM_MAX) {
-        ESP_LOGE(TAG, "the array size of source number is out of range. line %d", __LINE__);
-        audio_free(downmix);
-        return NULL;
-    }
     cfg.multi_in_rb_num = config->downmix_info.source_num;
     audio_element_handle_t el = audio_element_init(&cfg);
     AUDIO_MEM_CHECK(TAG, el, {audio_free(downmix); return NULL;});
     memcpy(downmix, config, sizeof(esp_downmix_info_t));
     downmix->max_sample = config->max_sample;
     downmix->reset_flag = 0;
+    downmix->downmix_info.source_info = audio_calloc(downmix->downmix_info.source_num, sizeof(esp_downmix_input_info_t));
+    if (downmix->downmix_info.source_info == NULL) {
+        ESP_LOGE(TAG, "Failed to audio_calloc. (line %d)", __LINE__);
+        audio_free(downmix);
+        return NULL;
+    }
+    downmix->ticks_to_wait = (int*)audio_calloc(downmix->downmix_info.source_num, sizeof(int));
+    if (downmix->ticks_to_wait == NULL) {
+        ESP_LOGE(TAG, "audio_calloc failed for downmix->ticks_to_wait. (line %d)", __LINE__);
+        audio_free(downmix->downmix_info.source_info);
+        audio_free(downmix);
+        return NULL;
+    }
     audio_element_setdata(el, downmix);
-    downmix->ticks_to_wait = 0;
     ESP_LOGD(TAG, "downmix_init");
     return el;
 }

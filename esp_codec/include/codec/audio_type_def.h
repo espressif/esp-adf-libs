@@ -9,6 +9,25 @@ extern "C"
 {
 #endif
 
+#define ESP_AUDIO_SAMPLERATE_8K (8000)
+#define ESP_AUDIO_SAMPLERATE_11K (11025)
+#define ESP_AUDIO_SAMPLERATE_16K (16000)
+#define ESP_AUDIO_SAMPLERATE_22K (22050)
+#define ESP_AUDIO_SAMPLERATE_32K (32000)
+#define ESP_AUDIO_SAMPLERATE_44K (44100)
+#define ESP_AUDIO_SAMPLERATE_48K (48000)
+
+#define ESP_AUDIO_BIT_8 (8)
+#define ESP_AUDIO_BIT_16 (16)
+#define ESP_AUDIO_BIT_24 (24)
+#define ESP_AUDIO_BIT_32 (32)
+
+#define ESP_AUDIO_CHANNEL_MONO (1)
+#define ESP_AUDIO_CHANNEL_DUAL (2)
+
+#define ESP_AUDIO_U32_AT(ptr) (((uint32_t)(ptr)[0] << 24) | ((uint32_t)(ptr)[1] << 16) | ((uint32_t)(ptr)[2] << 8) | ((uint32_t)(ptr)[3]))
+#define ESP_AUDIO_U64_AT(ptr) (((uint64_t)(ptr)[0] << 56) | ((uint64_t)(ptr)[1] << 48) | ((uint64_t)(ptr)[2] << 40) | ((uint64_t)(ptr)[3] << 32) | ((uint64_t)(ptr)[4] << 24) | ((uint64_t)(ptr)[5] << 16) | ((uint64_t)(ptr)[6] << 8) | ((uint64_t)(ptr)[7]))
+
 typedef enum
 {
     ESP_CODEC_TYPE_UNKNOW        = 0,
@@ -47,6 +66,12 @@ typedef enum
     ESP_CODEC_ERR_DONE           = -2,
     ESP_CODEC_ERR_ABORT          = -3,
     ESP_CODEC_ERR_TIMEOUT        = -4,
+    ESP_CODEC_ERR_UNSYNC         = -5,
+    ESP_CODEC_ERR_UNSUPPORT      = -6,
+    ESP_CODEC_ERR_PARSE          = -7,
+    ESP_CODEC_ERR_INFO           = -8,
+    ESP_CODEC_ERR_INPUT          = -9,
+    ESP_CODEC_ERR_NO_MEM         = -10,
 } esp_codec_err_t;
 
 /**

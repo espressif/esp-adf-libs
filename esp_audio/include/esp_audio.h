@@ -35,19 +35,18 @@ typedef struct {
     int                         in_stream_buf_size;         /*!< Input buffer size */
     int                         out_stream_buf_size;        /*!< Output buffer size */
     /**
-     * Destination sample rate, 0: disable rsample; others: 44.1K, 48K, 32K, 16K, 8K has supported
+     * Destination sample rate, 0: disable resample; others: 44.1K, 48K, 32K, 16K, 8K has supported
      * It should be make sure same with I2S stream `sample_rate`
      */
-    int                         resample_rate;
-
+    int                         resample_rate;                             
     QueueHandle_t               evt_que;                    /*!< For received esp_audio events (optional)*/
     esp_audio_event_callback    cb_func;                    /*!< esp_audio events callback (optional)*/
     void                       *cb_ctx;                     /*!< esp_audio callback context (optional)*/
 
     /**
      * esp_audio works on sepcific type, default memory is preferred.
-     * - `ESP_AUDIO_PREFER_MEM` mode stopped the previous linked elements before the new pipiline starting, except out stream element.
-     * - `ESP_AUDIO_PREFER_SPEED` mode  kept the previous linked elements before the new pipiline starting, except out stream element.
+     * - `ESP_AUDIO_PREFER_MEM` mode stopped the previous linked elements before the new pipeline starting, except out stream element.
+     * - `ESP_AUDIO_PREFER_SPEED` mode  kept the previous linked elements before the new pipeline starting, except out stream element.
     */
     esp_audio_prefer_t          prefer_type;
 
@@ -84,7 +83,23 @@ typedef struct {
     audio_element_handle_t          filter_el;          /*!< Handle of the filter */
     esp_audio_state_t               st;                 /*!< The state of esp_audio */
     int                             time_pos;           /*!< Position of the microseconds time */
+    float                           audio_speed;        /*!< Play speed of audio */
 } esp_audio_info_t;
+
+/**
+ * @brief esp_audio play speed 
+ */
+typedef enum {
+    ESP_AUDIO_PLAY_SPEED_UNKNOW = -1,
+    ESP_AUDIO_PLAY_SPEED_0_50   = 0,
+    ESP_AUDIO_PLAY_SPEED_0_75   = 1,
+    ESP_AUDIO_PLAY_SPEED_1_00   = 2,
+    ESP_AUDIO_PLAY_SPEED_1_25   = 3,
+    ESP_AUDIO_PLAY_SPEED_1_50   = 4,
+    ESP_AUDIO_PLAY_SPEED_1_75   = 5,
+    ESP_AUDIO_PLAY_SPEED_2_00   = 6,
+    ESP_AUDIO_PLAY_SPEED_MAX    = 7,
+} esp_audio_play_speed_t;
 
 /**
  * @brief Create esp_audio instance according to 'cfg' parameter
@@ -188,6 +203,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  *     - "iis://16000:2@from.pcm/rec.wav#file"
  *     - "iis://16000:1@record.pcm/record.wav#raw"
  *     - "aadp://44100:2@bt/sink/stream.pcm"
+ *     - "hfp://8000:1@bt/hfp/stream.pcm"
  *
  * @note
  *     - The URI parse by `http_parser_parse_url`,any illegal string will be return `ESP_ERR_AUDIO_INVALID_URI`.
@@ -204,7 +220,7 @@ audio_err_t esp_audio_codec_lib_query(esp_audio_handle_t handle, audio_codec_typ
  * @param pos    Specific starting position by bytes
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout the play activity
  *      - ESP_ERR_AUDIO_NOT_SUPPORT: Currently status is AUDIO_STATUS_RUNNING
  *      - ESP_ERR_AUDIO_INVALID_URI: URI is illegal
@@ -227,7 +243,7 @@ audio_err_t esp_audio_play(esp_audio_handle_t handle, audio_codec_type_t type, c
  * @param pos    Specific starting position by bytes
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout the play activity
  *      - ESP_ERR_AUDIO_NOT_SUPPORT: Currently status is AUDIO_STATUS_RUNNING
  *      - ESP_ERR_AUDIO_INVALID_URI: URI is illegal
@@ -248,7 +264,7 @@ audio_err_t esp_audio_sync_play(esp_audio_handle_t handle, const char *uri, int 
  * @param[in] type   Stop immediately or done
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  *      - ESP_ERR_AUDIO_NOT_READY: The status is not AUDIO_STATUS_RUNNING or AUDIO_STATUS_PAUSED or element has not created
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout(8000ms) the stop activity.
@@ -265,7 +281,7 @@ audio_err_t esp_audio_stop(esp_audio_handle_t handle, audio_termination_type_t t
  * @param[in] handle The esp_audio instance
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  *      - ESP_ERR_AUDIO_NOT_READY: the status is not running
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout the pause activity.
@@ -281,11 +297,35 @@ audio_err_t esp_audio_pause(esp_audio_handle_t handle);
  * @param[in] handle The esp_audio instance
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout the resume activity.
  */
 audio_err_t esp_audio_resume(esp_audio_handle_t handle);
+
+/**
+ * @brief Getting esp_audio play speed.
+ *
+ * @param[in] handle          The esp_audio instance
+ * @param[in] speed           Current audio play speed. 
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
+ *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_speed_get(esp_audio_handle_t handle, float *speed);
+
+/**
+ * @brief Setting esp_audio play speed.
+ *
+ * @param[in] handle          The esp_audio instance
+ * @param[in] speed_index     Value from "esp_audio_speed_t" enum.  
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
+ *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_speed_set(esp_audio_handle_t handle, esp_audio_play_speed_t speed_index);
 
 /**
  * @brief Setting esp_audio volume.
@@ -294,7 +334,7 @@ audio_err_t esp_audio_resume(esp_audio_handle_t handle);
  * @param[in] vol       Specific volume will be set. 0-100 is legal. 0 will be mute.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
@@ -307,7 +347,7 @@ audio_err_t esp_audio_vol_set(esp_audio_handle_t handle, int vol);
  * @param[out] vol      A pointer to int that indicates esp_audio volume.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
@@ -320,7 +360,7 @@ audio_err_t esp_audio_vol_get(esp_audio_handle_t handle, int *vol);
  * @param[out] state    A pointer to esp_audio_state_t that indicates esp_audio status.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance or esp_audio does not playing
  */
 audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *state);
@@ -334,7 +374,7 @@ audio_err_t esp_audio_state_get(esp_audio_handle_t handle, esp_audio_state_t *st
  * @param[out] pos      A pointer to int that indicates esp_audio decoding position.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  *      - ESP_ERR_AUDIO_NOT_READY: no codec element
  */
@@ -349,7 +389,7 @@ audio_err_t esp_audio_pos_get(esp_audio_handle_t handle, int *pos);
  * @param[out] time     A pointer to int that indicates esp_audio decoding position.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  *      - ESP_ERR_AUDIO_NOT_READY: no out stream
  */
@@ -365,7 +405,7 @@ audio_err_t esp_audio_time_get(esp_audio_handle_t handle, int *time);
  * @param[in] sets      A pointer to esp_audio_setup_t.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
  */
@@ -379,7 +419,7 @@ audio_err_t esp_audio_setup(esp_audio_handle_t handle, esp_audio_setup_t *sets);
  * @param[in] type      Specific media source type will be set.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_media_type_set(esp_audio_handle_t handle, media_source_type_t type);
@@ -390,7 +430,7 @@ audio_err_t esp_audio_media_type_set(esp_audio_handle_t handle, media_source_typ
  * @param[in] info      A pointer to esp_audio_info_t
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
  *      - ESP_ERR_AUDIO_NOT_READY: the status is not running.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
@@ -406,11 +446,12 @@ audio_err_t esp_audio_info_get(esp_audio_handle_t handle, esp_audio_info_t *info
  * @param[in] info      A pointer to esp_audio_info_t
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_FAIL: elements relink fail
  *      - ESP_ERR_AUDIO_MEMORY_LACK: allocate memory fail
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout for relink
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ *      - ESP_ERR_AUDIO_NOT_READY: the status is AUDIO_STATUS_RUNNING or AUDIO_STATUS_PAUSED
  */
 audio_err_t esp_audio_info_set(esp_audio_handle_t handle, esp_audio_info_t *info);
 
@@ -421,7 +462,7 @@ audio_err_t esp_audio_info_set(esp_audio_handle_t handle, esp_audio_info_t *info
  * @param[in] cb_ctx    The context of callback
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_callback_set(esp_audio_handle_t handle, esp_audio_event_callback cb, void *cb_ctx);
@@ -435,7 +476,7 @@ audio_err_t esp_audio_callback_set(esp_audio_handle_t handle, esp_audio_event_ca
  * @param[out] seek_time_sec     A pointer to int that indicates esp_audio decoding position.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_FAIL: codec or allocation fail
  *      - ESP_ERR_AUDIO_TIMEOUT: timeout for sync the element status
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
@@ -454,7 +495,7 @@ audio_err_t esp_audio_seek(esp_audio_handle_t handle, int seek_time_sec);
  * @param[out] duration     A pointer to int that indicates decoding total time.
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  *      - ESP_ERR_AUDIO_NOT_READY: no codec element or no in element
  */
@@ -467,7 +508,7 @@ audio_err_t esp_audio_duration_get(esp_audio_handle_t handle, int *duration);
  * @param[in] time_ms       The maximum amount of time
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_play_timeout_set(esp_audio_handle_t handle, int time_ms);
@@ -479,7 +520,7 @@ audio_err_t esp_audio_play_timeout_set(esp_audio_handle_t handle, int time_ms);
  * @param[out] type         A pointer to esp_audio_prefer_t
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  */
 audio_err_t esp_audio_prefer_type_get(esp_audio_handle_t handle, esp_audio_prefer_t *type);
@@ -491,7 +532,7 @@ audio_err_t esp_audio_prefer_type_get(esp_audio_handle_t handle, esp_audio_prefe
  * @param[out] que          A pointer to QueueHandle_t
  *
  * @return
- *      - ESP_ERR_AUDIO_NO_ERROR: on succss
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: no esp_audio instance
  */
 audio_err_t esp_audio_event_que_set(esp_audio_handle_t handle, QueueHandle_t que);

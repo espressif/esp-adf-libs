@@ -78,7 +78,7 @@ typedef struct {
 * @brief      Downmix information
 */
 typedef struct {
-    esp_downmix_input_info_t source_info[SOURCE_NUM_MAX];   /*!< Input streams infomation*/
+    esp_downmix_input_info_t *source_info;   /*!< Input streams infomation*/
     int source_num;                                         /*!< The number of input streams*/
     esp_downmix_out_ctx_type_t out_ctx;                     /*!< Select content of per channel of output stream. refer to `esp_downmix_out_ctx_type_t`*/
     esp_downmix_work_mode_t mode;                           /*!< The work status with downmixing. refer to `esp_downmix_work_mode_t`*/
