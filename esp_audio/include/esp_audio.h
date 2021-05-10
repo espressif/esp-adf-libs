@@ -304,19 +304,19 @@ audio_err_t esp_audio_pause(esp_audio_handle_t handle);
 audio_err_t esp_audio_resume(esp_audio_handle_t handle);
 
 /**
- * @brief Getting esp_audio play speed.
+ * @brief Getting esp_audio play speed index, index value is from "esp_audio_speed_t" enum.
  *
- * @param[in] handle          The esp_audio instance
- * @param[in] speed           Current audio play speed. 
+ * @param[in]  handle          The esp_audio instance
+ * @param[out] speed_index     Current audio play speed index. 
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
  *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
-audio_err_t esp_audio_speed_get(esp_audio_handle_t handle, float *speed);
+audio_err_t esp_audio_speed_get(esp_audio_handle_t handle, esp_audio_play_speed_t *speed_index);
 
 /**
- * @brief Setting esp_audio play speed.
+ * @brief Use speed_index which is from "esp_audio_speed_t" enum to set esp_audio play speed.
  *
  * @param[in] handle          The esp_audio instance
  * @param[in] speed_index     Value from "esp_audio_speed_t" enum.  
@@ -326,6 +326,19 @@ audio_err_t esp_audio_speed_get(esp_audio_handle_t handle, float *speed);
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_speed_set(esp_audio_handle_t handle, esp_audio_play_speed_t speed_index);
+
+/**
+ * @brief Use speed_index which is from "esp_audio_speed_t" enum to get esp_audio play speed which is float type.
+ * 
+ * @param[in]  handle          The esp_audio instance
+ * @param[in]  speed_index     Current audio play speed index. 
+ * @param[out] speed           Current audio play speed. 
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
+ *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_speed_idx_to_float(esp_audio_handle_t handle, esp_audio_play_speed_t speed_index, float *speed);
 
 /**
  * @brief Setting esp_audio volume.
