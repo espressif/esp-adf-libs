@@ -194,7 +194,7 @@ static esp_err_t equalizer_close(audio_element_handle_t self)
     ESP_LOGD(TAG, "equalizer_close");
     equalizer_t *equalizer = (equalizer_t *)audio_element_getdata(self);
     esp_equalizer_uninit(equalizer->eq_handle);
-    if (equalizer->buf == NULL) {
+    if (equalizer->buf != NULL) {
         audio_free(equalizer->buf);
         equalizer->buf = NULL;
     }
