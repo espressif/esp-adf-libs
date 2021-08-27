@@ -21,17 +21,17 @@ extern "C" {
 #define OPUS_ENCODER_BITRATE             (64000)
 #define OPUS_ENCODER_COMPLEXITY          (10)
 
-#define DEFAULT_OPUS_ENCODER_CONFIG() {                     \
-        .sample_rate        = OPUS_ENCODER_SAMPLE_RATE,     \
-        .channel            = OPUS_ENCODER_CHANNELS,        \
-        .bitrate            = OPUS_ENCODER_BITRATE,         \
-        .complexity         = OPUS_ENCODER_COMPLEXITY,      \
-        .out_rb_size        = OPUS_ENCODER_RINGBUFFER_SIZE, \
-        .task_stack         = OPUS_ENCODER_TASK_STACK,      \
-        .task_core          = OPUS_ENCODER_TASK_CORE,       \
-        .task_prio          = OPUS_ENCODER_TASK_PRIO,       \
-        .stack_in_ext       = true,                         \
-    }
+#define DEFAULT_OPUS_ENCODER_CONFIG() {                 \
+    .sample_rate        = OPUS_ENCODER_SAMPLE_RATE,     \
+    .channel            = OPUS_ENCODER_CHANNELS,        \
+    .bitrate            = OPUS_ENCODER_BITRATE,         \
+    .complexity         = OPUS_ENCODER_COMPLEXITY,      \
+    .out_rb_size        = OPUS_ENCODER_RINGBUFFER_SIZE, \
+    .task_stack         = OPUS_ENCODER_TASK_STACK,      \
+    .task_core          = OPUS_ENCODER_TASK_CORE,       \
+    .task_prio          = OPUS_ENCODER_TASK_PRIO,       \
+    .stack_in_ext       = true,                         \
+}
 
 /**
  * @brief     OPUS Encoder configurations
@@ -47,6 +47,49 @@ typedef struct {
     int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
     bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
 } opus_encoder_cfg_t;
+
+/**
+ * @brief      Set OPUS encoder music info
+ *
+ * @param      self           Audio element handle
+ *
+ * @param      sample_rate    The sample rate of OPUS audio
+ *
+ * @param      channel        The numble of channels of OPUS audio
+ *
+ * @param      bit            The bit of OPUS audio
+ * 
+ * @return     
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t opus_encoder_set_music_info(audio_element_handle_t self, int sample_rate, int channel, int bit);
+
+/**
+ * @brief      Set OPUS encoder bitrate
+ *
+ * @param      self        Audio element handle
+ *
+ * @param      bitrate     The bitrate of OPUS audio
+ *
+ * @return     
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t opus_encoder_set_bitrate(audio_element_handle_t self, int bitrate);
+
+/**
+ * @brief      Set OPUS encoder complexity
+ *
+ * @param      self         Audio element handle
+ *
+ * @param      complexity   Encode complexity choose, 0 is lowest. 10 is higest
+ *
+ * @return     
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t opus_encoder_set_complexity(audio_element_handle_t self, int complexity);
 
 /**
  * @brief      Create an Audio Element handle to encode incoming opus data

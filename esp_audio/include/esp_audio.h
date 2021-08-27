@@ -84,6 +84,7 @@ typedef struct {
     esp_audio_state_t               st;                 /*!< The state of esp_audio */
     int                             time_pos;           /*!< Position of the microseconds time */
     float                           audio_speed;        /*!< Play speed of audio */
+    int64_t                         in_stream_total_size;
 } esp_audio_info_t;
 
 /**
