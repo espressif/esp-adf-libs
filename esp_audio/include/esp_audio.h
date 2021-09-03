@@ -76,15 +76,15 @@ typedef struct {
  * @brief esp_audio information
  */
 typedef struct {
-    audio_element_info_t            codec_info;         /*!< Codec information */
-    audio_element_handle_t          in_el;              /*!< Handle of the in stream */
-    audio_element_handle_t          out_el;             /*!< Handle of the out stream */
-    audio_element_handle_t          codec_el;           /*!< Handle of the codec */
-    audio_element_handle_t          filter_el;          /*!< Handle of the filter */
-    esp_audio_state_t               st;                 /*!< The state of esp_audio */
-    int                             time_pos;           /*!< Position of the microseconds time */
-    float                           audio_speed;        /*!< Play speed of audio */
-    int64_t                         in_stream_total_size;
+    audio_element_info_t            codec_info;             /*!< Codec information */
+    audio_element_handle_t          in_el;                  /*!< Handle of the in stream */
+    audio_element_handle_t          out_el;                 /*!< Handle of the out stream */
+    audio_element_handle_t          codec_el;               /*!< Handle of the codec */
+    audio_element_handle_t          filter_el;              /*!< Handle of the filter */
+    esp_audio_state_t               st;                     /*!< The state of esp_audio */
+    int                             time_pos;               /*!< Position of the microseconds time */
+    float                           audio_speed;            /*!< Play speed of audio */
+    int64_t                         in_stream_total_size;   /*!< Total size of in stream */
 } esp_audio_info_t;
 
 /**
