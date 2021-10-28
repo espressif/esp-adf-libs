@@ -77,7 +77,9 @@ else()
     set(target_recorder_engine "recorder_engine")
 endif()
 
-IF (IDF_VER MATCHES "v4.")
+# GREATER_EQUAL is only available on CMake +3.7.
+# To be totally compatible with older versions, let's use GREATER instead
+IF (IDF_VERSION_MAJOR GREATER 3)
     set(name_of_recorder_engine_lib "lib${target_recorder_engine}.a")
     set(name_of_esp_sip_lib "lib${esp_sip_name}.a")
 
@@ -93,7 +95,7 @@ IF (IDF_VER MATCHES "v4.")
                  PRIV_REQUIRES tcp_transport)
     IF (CONFIG_IDF_TARGET MATCHES "esp32s2")
     target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
-                            esp_processing esp_audio esp_codec ${esp_ssdp_name} ${esp_sip_name} esp_upnp 
+                            esp_processing esp_audio esp_codec ${esp_ssdp_name} ${esp_sip_name} esp_upnp
                             recorder_engine  "-Wl,--end-group")
     ELSE()
     target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
@@ -104,4 +106,4 @@ ELSE ()
 target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
                         esp_processing esp_audio esp_codec esp_ssdp esp_upnp esp_sip
                         ${target_recorder_engine}  "-Wl,--end-group")
-ENDIF (IDF_VER MATCHES "v4.")
+ENDIF (IDF_VERSION_MAJOR GREATER 3)
