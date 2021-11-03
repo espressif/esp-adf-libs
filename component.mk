@@ -37,15 +37,15 @@ COMPONENT_ADD_LDFLAGS +=  -L$(COMPONENT_PATH)/esp_audio/lib/esp32 \
 
 ifdef IDF_VERSION_MAJOR
 ifeq ($(IDF_VERSION_MAJOR),4)
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip-v4x
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp-v4x
-else
 COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip
 COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp
+else
+COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip-v33
+COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp-v33
 endif
 else
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp
+COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip-v33
+COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp-v33
 endif
 
 ALL_LIB_FILES += $(patsubst %,$(COMPONENT_PATH)/%/lib/esp32/lib%.a,$(LIBS))
