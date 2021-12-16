@@ -19,11 +19,15 @@ ENDIF ()
 list(APPEND COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_codec/include/codec
                             ./esp_codec/include/processing
-                            ./esp_upnp/include
-                            ./esp_ssdp/include
-                            ./esp_sip/include
+                            ./media_lib_sal/include
+                            ./media_lib_sal/include/port
                             ./recorder_engine/include
-                            ./mrm_client/include)
+                            ./recorder_engine/include
+                            ./audio_misc/include)
+
+if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
+    list(APPEND COMPONENT_ADD_INCLUDEDIRS  ./esp_media_protocols/include)
+endif()
 
 list(APPEND COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./esp_codec/audio_sonic.c
@@ -31,7 +35,15 @@ list(APPEND COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./esp_codec/downmix.c
                     ./esp_codec/equalizer.c
                     ./esp_codec/filter_resample.c
-                    ./esp_codec/wav_encoder.c)
+                    ./esp_codec/wav_encoder.c
+                    ./media_lib_sal/media_lib_common.c
+                    ./media_lib_sal/media_lib_os.c ./media_lib_sal/port/media_lib_os_freertos.c
+                    ./media_lib_sal/media_lib_adapter.c)
+
+if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
+list(APPEND COMPONENT_SRCS ./media_lib_sal/media_lib_crypt.c  ./media_lib_sal/port/media_lib_crypt_default.c
+                           ./media_lib_sal/media_lib_socket.c ./media_lib_sal/port/media_lib_socket_default.c)
+endif()
 
 IF (NOT (recorder_engine_name STREQUAL ""))
     list(APPEND COMPONENT_ADD_INCLUDEDIRS ./audio_misc/include)
@@ -56,14 +68,15 @@ register_component()
 
 message(STATUS "Chip is ${CONFIG_IDF_TARGET}, ${CMAKE_CURRENT_SOURCE_DIR}")
 
+set(TARGET_LIB_PATH "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${CONFIG_IDF_TARGET}"
+                    "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${CONFIG_IDF_TARGET}"
+                    "-L ${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib/${CONFIG_IDF_TARGET}")
 
-target_link_libraries(${COMPONENT_TARGET} "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${CONFIG_IDF_TARGET}"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${CONFIG_IDF_TARGET}"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_ssdp/lib/${CONFIG_IDF_TARGET}"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_upnp/lib/${CONFIG_IDF_TARGET}"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_sip/lib/${CONFIG_IDF_TARGET}"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/mrm_client/lib/${CONFIG_IDF_TARGET}"
-                                "-L ${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib/${CONFIG_IDF_TARGET}")
+if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
+    list(APPEND TARGET_LIB_PATH  "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_media_protocols/lib/${CONFIG_IDF_TARGET}")
+endif()
+
+target_link_libraries(${COMPONENT_TARGET} "${TARGET_LIB_PATH}")
 
 
 # GREATER_EQUAL is only available on CMake +3.7.
@@ -77,17 +90,18 @@ IF (IDF_VERSION_MAJOR GREATER 3)
                  PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_processing "${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${CONFIG_IDF_TARGET}/libesp_processing.a"
                  PRIV_REQUIRES esp-adf-libs)
-    add_prebuilt_library(esp_sip "${CMAKE_CURRENT_SOURCE_DIR}/esp_sip/lib/${CONFIG_IDF_TARGET}/libesp_sip.a"
-                 PRIV_REQUIRES tcp_transport)
+    
     add_prebuilt_library(recorder_engine "${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib/${CONFIG_IDF_TARGET}/${name_of_recorder_engine_lib}"
                  PRIV_REQUIRES esp-adf-libs)
-
-    target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
-                            esp_processing esp_audio esp_codec esp_ssdp esp_sip esp_upnp mrm_client
-                            ${target_recorder_engine}  "-Wl,--end-group")
-
-ELSE ()
-    target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group"
-                            esp_processing esp_audio esp_codec esp_ssdp-v33 esp_upnp esp_sip-v33
-                            ${target_recorder_engine}  "-Wl,--end-group")
+    if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
+        add_prebuilt_library(esp_media_protocols "${CMAKE_CURRENT_SOURCE_DIR}/esp_media_protocols/lib/${CONFIG_IDF_TARGET}/libesp_media_protocols.a"
+                 PRIV_REQUIRES tcp_transport)
+    endif()
 ENDIF (IDF_VERSION_MAJOR GREATER 3)
+
+set(TARGET_LIB_NAME esp_processing esp_audio esp_codec ${target_recorder_engine})
+if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
+    list(APPEND TARGET_LIB_NAME esp_media_protocols)
+endif()
+
+target_link_libraries(${COMPONENT_TARGET}  "-Wl,--start-group" ${TARGET_LIB_NAME} "-Wl,--end-group")
