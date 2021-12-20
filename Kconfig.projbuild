@@ -1,5 +1,8 @@
-menu "Recorder Engine Configuration"
+menu "ADF Library Configuration"
 
+config MEDIA_PROTOCOL_LIB_ENABLE
+    bool "Enable Media Protocol Library"
+    default "y"
 
 choice RECORD_ENGINE_MODE
     prompt "Choose recorder engine functionality"

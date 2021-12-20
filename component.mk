@@ -1,4 +1,3 @@
-
 # "main" pseudo-component makefile.
 
 # (Uses default behaviour of compiling all source files in directory, adding 'include' to include path.)
@@ -7,14 +6,22 @@ COMPONENT_ADD_INCLUDEDIRS :=    esp_audio/include \
                                 esp_codec/include/codec \
                                 esp_codec/include/processing \
                                 recorder_engine/include \
-                                esp_ssdp/include \
-                                esp_upnp/include \
-                                esp_sip/include  \
+                                media_lib_sal/include \
+                                media_lib_sal/include/port \
                                 audio_misc/include
+                                
+ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
+    COMPONENT_ADD_INCLUDEDIRS += esp_media_protocols/include
+endif
 
-COMPONENT_SRCDIRS := . esp_codec audio_misc
+COMPONENT_SRCDIRS := . esp_codec audio_misc media_lib_sal media_lib_sal/port
 
-LIBS := esp_processing esp_audio esp_codec esp_upnp 
+LIBS := esp_processing esp_audio esp_codec  
+
+ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
+    LIBS += esp_media_protocols
+    COMPONENT_SRCDIRS += esp_media_protocols
+endif
 
 ifdef CONFIG_REC_ENG_ENABLE_VAD_ONLY
  LIBS += recorder_engine_vad
@@ -31,21 +38,7 @@ endif
 COMPONENT_ADD_LDFLAGS +=  -L$(COMPONENT_PATH)/esp_audio/lib/esp32 \
                           -L$(COMPONENT_PATH)/esp_codec/lib/esp32 \
                           -L$(COMPONENT_PATH)/recorder_engine/lib/esp32 \
-                          -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 \
-                          -L$(COMPONENT_PATH)/esp_upnp/lib/esp32 \
+                          -L$(COMPONENT_PATH)/esp_media_protocols/lib/esp32 \
                            $(addprefix -l,$(LIBS)) \
-
-ifdef IDF_VERSION_MAJOR
-ifeq ($(IDF_VERSION_MAJOR),4)
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp
-else
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip-v33
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp-v33
-endif
-else
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_sip/lib/esp32 -lesp_sip-v33
-COMPONENT_ADD_LDFLAGS += -L$(COMPONENT_PATH)/esp_ssdp/lib/esp32 -lesp_ssdp-v33
-endif
 
 ALL_LIB_FILES += $(patsubst %,$(COMPONENT_PATH)/%/lib/esp32/lib%.a,$(LIBS))
