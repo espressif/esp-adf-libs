@@ -37,8 +37,15 @@ typedef struct {
     uint32_t byterate;              /*!<Byte rate; */
     uint16_t block_align;            /*!<align with byte; */
     uint16_t bits_per_sample;         /*!<Bit lenght per sample point,4 ADPCM */
-    // uint16_t ByteExtraData;      /*!<Exclude in linear PCM format(0~22) */
 } __attribute__((packed)) chunk_fmt_t;
+
+/**
+* brief     FMT extra data for adpcm
+*/
+typedef struct {
+    uint16_t byte_extra_data;      /*!<Exclude in linear PCM format(0~22) */
+    uint16_t sample_per_block; 
+} __attribute__((packed)) chunk_fmt_extra_t;
 
 /**
 * brief     FACT block
@@ -92,6 +99,16 @@ typedef struct {
 } __attribute__((packed)) wav_header_t;
 
 /**
+* brief     WAV ADPCM block
+*/
+typedef struct {
+    chunk_riff_t riff;                    /*!<riff */
+    chunk_fmt_t fmt;                      /*!<fmt */
+    chunk_fmt_extra_t fmt_extra;          /*!<fmt extra*/
+    chunk_data_t data;                    /*!<data */
+} __attribute__((packed)) wav_adpcm_header_t;
+
+/**
 * brief     WAV control struct
 */
 typedef struct {
@@ -131,6 +148,8 @@ esp_err_t wav_check_type(uint8_t *in_data, int len);
 */
 void wav_head_init(wav_header_t *wavhead, int sample_rate, int bits, int channels);
 
+void wav_adpcm_head_init(wav_adpcm_header_t *wavhead, int sample_rate, int bits, int channels);
+
 /**
 * @brief      Parse the header of WAV stream
 *
@@ -152,6 +171,8 @@ esp_err_t wav_parse_header(void *codec_data, uint8_t *inData, int len, wav_info_
 * @param      dataSize        The size of WAV stream
 */
 void wav_head_size(wav_header_t *wavhead, uint32_t dataSize);
+
+void wav_adpcm_head_size(wav_adpcm_header_t *wavhead, uint32_t data_size);
 
 #ifdef __cplusplus
 }
