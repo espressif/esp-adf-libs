@@ -22,7 +22,7 @@ extern "C"
 typedef struct {
     uint32_t chunk_id;               /*!<chunk id;"RIFF",0X46464952 */
     uint32_t chunk_size;             /*!<file length - 8 */
-    uint32_t format;                /*!<WAVE,0X45564157 */
+    uint32_t format;                 /*!<WAVE,0X45564157 */
 } chunk_riff_t;
 
 /**
@@ -32,19 +32,19 @@ typedef struct {
     uint32_t chunk_id;               /*!<chunk id;"fmt ",0X20746D66 */
     uint32_t chunk_size;             /*!<Size of this fmt block (Not include ID and Size);16 or 18 or 40 bytes. */
     uint16_t audio_format;           /*!<format;0X01:linear PCM;0X11:IMA ADPCM */
-    uint16_t num_of_channels;         /*!<Number of channel;1: 1 channel;2: 2 channels; */
-    uint32_t samplerate;            /*!<sample rate;0X1F40 = 8Khz */
-    uint32_t byterate;              /*!<Byte rate; */
+    uint16_t num_of_channels;        /*!<Number of channel;1: 1 channel;2: 2 channels; */
+    uint32_t samplerate;             /*!<sample rate;0X1F40 = 8Khz */
+    uint32_t byterate;               /*!<Byte rate; */
     uint16_t block_align;            /*!<align with byte; */
-    uint16_t bits_per_sample;         /*!<Bit lenght per sample point,4 ADPCM */
+    uint16_t bits_per_sample;        /*!<Bit lenght per sample point,4 ADPCM */
 } __attribute__((packed)) chunk_fmt_t;
 
 /**
 * brief     FMT extra data for adpcm
 */
 typedef struct {
-    uint16_t byte_extra_data;      /*!<Exclude in linear PCM format(0~22) */
-    uint16_t sample_per_block; 
+    uint16_t byte_extra_data;       /*!<Exclude in linear PCM format(0~22) */
+    uint16_t sample_per_block;      /*!<number of sample for block */
 } __attribute__((packed)) chunk_fmt_extra_t;
 
 /**
@@ -53,7 +53,7 @@ typedef struct {
 typedef struct {
     uint32_t chunk_id;               /*!<chunk id;"fact",0X74636166; */
     uint32_t chunk_size;             /*!<Size(Not include ID and Size);4 byte */
-    uint32_t num_of_samples;          /*!<number of sample */
+    uint32_t num_of_samples;         /*!<number of sample */
 } __attribute__((packed)) chunk_fact_t;
 
 /**

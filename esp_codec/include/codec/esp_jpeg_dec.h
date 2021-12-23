@@ -51,15 +51,15 @@ typedef struct {
     uint8_t huffbits[2][2][16];     /* Huffman bit distribution tables [id][dcac] */
     uint16_t huffdata[2][2][256];   /* Huffman decoded data tables [id][dcac] */
     uint8_t qtid[3];                /* Quantization table ID of each component */
-    int16_t qt_tbl[4][64];         /* Dequantizer tables [id] */
+    int16_t qt_tbl[4][64];          /* Dequantizer tables [id] */
 } jpeg_dec_header_info_t;
 
 /* Jpeg dec io control */
 typedef struct {
-    unsigned char *inbuf;
-    int inbuf_len;
-    int inbuf_remain;
-    unsigned char *outbuf;
+    unsigned char *inbuf;           /* The input buffer pointer */
+    int inbuf_len;                  /* The number of the input buffer */
+    int inbuf_remain;               /* Not used number of the in buffer */        
+    unsigned char *outbuf;          /* The decoded data is placed */             
 } jpeg_dec_io_t;
 
 /**
@@ -155,9 +155,9 @@ jpeg_dec_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
  *      // Calloc out_put data buffer and update inbuf ptr and inbuf_len
  *      int outbuf_len;
  *      if (config.output_type == JPEG_RGB565) {
- *          outbuf_len = out_info->height * out_info->height * 2;
+ *          outbuf_len = out_info->width * out_info->height * 2;
  *      } else if (config.output_type == JPEG_RGB888) {
- *          outbuf_len = out_info->height * out_info->height * 3;
+ *          outbuf_len = out_info->width * out_info->height * 3;
  *      } else {
  *          return ESP_FAIL;
  *      }
