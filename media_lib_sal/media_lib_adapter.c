@@ -45,6 +45,10 @@ esp_err_t media_lib_add_default_adapter(void)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Fail to add socket lib\n");
     }
+    ret = media_lib_add_default_tls_adapter();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Fail to add tls lib\n");
+    }
 #endif
     return ret;
 }

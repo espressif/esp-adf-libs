@@ -29,7 +29,7 @@
 
 #ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
 static ssize_t _readv(int s, const struct iovec *iov, int iovcnt)
-{ 
+{
     return 0;
 }
 
@@ -53,6 +53,17 @@ static int _setsockopt(int s, int level, int optname, const void *opval,
                        socklen_t optlen)
 {
     return setsockopt(s, level, optname, opval, optlen);
+}
+
+static int _getsockopt(int s, int level, int optname, void *opval,
+                       socklen_t *optlen)
+{
+    return getsockopt(s, level, optname, opval, optlen);
+}
+
+static int _getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+{
+    return getsockname(s, name, namelen);
 }
 
 esp_err_t media_lib_add_default_socket_adapter(void)
@@ -81,6 +92,8 @@ esp_err_t media_lib_add_default_socket_adapter(void)
         .sock_inet_ntop = _inet_ntop,
         .sock_inet_pton = _inet_pton,
         .sock_setsockopt = _setsockopt,
+        .sock_getsockopt = _getsockopt,
+        .sock_getsockname = _getsockname,
     };
     return media_lib_socket_register(&sock_lib);
 }

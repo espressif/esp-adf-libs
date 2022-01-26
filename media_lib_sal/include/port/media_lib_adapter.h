@@ -42,7 +42,7 @@ esp_err_t media_lib_add_default_adapter(void);
 /**
  * @brief      Add default OS wrapper fuctions
  *
- * @return     
+ * @return
  *             - ESP_OK: on success
  *             - ESP_ERR_INVALID_ARG: OS wrapper functions not OK
  */
@@ -51,7 +51,7 @@ esp_err_t media_lib_add_default_os_adapter(void);
 /**
  * @brief      Add default crypt related wrapper functions
  *
- * @return     
+ * @return
  *             - ESP_OK: on success
  *             - ESP_ERR_INVALID_ARG: crypt wrapper functions not OK
  */
@@ -60,11 +60,20 @@ esp_err_t media_lib_add_default_crypt_adapter(void);
 /**
  * @brief      Add default socket related wrapper functions
  *
- * @return     
+ * @return
  *             - ESP_OK: on success
  *             - ESP_ERR_INVALID_ARG: socket wrapper functions not OK
  */
 esp_err_t media_lib_add_default_socket_adapter(void);
+
+/**
+ * @brief      Add default tls related wrapper functions
+ *
+ * @return
+ *             - ESP_OK: on success
+ *             - ESP_ERR_INVALID_ARG: tls wrapper functions not OK
+ */
+esp_err_t media_lib_add_default_tls_adapter(void);
 
 #ifdef __cplusplus
 }
