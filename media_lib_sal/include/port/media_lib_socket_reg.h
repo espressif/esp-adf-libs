@@ -55,6 +55,8 @@ typedef int (*__media_lib_socket_fcntl)(int s, int cmd, int val);
 typedef const char *(*__media_lib_socket_inet_ntop)(int af, const void *src, char *dst, socklen_t size);
 typedef int (*__media_lib_socket_inet_pton)(int af, const char *src, void *dst);
 typedef int (*__media_lib_socket_setsockopt)(int s, int level, int optname, const void *opval, socklen_t optlen);
+typedef int (*__media_lib_socket_getsockopt)(int s, int level, int optname, void *opval, socklen_t *optlen);
+typedef int (*__media_lib_socket_getsockname)(int s, struct sockaddr *name, socklen_t *namelen);
 
 /**
  * @brief      Socket Wrapper Functions Group
@@ -83,6 +85,8 @@ typedef struct {
     __media_lib_socket_inet_ntop   sock_inet_ntop;   /*!< Socket inet_ntop Func Pointer */
     __media_lib_socket_inet_pton   sock_inet_pton;   /*!< Socket inet_pton Func Pointer */
     __media_lib_socket_setsockopt  sock_setsockopt;  /*!< Socket setspckopt Func Pointer */
+    __media_lib_socket_getsockopt  sock_getsockopt;  /*!< Socket getsockopt Func Pointer */
+    __media_lib_socket_getsockname sock_getsockname; /*!< Socket getsockname Func Pointer */
 } media_lib_socket_t;
 
 /**

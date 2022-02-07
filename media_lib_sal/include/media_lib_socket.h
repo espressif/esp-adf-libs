@@ -25,7 +25,6 @@
 #ifndef MEDIA_LIB_SOCKET_H
 #define MEDIA_LIB_SOCKET_H
 
-
 #include "media_lib_socket_reg.h"
 
 #ifdef __cplusplus
@@ -198,6 +197,20 @@ int media_lib_socket_inet_pton(int af, const char *src, void *dst);
  *             - Others: returned by setsockopt wrapper function directly
  */
 int media_lib_socket_setsockopt(int s, int level, int optname, const void *opval, socklen_t optlen);
+
+/**
+ * @brief      Wrapper for getsockopt
+ * @return     - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
+ *             - Others: returned by getsockopt wrapper function directly
+ */
+int media_lib_socket_getsockopt(int s, int level, int optname, void *opval, socklen_t *optlen);
+
+/**
+ * @brief      Wrapper for getsockname
+ * @return     - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
+ *             - Others: returned by getsockname wrapper function directly
+ */
+int media_lib_socket_getsockname(int s, struct sockaddr *name, socklen_t *namelen);
 
 #ifdef __cplusplus
 }

@@ -119,7 +119,7 @@ ssize_t media_lib_socket_recvfrom(int s, void *mem, size_t len, int flags,
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-ssize_t media_lib_socket_recvmsg(int s, struct msghdr *message, int flags) 
+ssize_t media_lib_socket_recvmsg(int s, struct msghdr *message, int flags)
 {
     if (media_socket_lib.sock_recvmsg) {
         return media_socket_lib.sock_recvmsg(s, message, flags);
@@ -153,7 +153,7 @@ ssize_t media_lib_socket_sendto(int s, const void *dataptr, size_t size,
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-int media_lib_socket_open(int domain, int type, int protocol) 
+int media_lib_socket_open(int domain, int type, int protocol)
 {
     if (media_socket_lib.sock_open) {
         return media_socket_lib.sock_open(domain, type, protocol);
@@ -223,6 +223,23 @@ int media_lib_socket_setsockopt(int s, int level, int optname,
 {
     if (media_socket_lib.sock_setsockopt) {
         return media_socket_lib.sock_setsockopt(s, level, optname, opval, optlen);
+    }
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+int media_lib_socket_getsockopt(int s, int level, int optname,
+                                void *opval, socklen_t *optlen)
+{
+    if (media_socket_lib.sock_getsockopt) {
+        return media_socket_lib.sock_getsockopt(s, level, optname, opval, optlen);
+    }
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+int media_lib_socket_getsockname(int s, struct sockaddr *name, socklen_t *namelen)
+{
+    if (media_socket_lib.sock_getsockname) {
+        return media_socket_lib.sock_getsockname(s, name, namelen);
     }
     return ESP_ERR_NOT_SUPPORTED;
 }
