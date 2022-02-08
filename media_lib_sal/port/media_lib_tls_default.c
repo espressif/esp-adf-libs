@@ -1,7 +1,7 @@
 /*
  * ESPRESSIF MIT License
  *
- * Copyright (c) 2021 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2022 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
  *
  * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
  * it is free of charge, to any person obtaining a copy of this software and associated
@@ -28,11 +28,26 @@
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
 
+#if __has_include("esp_idf_version.h")
+#include "esp_idf_version.h"
+#else
+#define ESP_IDF_VERSION_VAL(major, minor, patch) 1
+#endif
+
 #ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
 
 static media_lib_tls_handle_t _tls_new(const char *hostname, int hostlen, int port, const esp_tls_cfg_t *cfg)
 {
+#if (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 0, 0))
     return esp_tls_conn_new(hostname, strlen(hostname), port, cfg);
+#else
+    media_lib_tls_handle_t tls = esp_tls_init();
+    if (esp_tls_conn_new_sync(hostname, strlen(hostname), port, cfg, (esp_tls_t *)tls) <= 0) {
+        esp_tls_conn_delete((esp_tls_t *)tls);
+        tls = NULL;
+    }
+    return tls;
+#endif
 }
 
 static int _tls_write(media_lib_tls_handle_t tls, const void *data, size_t datalen)

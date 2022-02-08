@@ -66,7 +66,7 @@ int media_lib_tls_getsockfd(media_lib_tls_handle_t tls);
 int media_lib_tls_delete(media_lib_tls_handle_t tls);
 
 /**
- * @brief      Wrapper for ESP_TLS get bytes avail
+ * @brief      Wrapper for esp_tls get bytes avail
  * @return     - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
  *             - Others: returned by wrapper function directly
  */
