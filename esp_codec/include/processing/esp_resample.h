@@ -53,8 +53,9 @@ typedef enum {
 *             - Mode 1: encoding mode
 */
 typedef enum {
-    RESAMPLE_DECODE_MODE = 0,  /*!<In decoding mode, the buffer size of the input stream data is a constant, while the size of the output stream data changes from the size of the input stream data */
-    RESAMPLE_ENCODE_MODE = 1,  /*!<In encoding mode, the buffer size of the output file is a constant, while the size of the input file changes from the output file. Note that, you have to store enough data in the input buffer, the minumum requirement of which is relevant to the parameter RESAMPLING_POINT_NUM. The resampling returns the size of the input file that is actually used. */
+    RESAMPLE_DECODE_MODE = 0,  /*!<In decoding mode, the input buffer size : constant, output buffer size: rely on input buffer size, support channel: mono/dual*/
+    RESAMPLE_ENCODE_MODE = 1,  /*!<In encoding mode, the input buffer size : rely on output buffer size, output buffer size: constant, support channel: mono/dual (destination channel must be same source channel.) */
+    RESAMPLE_UNCROSS_MODE = 2, /*!<In uncross mode, the input buffer size : constant, output buffer size: rely on input buffer size, support channel: multiple channels (destination channel must be same source channel.)*/
 } esp_resample_mode_t;
 
 /**
@@ -70,7 +71,7 @@ typedef struct {
     int max_indata_bytes;     /*!< The maximum buffer size of the input PCM (in bytes) */
     int out_len_bytes;        /*!< The buffer length of the output stream data. This parameter must be configured in encoding mode. */
     esp_resample_type_t type; /*!< The resampling type (Automatic, Upsampling and Downsampling), which can be selected manually at the integer multiples of the resampling cycle. */
-    int complexity;           /*!< Indicates the complexity of the resampling. This parameter is only valid when a FIR filter is used. Range: 0~4; O indicates the lowest complexity, which means the accuracy is the lowest and the speed is the fastest; Meanwhile, 4 indicates the highest complexity, which means the accuracy is the highest and the speed is the slowest.*/
+    int complexity;           /*!< Indicates the complexity of the resampling. This parameter is only valid when a FIR filter is used. Range:[1, 5]; 1 indicates the lowest complexity, which means the accuracy is the lowest and the speed is the fastest; Meanwhile, 5 indicates the highest complexity, which means the accuracy is the highest and the speed is the slowest.*/
     int down_ch_idx;          /*!< Indicates the channel that is selected (the right channel or the left channel). This parameter is only valid when the complexity parameter is set to 0 and the number of channel(s) of the input file has changed from dual to mono. */
     esp_rsp_prefer_type_t prefer_flag; /*!< The select flag about lesser CPU usage or lower INRAM usage */ 
 } resample_info_t;

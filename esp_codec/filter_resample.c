@@ -87,9 +87,9 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
         ESP_LOGE(TAG, "Currently, the only supported bit width is 16 bits.");
         return ESP_ERR_INVALID_ARG;
     }
-    if (resample_info->complexity < 0) {
-        ESP_LOGI(TAG, "Currently, the complexity is %d, that is less than 0, it has been set 0.", resample_info->complexity);
-        resample_info->complexity = 0;
+    if (resample_info->complexity <= 0) {
+        ESP_LOGI(TAG, "Currently, the complexity is %d, that is less than 1, it has been set 1.", resample_info->complexity);
+        resample_info->complexity = 1;
     } else if (resample_info->complexity > COMPLEXITY_MAX_NUM ) {
         ESP_LOGI(TAG, "Currently, the complexity is %d, that is more than the maximal of complexity, it has been set the maximal of complexity.", resample_info->complexity);
         resample_info->complexity = COMPLEXITY_MAX_NUM;
