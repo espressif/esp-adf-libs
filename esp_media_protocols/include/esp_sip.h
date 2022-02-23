@@ -69,7 +69,7 @@ typedef enum {
     SIP_EVENT_RINGING,
     SIP_EVENT_INVITING,
     SIP_EVENT_HANGUP,
-    SIP_EVENT_BUSY,
+    SIP_EVENT_ERROR,
     SIP_EVENT_UNREGISTERED,
     SIP_EVENT_AUDIO_SESSION_BEGIN,
     SIP_EVENT_READ_AUDIO_DATA,
@@ -112,6 +112,8 @@ typedef struct {
     const char                  *client_key_pem;     /*!< SSL client key, PEM format as string, if the server requires to verify client */
     bool                        send_options;        /*!< Send 'OPTIONS' messages to Server for keep NAT hole opened*/
     sip_audio_codec_t           acodec_type;         /*!< Audio codec type */
+    int                         network_timeout_ms;  /*!< Abort network operation if it is not completed after this value, in milliseconds (defaults to 3s) */
+    bool                        use_public_addr;     /*!< Use the public IP address returned by the server (RFC3581) */
 } sip_config_t;
 
 /**
@@ -256,8 +258,6 @@ esp_err_t esp_sip_set_invite_info(sip_handle_t sip, const sip_messages_info_t *s
  *     - ESP_ERR_INVALID_ARG
  */
 esp_err_t esp_sip_read_incomming_messages(sip_handle_t sip, sip_messages_info_t *sip_read_info);
-
-
 
 #ifdef __cplusplus
 }
