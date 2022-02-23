@@ -51,7 +51,7 @@ typedef struct {
     uint8_t huffbits[2][2][16];     /* Huffman bit distribution tables [id][dcac] */
     uint16_t huffdata[2][2][256];   /* Huffman decoded data tables [id][dcac] */
     uint8_t qtid[3];                /* Quantization table ID of each component */
-    int16_t qt_tbl[4][64];          /* Dequantizer tables [id] */
+    int16_t qt_tbl[4][64];          /* De-quantizer tables [id] */
 } jpeg_dec_header_info_t;
 
 /* Jpeg dec io control */

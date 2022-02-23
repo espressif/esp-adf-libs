@@ -130,7 +130,7 @@ typedef struct {
     .audio_forge = {                                                       \
         .dest_samplerate = 48000,                                          \
         .dest_channel = 2,                                                 \
-        .rsp_cplx = 0,                                                     \
+        .rsp_cplx = 1,                                                     \
         .alc_volume = 0,                                                   \
         .sonic_pitch = 1.0,                                                \
         .sonic_speed = 1.0,                                                \

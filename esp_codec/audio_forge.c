@@ -592,11 +592,12 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
                     }
                     continue;
                 }
+                mutex_lock(audio_forge->lock);
                 if (audio_forge->rsp_handle[i] == NULL) {
                     audio_forge->status |= 1 << i;
+                    mutex_unlock(audio_forge->lock);
                     continue;
                 }
-                mutex_lock(audio_forge->lock);
                 ret = rsp_process(self, audio_forge, i);
                 mutex_unlock(audio_forge->lock);
                 if (ret == ESP_ERR_NOT_FOUND) {
