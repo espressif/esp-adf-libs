@@ -581,6 +581,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
     int w_size = 0;
     int j = 0;
     int rsp_ret = 0;
+    mutex_lock(audio_forge->lock);
     for (j = 0; j < audio_forge->sonic_num; j++) {
         for (int i = 0; i < audio_forge->downmix.source_num; i++) {
             //resample
@@ -592,14 +593,11 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
                     }
                     continue;
                 }
-                mutex_lock(audio_forge->lock);
                 if (audio_forge->rsp_handle[i] == NULL) {
                     audio_forge->status |= 1 << i;
-                    mutex_unlock(audio_forge->lock);
                     continue;
                 }
                 ret = rsp_process(self, audio_forge, i);
-                mutex_unlock(audio_forge->lock);
                 if (ret == ESP_ERR_NOT_FOUND) {
                     ret = audio_forge->rsp_info[i].out_len_bytes;
                     esp_resample_destroy(audio_forge->rsp_handle[i]);
@@ -617,7 +615,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
                             audio_forge->inbuf[i] = (unsigned char *)audio_realloc(audio_forge->inbuf[i], audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
                         }
                     }
-                    AUDIO_MEM_CHECK(TAG, audio_forge->inbuf[i], return ESP_ERR_NO_MEM);
+                    AUDIO_MEM_CHECK(TAG, audio_forge->inbuf[i], mutex_unlock(audio_forge->lock); return ESP_ERR_NO_MEM);
                     audio_forge->rsp_out[i] = NULL;
                     audio_forge->rsp_in[i] = NULL;
                     audio_forge->status |= 1 << i;
@@ -638,6 +636,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
                     ret = audio_forge->rsp_info[i].out_len_bytes;
                     continue;
                 } else if (ret == ESP_FAIL) {
+                    mutex_unlock(audio_forge->lock);
                     return ESP_FAIL;
                 }
                 if (ret > 0) {
@@ -705,6 +704,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
         //finished
         if ((audio_forge->status == (1 << audio_forge->downmix.source_num) - 1)) {
             if (rsp_ret == AEL_IO_ABORT) {
+                mutex_unlock(audio_forge->lock);
                 return ESP_CODEC_ERR_ABORT;
             }
             break;
@@ -780,6 +780,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
 #ifdef AUDIO_FORGE_SPEED_ANALYSIS
     codec_tick_count_stop(audio_forge->audio_forge_tick_handle, 1, true);
 #endif
+    mutex_unlock(audio_forge->lock);
     return w_size;
 }
 
@@ -1005,16 +1006,17 @@ esp_err_t audio_forge_set_src_info(audio_element_handle_t self, audio_forge_src_
         mutex_unlock(audio_forge->lock);
         return ESP_OK;
     }
-    mutex_unlock(audio_forge->lock);
     audio_forge->status &= ~(1 << index);
     if (audio_forge->sample_rate == source_info.samplerate
         && audio_forge->channel == source_info.channel) {
+        mutex_unlock(audio_forge->lock);
         return ESP_OK;
     }
     audio_forge->sample_rate = source_info.samplerate;
     audio_forge->channel = source_info.channel;
     if (audio_forge->component_select & AUDIO_FORGE_SELECT_DOWNMIX) {
         audio_forge->reflag |= ADUIO_FORGE_DM_RESTART;
+        mutex_unlock(audio_forge->lock);
         return ESP_OK;
     }
     if (audio_forge->component_select & AUDIO_FORGE_SELECT_EQUALIZER) {
@@ -1023,6 +1025,7 @@ esp_err_t audio_forge_set_src_info(audio_element_handle_t self, audio_forge_src_
     if (audio_forge->component_select & AUDIO_FORGE_SELECT_SONIC) {
         audio_forge->reflag |= ADUIO_FORGE_SONIC_RESTART;
     }
+    mutex_unlock(audio_forge->lock);
     return ESP_OK;
 }
 
