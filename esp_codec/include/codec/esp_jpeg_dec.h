@@ -8,35 +8,19 @@
 extern "C" {
 #endif
 
+#include "esp_jpeg_common.h"
+
 #define DEFAULT_JPEG_DEC_CONFIG() {               \
-    .output_type               = JPEG_RGB565,     \
+    .output_type               = JPEG_RAW_TYPE_RGB565,     \
 }
 
 #define JPEG_DEC_MAX_MARKER_CHECK_LEN (1024)
-
-/* Error code */
-typedef enum {
-    JPEG_DEC_ERR_OK = 0,            /* Succeeded */
-    JPEG_DEC_ERR_INP = -1,          /* Device error or wrong termination of input stream */
-    JPEG_DEC_ERR_MEM = -2,          /* Insufficient memory pool for the image */
-    JPEG_DEC_ERR_NO_MORE_DATA = -3, /* Input data is not enough */
-    JPEG_DEC_ERR_PAR = -4,          /* Parameter error */
-    JPEG_DEC_ERR_FMT1 = -5,         /* Data format error (may be damaged data) */
-    JPEG_DEC_ERR_FMT2 = -6,         /* Right format but not supported */
-    JPEG_DEC_ERR_FMT3 = -7          /* Not supported JPEG standard */
-} jpeg_dec_error_t;
-
-/* Jpeg dec outdata type */
-typedef enum {
-    JPEG_RGB565 = 0,
-    JPEG_RGB888 = 1,
-} jpeg_dec_out_type_t;
 
 typedef void* jpeg_dec_handle_t;
 
 /* Jpeg dec user need to config */
 typedef struct {
-    jpeg_dec_out_type_t output_type; /*!< jpeg_dec_out_type 1:rgb888 0:rgb565 */
+    jpeg_raw_type_t output_type; /*!< jpeg_dec_out_type 1:rgb888 0:rgb565 */
 } jpeg_dec_config_t;
 
 /* Jpeg dec out info */
@@ -81,11 +65,11 @@ jpeg_dec_handle_t *jpeg_dec_open(jpeg_dec_config_t *config);
  * 
  * @param[out]     out_info        output info struct to user 
  * 
- * @return     jpeg_dec_error_t
- *             - JPEG_DEC_ERR_OK: on success
+ * @return     jpeg_error_t
+ *             - JPEG_ERR_OK: on success
  *             - Others: error occurs    
  */
-jpeg_dec_error_t jpeg_dec_parse_header(jpeg_dec_handle_t *jpeg_dec, jpeg_dec_io_t *io, jpeg_dec_header_info_t *out_info);
+jpeg_error_t jpeg_dec_parse_header(jpeg_dec_handle_t *jpeg_dec, jpeg_dec_io_t *io, jpeg_dec_header_info_t *out_info);
 
 /**
  * @brief      Decode one Jpeg picture 
@@ -94,22 +78,22 @@ jpeg_dec_error_t jpeg_dec_parse_header(jpeg_dec_handle_t *jpeg_dec, jpeg_dec_io_
  * 
  * @param[in]      io          struct of jpeg_dec_io_t 
  * 
- * @return     jpeg_dec_error_t
- *             - JPEG_DEC_ERR_OK: on success
+ * @return     jpeg_error_t
+ *             - JPEG_ERR_OK: on success
  *             - Others: error occurs    
  */
-jpeg_dec_error_t jpeg_dec_process(jpeg_dec_handle_t *jpeg_dec, jpeg_dec_io_t *io);
+jpeg_error_t jpeg_dec_process(jpeg_dec_handle_t *jpeg_dec, jpeg_dec_io_t *io);
 
 /**
  * @brief      Deinitialize Jpeg decode handle 
  * 
  * @param[in]      jpeg_dec    jpeg decoder handle     
  * 
- * @return     jpeg_dec_error_t
- *             - JPEG_DEC_ERR_OK: on success
+ * @return     jpeg_error_t
+ *             - JPEG_ERR_OK: on success
  *             - Others: error occurs    
  */
-jpeg_dec_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
+jpeg_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
 
 /**
  * Example usage:
@@ -154,9 +138,9 @@ jpeg_dec_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
  * 
  *      // Calloc out_put data buffer and update inbuf ptr and inbuf_len
  *      int outbuf_len;
- *      if (config.output_type == JPEG_RGB565) {
+ *      if (config.output_type == JPEG_RAW_TYPE_RGB565) {
  *          outbuf_len = out_info->width * out_info->height * 2;
- *      } else if (config.output_type == JPEG_RGB888) {
+ *      } else if (config.output_type == JPEG_RAW_TYPE_RGB888) {
  *          outbuf_len = out_info->width * out_info->height * 3;
  *      } else {
  *          return ESP_FAIL;
