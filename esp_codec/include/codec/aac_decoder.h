@@ -23,6 +23,7 @@ extern "C" {
     .task_core          = AAC_DECODER_TASK_CORE,        \
     .task_prio          = AAC_DECODER_TASK_PRIO,        \
     .stack_in_ext       = true,                         \
+    .plus_enable        = false,                        \
 }
 
 /**
@@ -34,6 +35,7 @@ typedef struct {
     int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
     int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
     bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
+    bool                    plus_enable;    /*!< Dynamically enable HE-AAC (v1 v2) decoding */
 } aac_decoder_cfg_t;
 
 /**
