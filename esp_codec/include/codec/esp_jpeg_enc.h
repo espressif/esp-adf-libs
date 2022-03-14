@@ -13,13 +13,14 @@ extern "C" {
 
 /* JPEG configure information*/
 typedef struct jpeg_info {
-    int width;                          /*!< Image wdith */
-    int height;                         /*!< Image height */
+    int width;                      /*!< Image wdith */
+    int height;                     /*!< Image height */
     jpeg_raw_type_t src_type;       /*!< Input image type */
     jpeg_subsampling_t subsampling; /*!< JPEG chroma subsampling factors.*/
-    uint8_t quality;                    /*!< Quality: 1-100, higher is better. Typical values are around 40 - 100. */
-    uint8_t hfm_task_priority;
-    uint8_t hfm_task_core;
+    uint8_t quality;                /*!< Quality: 1-100, higher is better. Typical values are around 40 - 100. */
+    bool task_enable;               /*!< True: `jpeg_enc_open`  would create task to finish part of encoding work. false: no task help the encoder encode */
+    uint8_t hfm_task_priority;      /*!< Task priority.If task_enable is true, this must be set */
+    uint8_t hfm_task_core;          /*!< Task core.If task_enable is true, this must be set */
 } jpeg_enc_info_t;
 
 /**
