@@ -53,8 +53,8 @@ typedef enum {
 *             - Mode 1: encoding mode
 */
 typedef enum {
-    RESAMPLE_DECODE_MODE = 0,  /*!<In decoding mode, the input buffer size : constant, output buffer size: rely on input buffer size, support channel: mono/dual*/
-    RESAMPLE_ENCODE_MODE = 1,  /*!<In encoding mode, the input buffer size : rely on output buffer size, output buffer size: constant, support channel: mono/dual (destination channel must be same source channel.) */
+    RESAMPLE_DECODE_MODE = 0,  /*!<In decoding mode, the input buffer size : constant, output buffer size: rely on input buffer size, support channel: mono/dual,  8 16 24 32 bit of source data convert to 16 bit*/
+    RESAMPLE_ENCODE_MODE = 1,  /*!<In encoding mode, the input buffer size : rely on output buffer size, output buffer size: constant, support channel: mono/dual (destination channel must be same source channel.),   8 16 24 32 bit of source data convert to 16 bit*/
     RESAMPLE_UNCROSS_MODE = 2, /*!<In uncross mode, the input buffer size : constant, output buffer size: rely on input buffer size, support channel: multiple channels (destination channel must be same source channel.)*/
 } esp_resample_mode_t;
 
@@ -65,8 +65,9 @@ typedef struct {
     int src_rate;             /*!< The sampling rate of the source PCM data */
     int src_ch;               /*!< The number of channel(s) of the source PCM data */
     int dest_rate;            /*!< The sampling rate of the destination PCM data */
+    int dest_bits;            /*!< The bit for sample of the destination PCM data. Currently, supported bit width :16 bits. */
     int dest_ch;              /*!< The number of channel(s) of the destination PCM data */
-    int sample_bits;          /*!< The bit width of the PCM data. Currently, the only supported bit width is 16 bits. */
+    int src_bits;             /*!< The bit for sample of the source PCM data. Currently, supported bit width :8bits 16 bits 24bits 32bits. */
     esp_resample_mode_t mode; /*!< The resampling mode (the encoding mode and the decoding mode) */
     int max_indata_bytes;     /*!< The maximum buffer size of the input PCM (in bytes) */
     int out_len_bytes;        /*!< The buffer length of the output stream data. This parameter must be configured in encoding mode. */
@@ -94,7 +95,7 @@ void *esp_resample_create(void *info, unsigned  char **p_in, unsigned  char **p_
  * @param[in]      handle           the resampling handle
  * @param[in]      info             the information of resampling parameters
  * @param[in]      p_in             the buffer of the input PCM data. And it must be `p_in` of  `esp_resample_create`.
- * @param[in]      p_out            the buffer of the output PCM data. And it must be `p_out` of  `esp_resample_create`.
+ * @param[in,out]  p_out            the buffer of the output PCM data. And it must be `p_out` of  `esp_resample_create`.
  * @param[in]      in_data_size     the length of the PCM data in `p_in` (in bytes).
  *                              In `RESAMPLE_DECODE_MODE`, it must equal `max_indata_bytes` in `resample_info_t`.
  *                              In `RESAMPLE_ENCODE_MODE`, it could be lesser than or equal `max_indata_bytes` in `resample_info_t`. And the function will return consume byte.
@@ -111,6 +112,23 @@ esp_resp_err_t esp_resample_run(void *handle, void *info, unsigned char *p_in, u
  * @param[in]      handle         the resampling handle
  */
 void esp_resample_destroy(void *handle);
+
+/**
+ * @brief          The 8,16,24,32 bit per sample of dual \\ mono source data  to 8,16,24,32 bit per sample of dual \\ mono destination data.
+ *                 Support un-signed 8 bit per sample of data. Support sigend 16 or 24,32 bit per sample of data.
+ *                 Un-support from dual source data  to mono destination data.
+ *                 Un-support big end data.
+ *
+ * @param[in]      src_data     The source data.
+ * @param[in]      src_bit      The bit per sample of source data. support:8, 16, 24, 32 bit per audio sample.
+ * @param[in]      sample_num   The sample number
+ * @param[in,out]  des_data     The destination data
+ * @param[in]      des_bit      The bit per sample of destination data. support:8, 16, 24, 32 bit per audio sample.
+ *
+ * @return         ESP_OK       succeed
+ *                 ESP_FAIL     failed
+ */
+int esp_resample_bit_convert(void *src_data, int src_bit, int sample_num, void *des_data, int des_bit);
 
 #ifdef __cplusplus
 }

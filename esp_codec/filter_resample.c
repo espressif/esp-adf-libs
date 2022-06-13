@@ -15,7 +15,7 @@
 
 static const char *TAG = "RSP_FILTER";
 
-#define RESAMPLING_POINT_NUM (512)
+#define RESAMPLING_POINT_NUM (256)
 
 typedef struct rsp_filter {
     resample_info_t *resample_info;
@@ -45,6 +45,18 @@ static esp_err_t is_valid_rsp_filter_channel(int channel)
     return ESP_OK;
 }
 
+static esp_err_t is_valid_rsp_filter_bit(int bit)
+{
+    if (bit != 8
+        && bit != 16
+        && bit != 24
+        && bit != 32) {
+        ESP_LOGE(TAG, "The bit per sample  should be 8 or 16, 24, 32 bit per sample, here is %d", bit);
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
 esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int src_rate, int src_ch)
 {
     rsp_filter_t *filter = (rsp_filter_t *)audio_element_getdata(self);
@@ -61,6 +73,29 @@ esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int src_rate, int
         filter->resample_info->src_ch = src_ch;
         ESP_LOGI(TAG, "reset sample rate of source data : %d, reset channel of source data : %d",
                  filter->resample_info->src_rate, filter->resample_info->src_ch);
+    }
+    return ESP_OK;
+}
+
+esp_err_t rsp_filter_change_src_info(audio_element_handle_t self, int src_rate, int src_ch, int src_bit)
+{
+    rsp_filter_t *filter = (rsp_filter_t *)audio_element_getdata(self);
+    if (filter->resample_info->src_rate == src_rate
+        && filter->resample_info->src_ch == src_ch
+        && filter->resample_info->src_bits == src_bit) {
+        return ESP_OK;
+    }
+    if (is_valid_rsp_filter_samplerate(src_rate) != ESP_OK
+        || is_valid_rsp_filter_channel(src_ch) != ESP_OK
+        || is_valid_rsp_filter_bit(src_bit) != ESP_OK) {
+        return ESP_ERR_INVALID_ARG;
+    } else {
+        filter->flag = 1;
+        filter->resample_info->src_rate = src_rate;
+        filter->resample_info->src_ch = src_ch;
+        filter->resample_info->src_bits = src_bit;
+        ESP_LOGI(TAG, "Reset sample rate of source data : %d, reset channel of source data : %d, reset bit per sample of source data : %d",
+            filter->resample_info->src_rate, filter->resample_info->src_ch, filter->resample_info->src_bits);
     }
     return ESP_OK;
 }
@@ -83,7 +118,7 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
 {
     rsp_filter_t *filter = (rsp_filter_t *)audio_element_getdata(self);
     resample_info_t *resample_info = filter->resample_info;
-    if (resample_info->sample_bits != 16) {
+    if (resample_info->dest_bits != 16) {
         ESP_LOGE(TAG, "Currently, the only supported bit width is 16 bits.");
         return ESP_ERR_INVALID_ARG;
     }
@@ -94,13 +129,18 @@ static esp_err_t rsp_filter_open(audio_element_handle_t self)
         ESP_LOGI(TAG, "Currently, the complexity is %d, that is more than the maximal of complexity, it has been set the maximal of complexity.", resample_info->complexity);
         resample_info->complexity = COMPLEXITY_MAX_NUM;
     }
+    int in_sample = (resample_info->src_bits >> 3) * resample_info->src_ch;
     if (filter->resample_info->mode == RESAMPLE_DECODE_MODE) {
-        resample_info->max_indata_bytes = MAX(resample_info->max_indata_bytes, RESAMPLING_POINT_NUM * resample_info->src_ch); //`RESAMPLING_POINT_NUM * resample_info->src_ch` is for mininum of `resample_info->max_indata_bytes`, enough extra buffer for safety
+        resample_info->max_indata_bytes = MAX(resample_info->max_indata_bytes, RESAMPLING_POINT_NUM * in_sample); //`RESAMPLING_POINT_NUM * resample_info->src_ch` is for mininum of `resample_info->max_indata_bytes`, enough extra buffer for safety
+        resample_info->max_indata_bytes = resample_info->max_indata_bytes / in_sample * in_sample;
         filter->in_offset = resample_info->max_indata_bytes;
     } else if (filter->resample_info->mode == RESAMPLE_ENCODE_MODE) {
-        int tmp = (int)((float)resample_info->src_rate * resample_info->src_ch) / ((float)resample_info->dest_rate * resample_info->dest_ch);
-        tmp = tmp > 1.0 ? tmp : 1.0;
-        resample_info->max_indata_bytes =  (int)(resample_info->out_len_bytes * tmp) + RESAMPLING_POINT_NUM * resample_info->src_ch; //`RESAMPLING_POINT_NUM * resample_info->src_ch` has no meaning, just enought extra buffer for safety
+        int out_sample = (resample_info->dest_bits >> 3) * resample_info->dest_ch;
+        int max_sample = resample_info->out_len_bytes / out_sample;
+        resample_info->out_len_bytes = max_sample * out_sample;
+        float tmp = (float)resample_info->src_rate / (float)resample_info->dest_rate ;
+        resample_info->max_indata_bytes = max_sample * in_sample * tmp + RESAMPLING_POINT_NUM;
+        resample_info->max_indata_bytes = resample_info->max_indata_bytes / in_sample * in_sample;
         filter->in_offset = 0;
     }
     filter->flag = 0;
