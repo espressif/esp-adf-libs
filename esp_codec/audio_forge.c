@@ -46,7 +46,7 @@
 // #define DEBUG_AUDIO_FORGE_ISSUE
 
 #define RESAMPLE_COMPLEXITY (2)
-#define RESAMPLING_POINT_NUM (512)
+#define RESAMPLING_POINT_NUM (256)
 #define NUMBER_BAND (10)
 #define USE_XMMS_ORIGINAL_FREQENT (0)
 #define MAX_MEM_PARA (2)
@@ -187,9 +187,12 @@ static esp_err_t rsp_open(audio_forge_t *audio_forge, int index)
     }
     audio_forge->rsp_info[index].dest_rate = audio_forge->sample_rate;
     audio_forge->rsp_info[index].dest_ch = audio_forge->rsp_info[index].src_ch;
+    audio_forge->rsp_info[index].dest_bits = 16;
     audio_forge->rsp_info[index].mode = RESAMPLE_ENCODE_MODE;
-    int tmp = ((float)audio_forge->rsp_info[index].src_rate / (float)audio_forge->rsp_info[index].dest_rate + 0.5);
-    audio_forge->rsp_info[index].max_indata_bytes = audio_forge->max_sample * sizeof(short) * tmp * audio_forge->rsp_info[index].src_ch + RESAMPLING_POINT_NUM * audio_forge->rsp_info[index].src_ch; //`RESAMPLING_POINT_NUM * resample_info->src_ch` has no meaning, just enought extra buffer for safety;
+    float tmp = (float)audio_forge->rsp_info[index].src_rate / (float)audio_forge->rsp_info[index].dest_rate;
+    int in_sample = audio_forge->rsp_info[index].src_bits >> 3;
+    audio_forge->rsp_info[index].max_indata_bytes = audio_forge->max_sample * in_sample * tmp * audio_forge->rsp_info[index].src_ch + RESAMPLING_POINT_NUM;
+    audio_forge->rsp_info[index].max_indata_bytes = audio_forge->rsp_info[index].max_indata_bytes / in_sample * in_sample * audio_forge->rsp_info[index].src_ch; //`RESAMPLING_POINT_NUM * resample_info->src_ch` has no meaning, just enought extra buffer for safety;
     audio_forge->rsp_info[index].out_len_bytes = audio_forge->max_sample * sizeof(short) * audio_forge->rsp_info[index].src_ch;
     audio_forge->in_offset[index] = 0;
     audio_forge->rsp_info[index].complexity = audio_forge->rsp_cplx;
@@ -963,7 +966,8 @@ esp_err_t audio_forge_set_src_info(audio_element_handle_t self, audio_forge_src_
         ESP_LOGE(TAG, "The number of channel must be 1 or 2 ");
         return ESP_ERR_INVALID_ARG;
     }
-    if (source_info.bit_num != ESP_AUDIO_BIT_16) {
+    if (source_info.bit_num != ESP_AUDIO_BIT_16
+        && (!(audio_forge->component_select & AUDIO_FORGE_SELECT_RESAMPLE))) {
         ESP_LOGE(TAG, "Currently, the bit width only support 16.  Bit width is set %d ", source_info.bit_num);
         return ESP_ERR_INVALID_ARG;
     }
@@ -981,7 +985,7 @@ esp_err_t audio_forge_set_src_info(audio_element_handle_t self, audio_forge_src_
         if (audio_forge->rsp_handle[index]) {
             if (audio_forge->rsp_info[index].src_rate == source_info.samplerate
                 && audio_forge->rsp_info[index].src_ch == source_info.channel
-                && audio_forge->rsp_info[index].sample_bits == source_info.bit_num) {
+                && audio_forge->rsp_info[index].src_bits == source_info.bit_num) {
                 audio_forge->status &= ~(1 << index);
                 mutex_unlock(audio_forge->lock);
                 return ESP_OK;
@@ -997,7 +1001,7 @@ esp_err_t audio_forge_set_src_info(audio_element_handle_t self, audio_forge_src_
         }
         audio_forge->rsp_info[index].src_rate = source_info.samplerate;
         audio_forge->rsp_info[index].src_ch = source_info.channel;
-        audio_forge->rsp_info[index].sample_bits = source_info.bit_num;
+        audio_forge->rsp_info[index].src_bits = source_info.bit_num;
         if (rsp_open(audio_forge, index) == ESP_FAIL) {
             mutex_unlock(audio_forge->lock);
             return ESP_FAIL;
@@ -1060,14 +1064,14 @@ esp_err_t audio_forge_source_info_init(audio_element_handle_t self, audio_forge_
     for (int i = 0; i < audio_forge->downmix.source_num; i++) {
         audio_forge->downmix.source_info[i].samplerate = source_num[i].samplerate;
         audio_forge->downmix.source_info[i].channel = source_num[i].channel;
-        audio_forge->downmix.source_info[i].bits_num = source_num[i].bit_num;
+        audio_forge->downmix.source_info[i].bits_num = 16;
         audio_forge->downmix.source_info[i].gain[0] = downmix_info[i].gain[0];
         audio_forge->downmix.source_info[i].gain[1] = downmix_info[i].gain[1];
         audio_forge->downmix.source_info[i].transit_time = downmix_info[i].transit_time;
         if (audio_forge->component_select & AUDIO_FORGE_SELECT_RESAMPLE) {
             audio_forge->rsp_info[i].src_rate = audio_forge->downmix.source_info[i].samplerate;
             audio_forge->rsp_info[i].src_ch = audio_forge->downmix.source_info[i].channel;
-            audio_forge->rsp_info[i].sample_bits = audio_forge->downmix.source_info[i].bits_num;
+            audio_forge->rsp_info[i].src_bits = source_num[i].bit_num;
         }
     }
     return ESP_OK;

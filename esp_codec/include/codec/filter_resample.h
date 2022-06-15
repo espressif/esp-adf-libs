@@ -20,8 +20,9 @@ typedef struct {
     int src_rate;              /*!< The sampling rate of the source PCM file (in Hz)*/
     int src_ch;                /*!< The number of channel(s) of the source PCM file (Mono=1, Dual=2) */
     int dest_rate;             /*!< The sampling rate of the destination PCM file (in Hz) */
+    int dest_bits;             /*!< The bit for sample of the destination PCM data. Currently, supported bit width :16 bits. */
     int dest_ch;               /*!< The number of channel(s) of the destination PCM file (Mono=1, Dual=2) */
-    int sample_bits;           /*!< The bit width of the PCM file. Currently, the only supported bit width is 16 bits. */
+    int src_bits;              /*!< The bit for sample of the source PCM data. Currently, supported bit width :8bits 16 bits 24bits 32bits. */
     esp_resample_mode_t mode;  /*!< The resampling mode (the encoding mode or the decoding mode). For decoding mode, input PCM length is constant; for encoding mode, output PCM length is constant. */
     int max_indata_bytes;      /*!< The maximum buffer size of the input PCM (in bytes) */
     int out_len_bytes;         /*!< The buffer length of the output stream data. This parameter must be configured in encoding mode. */
@@ -45,9 +46,10 @@ typedef struct {
 #define DEFAULT_RESAMPLE_FILTER_CONFIG() {          \
         .src_rate = 44100,                          \
         .src_ch = 2,                                \
+        .src_bits = 16,                             \
         .dest_rate = 48000,                         \
         .dest_ch = 2,                               \
-        .sample_bits = 16,                          \
+        .dest_bits = 16,                            \
         .mode = RESAMPLE_DECODE_MODE,               \
         .max_indata_bytes = RSP_FILTER_BUFFER_BYTE, \
         .out_len_bytes = RSP_FILTER_BUFFER_BYTE,    \
@@ -64,6 +66,7 @@ typedef struct {
 
 /**
  * @brief      Set the source audio sample rate and the number of channels to be processed by the resample.
+ *             If need change bits or don't consure source data infomation, please use rsp_filter_change_src_info ti instead this function. In future, the function will be forbidden.  
  *
  * @param      self       Audio element handle
  * @param      src_rate   The sample rate of stream data
@@ -74,6 +77,20 @@ typedef struct {
  *             ESP_FAIL
  */
 esp_err_t rsp_filter_set_src_info(audio_element_handle_t self, int src_rate, int src_ch);
+
+/**
+ * @brief      Set the source audio sample rate and the number of channels, bit per sample to be processed by the resample.  
+ *
+ * @param      self       Audio element handle
+ * @param      src_rate   The sample rate of stream data
+ * @param      src_ch     The number channels of stream data
+ * @param      src_bit    The bit per sample of stream data
+ *
+ * @return
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t rsp_filter_change_src_info(audio_element_handle_t self, int src_rate, int src_ch, int src_bit);
 
 /**
  * @brief      Create an Audio Element handle to resample incoming data.
