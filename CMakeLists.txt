@@ -23,7 +23,8 @@ list(APPEND COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./media_lib_sal/include/port
                             ./recorder_engine/include
                             ./recorder_engine/include
-                            ./audio_misc/include)
+                            ./audio_misc/include
+                            ./esp_muxer/include)
 
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
     list(APPEND COMPONENT_ADD_INCLUDEDIRS  ./esp_media_protocols/include)
@@ -94,9 +95,11 @@ IF (IDF_VERSION_MAJOR GREATER 3)
 
     add_prebuilt_library(recorder_engine "${CMAKE_CURRENT_SOURCE_DIR}/recorder_engine/lib/${CONFIG_IDF_TARGET}/${name_of_recorder_engine_lib}"
                  PRIV_REQUIRES esp-adf-libs)
+    add_prebuilt_library(esp_muxer "${CMAKE_CURRENT_SOURCE_DIR}/esp_muxer/lib/${CONFIG_IDF_TARGET}/libesp_muxer.a"
+                 PRIV_REQUIRES esp-adf-libs)
 ENDIF (IDF_VERSION_MAJOR GREATER 3)
 
-set(TARGET_LIB_NAME esp_processing esp_audio esp_codec ${target_recorder_engine})
+set(TARGET_LIB_NAME esp_processing esp_audio esp_codec esp_muxer ${target_recorder_engine})
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
     list(APPEND TARGET_LIB_NAME esp_media_protocols)
 endif()
