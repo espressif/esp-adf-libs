@@ -26,7 +26,8 @@ typedef enum {
     JPEG_RAW_TYPE_RGBA = 2,       /*!< RGBA. encoder supported.  decoder un-supported.*/
     JPEG_RAW_TYPE_YCbYCr = 3,     /*!< Y422. encoder supported.  decoder un-supported.*/
     JPEG_RAW_TYPE_YCbY2YCrY2 = 4, /*!< Y420. encoder supported.  decoder un-supported.*/
-    JPEG_RAW_TYPE_RGB565 = 5,     /*!< RGB565. encoder un-supported.  decoder supported.*/
+    JPEG_RAW_TYPE_RGB565_BE = 5,  /*!< RGB565. The data is big end. encoder un-supported.  decoder supported. */
+    JPEG_RAW_TYPE_RGB565_LE = 6,  /*!< RGB565. The data is little end. encoder un-supported.  decoder supported.*/
 } jpeg_raw_type_t;
 
 /* JPEG chroma subsampling factors */
@@ -42,7 +43,7 @@ typedef enum {
  *
  * @param[in]      sub_sample    chroma subsampling factors. Grayscale is un-supported. The others are supported.
  * @param[in]      raw_type      raw data type. RGB888 and RGB565 are supported. The others are un-supported.
- * @param[in]      yuv_image     input YUV image data
+ * @param[in]      yuv_image     input YUV image data. The buffer must be aligned 16 byte.
  * @param[in]      width         image width
  * @param[in]      height        image height
  * @param[out]     rgb_image     output RGB image data
@@ -52,6 +53,25 @@ typedef enum {
  *             - Others: error occurs
  */
 jpeg_error_t jpeg_yuv2rgb(jpeg_subsampling_t sub_sample, jpeg_raw_type_t raw_type, uint8_t *yuv_image, int width, int height, uint8_t *rgb_image);
+
+/**
+ * @brief      Allocated buffer. And the buffer address will be aligned.
+ *
+ * @param[in]      size    Allocate buffer size.
+ * @param[in]      aligned Aligned byte
+ *
+ * @return     positive:   Allocate buffer address
+ *             NULL: failed
+ */
+void *jpeg_malloc_align(int size, int aligned);
+
+/**
+ * @brief      Free buffer. The buffer address come from `jpeg_malloc_align`
+ *
+ * @param[in]      data    The buffer address.
+ *
+ */
+void jpeg_free_align(void *data);
 
 /**
  * Example usage:
@@ -68,9 +88,9 @@ jpeg_error_t jpeg_yuv2rgb(jpeg_subsampling_t sub_sample, jpeg_raw_type_t raw_typ
  *  if(yuv_image == NULL) {
  *      return;
  *  }
- *  int rgb_pixel = 3; // JPEG_RAW_TYPE_RGB888:3  JPEG_RAW_TYPE_RGB565:2
+ *  int rgb_pixel = 3; // JPEG_RAW_TYPE_RGB888:3  JPEG_RAW_TYPE_RGB565_LE/JPEG_RAW_TYPE_RGB565_BE:2
  *  int rgb_image_size = width * height * rgb_pixel;
- *  uint8_t* rgb_image = (uint8_t*)calloc(1, rgb_image_size);
+ *  uint8_t* rgb_image = (uint8_t*)jpeg_malloc_align(rgb_image_size, 16);
  *  if(rgb_image == NULL) {
  *      return;
  *  }
@@ -85,6 +105,8 @@ jpeg_error_t jpeg_yuv2rgb(jpeg_subsampling_t sub_sample, jpeg_raw_type_t raw_typ
  *  for (int i= 0; i< rgb_image_size; i++) {
  *      printf("%x ", rgb_image[i]&0xff);
  *  }
+ * jpeg_free_align(rgb_image);
+ * free(yuv_image);
  * }
  *
  * @endcode
