@@ -11,7 +11,7 @@ extern "C" {
 #include "esp_jpeg_common.h"
 
 #define DEFAULT_JPEG_DEC_CONFIG() {               \
-    .output_type               = JPEG_RAW_TYPE_RGB565,     \
+    .output_type               = JPEG_RAW_TYPE_RGB565_LE,     \
 }
 
 #define JPEG_DEC_MAX_MARKER_CHECK_LEN (1024)
@@ -42,8 +42,8 @@ typedef struct {
 typedef struct {
     unsigned char *inbuf;           /* The input buffer pointer */
     int inbuf_len;                  /* The number of the input buffer */
-    int inbuf_remain;               /* Not used number of the in buffer */        
-    unsigned char *outbuf;          /* The decoded data is placed */             
+    int inbuf_remain;               /* Not used number of the in buffer */
+    unsigned char *outbuf;          /* The decoded data is placed.The buffer must be aligned 16 byte. */
 } jpeg_dec_io_t;
 
 /**
@@ -138,14 +138,15 @@ jpeg_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
  * 
  *      // Calloc out_put data buffer and update inbuf ptr and inbuf_len
  *      int outbuf_len;
- *      if (config.output_type == JPEG_RAW_TYPE_RGB565) {
+ *      if (config.output_type == JPEG_RAW_TYPE_RGB565_LE
+ *          || config.output_type == JPEG_RAW_TYPE_RGB565_BE) {
  *          outbuf_len = out_info->width * out_info->height * 2;
  *      } else if (config.output_type == JPEG_RAW_TYPE_RGB888) {
  *          outbuf_len = out_info->width * out_info->height * 3;
  *      } else {
  *          return ESP_FAIL;
  *      }
- *      unsigned char *out_buf = calloc(1, outbuf_len);
+ *      unsigned char *out_buf = jpeg_malloc_align(outbuf_len, 16);
  *      jpeg_io->outbuf = out_buf;
  *      *output_buf = out_buf;
  *      int inbuf_consumed = jpeg_io->inbuf_len - jpeg_io->inbuf_remain;
@@ -159,6 +160,7 @@ jpeg_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
  *      }
  * 
  *      // Decoder deinitialize 
+ *      jpeg_free_align(out_buf);
  *      jpeg_dec_close(jpeg_dec);
  *      free(out_info);
  *      free(jpeg_io);

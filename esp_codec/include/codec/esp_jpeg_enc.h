@@ -83,6 +83,17 @@ int jpeg_enc_process_with_block(const void *handle, const uint8_t *in_buf, int i
 jpeg_error_t jpeg_enc_close(void *handle);
 
 /**
+ * @brief      Reset quality.
+ *
+ * @param      handle      The JPEG encoder handle. It gained from `jpeg_enc_open`
+ * @param      q            Quality: 1-100, higher is better. Typical values are around 40 - 100.
+ *
+ * @return     JPEG_ERR_Ok    succeed
+ *             others         failed
+ */
+jpeg_error_t jpeg_enc_set_quality(const void *handle, uint8_t q);
+
+/**
  * Example usage:
  * demo1: It is to encode one image using `jpeg_enc_process`
  * @code{c}
