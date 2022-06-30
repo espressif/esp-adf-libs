@@ -35,7 +35,7 @@ typedef enum {
     JPEG_SUB_SAMPLE_Y = 0,      /*!< Grayscale */
     JPEG_SUB_SAMPLE_YUV444 = 1, /*!< data order:YUV 1x1x1   3 pixel per MCU  Y444*/
     JPEG_SUB_SAMPLE_YUV422 = 2, /*!< data order:YUYV 2x1x1  2 pixel per MCU  Y422*/
-    JPEG_SUB_SAMPLE_YUV420 = 3  /*!< data order:YYUYYV 4x1x1  1.25 pixel per MCU  Y420)*/
+    JPEG_SUB_SAMPLE_YUV420 = 3  /*!< data order:YUY2YVY2 4x1x1  1.25 pixel per MCU  Y420)*/
 } jpeg_subsampling_t;
 
 /**
