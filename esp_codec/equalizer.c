@@ -159,7 +159,7 @@ static esp_err_t equalizer_open(audio_element_handle_t self)
         ESP_LOGE(TAG, "The use_xmms_original_freqs should be only 0 or 1, here is %d. (line %d)", equalizer->use_xmms_original_freqs, __LINE__);
         return ESP_ERR_INVALID_ARG;
     }
-    equalizer->buf = (unsigned char *)calloc(1, BUF_SIZE);
+    equalizer->buf = (unsigned char *)audio_calloc(1, BUF_SIZE);
     if (equalizer->buf == NULL) {
         ESP_LOGE(TAG, "calloc buffer failed. (line %d)", __LINE__);
         return ESP_ERR_NO_MEM;
@@ -194,7 +194,7 @@ static esp_err_t equalizer_close(audio_element_handle_t self)
     ESP_LOGD(TAG, "equalizer_close");
     equalizer_t *equalizer = (equalizer_t *)audio_element_getdata(self);
     esp_equalizer_uninit(equalizer->eq_handle);
-    if (equalizer->buf == NULL) {
+    if (equalizer->buf) {
         audio_free(equalizer->buf);
         equalizer->buf = NULL;
     }

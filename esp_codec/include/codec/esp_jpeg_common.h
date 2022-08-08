@@ -38,6 +38,13 @@ typedef enum {
     JPEG_SUB_SAMPLE_YUV420 = 3  /*!< data order:YUY2YVY2 4x1x1  1.25 pixel per MCU  Y420)*/
 } jpeg_subsampling_t;
 
+typedef enum {
+    JPEG_ROTATE_0D = 0,   /*!< Source image rotates clockwise 0 degree before encoding */
+    JPEG_ROTATE_90D = 1,  /*!< Source image rotates clockwise 90 degree before encoding */
+    JPEG_ROTATE_180D = 2, /*!< Source image rotates clockwise 180 degree before encoding  */
+    JPEG_ROTATE_270D = 3, /*!< Source image rotates clockwise 270 degree before encoding  */
+} jpeg_rotate_t;
+
 /**
  * @brief      Convert YUV to RGB
  *
