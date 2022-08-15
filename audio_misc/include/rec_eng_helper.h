@@ -29,6 +29,12 @@
 extern "C" {
 #endif
 
+/**********************************************************
+ *                                                        *
+ * These interfaces are deprecated in version 2 of esp-sr *
+ *                                                        *
+ **********************************************************/
+
 /**
  * @breif Get a wake net interface
  *
