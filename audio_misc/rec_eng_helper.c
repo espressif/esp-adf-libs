@@ -25,6 +25,7 @@
 #include "esp_log.h"
 #include "esp_wn_iface.h"
 #include "sdkconfig.h"
+#include "dl_lib_coefgetter_if.h"
 
 extern const esp_wn_iface_t esp_sr_wakenet3_quantized;
 extern const esp_wn_iface_t esp_sr_wakenet4_quantized;
