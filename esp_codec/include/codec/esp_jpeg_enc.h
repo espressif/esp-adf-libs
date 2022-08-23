@@ -12,7 +12,8 @@
  *             - Support sub-sample(YUV444 YUV422 Yuv420)
  *             - Support quality(1-100)
  *             - Support 0, 90 180 270 degree clockwise rotation, under src_type = JPEG_RAW_TYPE_YCbYCr,
- *               subsampling = JPEG_SUB_SAMPLE_YUV420, width and height are multiply of 16.
+ *               subsampling = JPEG_SUB_SAMPLE_YUV420, width and height are multiply of 16  and
+ *               src_type = JPEG_RAW_TYPE_YCbYCr, subsampling = JPEG_SUB_SAMPLE_Y, width and height are multiply of 8.
  *             - Support dual-task
  *             - Support two mode encoder, respectively block encoder and one image encoder
  *        The encoder does ASM optimization in ESP32S3. The encoder frame rate performs better than the others chips.
@@ -30,6 +31,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define DEFAULT_JPEG_ENC_CONFIG()              \
+    {                                          \
+        .width = 320,                          \
+        .height = 240,                         \
+        .src_type = JPEG_RAW_TYPE_YCbYCr,      \
+        .subsampling = JPEG_SUB_SAMPLE_YUV420, \
+        .quality = 40,                         \
+        .task_enable = false,                  \
+        .hfm_task_priority = 13,               \
+        .hfm_task_core = 1,                    \
+        .rotate = JPEG_ROTATE_0D,              \
+    }
 
 /* JPEG configure information*/
 typedef struct jpeg_info {
@@ -123,23 +137,15 @@ jpeg_error_t jpeg_enc_set_quality(const void *handle, uint8_t q);
  *
  * int esp_jpeg_enc_demo1 () {
  *  /// configure encoder
- *  jpeg_enc_info_t info;
- *  info.width = 320;
- *  info.height = 240;
- *  info.src_type = JPEG_ENC_SRC_TYPE_YCBYCR;
- *  info.subsampling = JPEG_SUB_SAMPLE_YUV420;
- *  info.quality = 50;
- *  info.hfm_task_core = 1;
- *  info.hfm_task_priority = 13;
- *  info.rotate = JPEG_ROTATE_0D;
+ *  jpeg_enc_info_t info = DEFAULT_JPEG_ENC_CONFIG();
  *
- *  /// callocate input buffer to fill original image  stream.
+ *  /// allocate input buffer to fill original image  stream.
  *  int in_len = info.width *info.height * 2;
  *  char *inbuf = jpeg_malloc_align(in_len);
  *  if(inbuf == NULL) {
  *      goto exit;
  *  }
- *  /// callocate output buffer to fill encodered image stream.
+ *  /// allocate output buffer to fill encoded image stream.
  *  int out_len = info.width * info.height * 2;
  *  char *outbuf = malloc(out_len);
  *  if (inbuf == NULL) {
@@ -184,15 +190,7 @@ jpeg_error_t jpeg_enc_set_quality(const void *handle, uint8_t q);
 
  *  demo2: It is to encode one image using `jpeg_enc_process_with_block`
  * int esp_jpeg_enc_demo2 () {
- *  jpeg_enc_info_t info;
- *  info.width = 320;
- *  info.height = 240;
- *  info.src_type = JPEG_ENC_SRC_TYPE_YCBCR;
- *  info.subsampling = JPEG_SUB_SAMPLE_YUV444;
- *  info.rotate = JPEG_ROTATE_0D;
- *  info.quality = 50;
- *  info.hfm_task_core = 1;
- *  info.hfm_task_priority = 13;
+ *  jpeg_enc_info_t info = DEFAULT_JPEG_ENC_CONFIG();
  *  int in_len = jpeg_enc_get_block_size(el);
  *  char *inbuf = jpeg_malloc_align(in_len);
  *  if(inbuf == NULL) {
