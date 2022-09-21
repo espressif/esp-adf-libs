@@ -21,37 +21,39 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-
-#ifndef MEDIA_LIB_ERRCODE_H
-#define MEDIA_LIB_ERRCODE_H
+#ifndef ESP_RTMP_VERSION_H
+#define ESP_RTMP_VERSION_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "esp_err.h"
+#define ESP_RTMP_VERION "1.0.0"
 
-typedef enum {
-    ESP_MEDIA_ERR_OK                        = ESP_OK,
-    ESP_MEDIA_ERR_FAIL                      = ESP_FAIL,
-    ESP_MEDIA_ERR_NO_MEM                    = ESP_ERR_NO_MEM,
-    ESP_MEDIA_ERR_INVALID_ARG               = ESP_ERR_INVALID_ARG,
-    ESP_MEDIA_ERR_WRONG_STATE               = ESP_ERR_INVALID_STATE,
-    ESP_MEDIA_ERR_INVALID_SIZE              = ESP_ERR_INVALID_SIZE,
-    ESP_MEDIA_ERR_NOT_FOUND                 = ESP_ERR_NOT_FOUND,
-    ESP_MEDIA_ERR_NOT_SUPPORT               = ESP_ERR_NOT_SUPPORTED,
-    ESP_MEDIA_ERR_TIMEOUT                   = ESP_ERR_TIMEOUT,
-    ESP_MEDIA_ERR_INVALID_RESPONSE          = ESP_ERR_INVALID_RESPONSE,
-    ESP_MEDIA_ERR_INVALID_CRC               = ESP_ERR_INVALID_CRC,
-    ESP_MEDIA_ERR_INVALID_VERSION           = ESP_ERR_INVALID_VERSION,
+/**
+ *  Features:
+ *     - Use RTMP version 3
+ *     - Support RTMP Publisher, RTMP Server, Pull RTMP as FLV
+ *     - Support audio codecs: MP3, AAC, PCM
+ *     - Support video codecs: MJPEG, H264
+ *     - Support AMF0 parse
+ *     - Support HTTP
+ *     - Support basic authorization
+ *     - Support nginx-RTMP server
+ *
+ *  To be implemented:
+ *     - To support HTTPS
+ *     - To support AMF3 parse
+ *
+ *  Notes:
+ *     - MJPEG video codec is supported in private format (use FLV video codecid 1)
+ *       Users can refer to README.md under example folder to check the technical details
+ */
 
-    ESP_MEDIA_ERR_BASE                      = 0x90000,
-    ESP_MEDIA_ERR_READ_DATA                 = (ESP_MEDIA_ERR_BASE + 1),
-    ESP_MEDIA_ERR_WRITE_DATA                = (ESP_MEDIA_ERR_BASE + 2),
-    ESP_MEDIA_ERR_BAD_DATA                  = (ESP_MEDIA_ERR_BASE + 3),
-    ESP_MEDIA_ERR_EXCEED_LIMIT              = (ESP_MEDIA_ERR_BASE + 4),
-    ESP_MEDIA_ERR_CONNECT_FAIL              = (ESP_MEDIA_ERR_BASE + 5)
-} esp_media_err_t;
+/**
+ * @brief         Get RTMP version string
+ */
+const char* esp_rtmp_get_version();
 
 #ifdef __cplusplus
 }

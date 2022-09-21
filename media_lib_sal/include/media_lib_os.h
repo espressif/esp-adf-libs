@@ -34,6 +34,15 @@ extern "C" {
 #define MEDIA_LIB_MAX_LOCK_TIME (0xFFFFFFFF)
 
 /**
+ * @brief      Configuration for thread resource
+ */
+typedef struct {
+    uint8_t  priority;    /*!< Thread priority */
+    uint8_t  core_id;     /*!< CPU core id for thread to run */
+    uint32_t stack_size;  /*!< Thread reserve stack size */
+} media_lib_thread_cfg_t;
+
+/**
  * @brief      Wrapper for malloc
  */
 void *media_lib_malloc(size_t size);
