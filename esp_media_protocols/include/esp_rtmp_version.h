@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define ESP_RTMP_VERION "1.0.0"
+#define ESP_RTMP_VERION "1.1.0"
 
 /**
  *  Features:
@@ -44,6 +44,12 @@ extern "C" {
  *  To be implemented:
  *     - To support HTTPS
  *     - To support AMF3 parse
+ * 
+ *  Release Notes:
+ *     v1.1.0:
+ *     - Add G711 alaw, ulaw support
+ *     - Use select to poll all client request to avoid create receive threads
+ *     - Add cache logic for client send buffer to avoid client block each other
  *
  *  Notes:
  *     - MJPEG video codec is supported in private format (use FLV video codecid 1)

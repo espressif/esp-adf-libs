@@ -45,10 +45,12 @@ typedef enum {
  * @brief RTMP audio codec type
  */
 typedef enum {
-    RTMP_AUDIO_CODEC_NONE, /*!< Invalid audio type */
-    RTMP_AUDIO_CODEC_AAC,  /*!< AAC audio type */
-    RTMP_AUDIO_CODEC_MP3,  /*!< MP3 audio type */
-    RTMP_AUDIO_CODEC_PCM,  /*!< PCM audio type */
+    RTMP_AUDIO_CODEC_NONE,  /*!< Invalid audio type */
+    RTMP_AUDIO_CODEC_AAC,   /*!< AAC audio type */
+    RTMP_AUDIO_CODEC_MP3,   /*!< MP3 audio type */
+    RTMP_AUDIO_CODEC_PCM,   /*!< PCM audio type */
+    RTMP_AUDIO_CODEC_G711A, /*!< G711 alaw audio type */
+    RTMP_AUDIO_CODEC_G711U, /*!< G711 ulaw audio type */
 } esp_rtmp_audio_codec_t;
 
 /**
