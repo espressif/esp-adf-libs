@@ -1,4 +1,4 @@
-// Copyright (c) 2020 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+// Copyright (c) 2021 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
 // All rights reserved.
 
 #ifndef _ADPCM_ENCODER_H_

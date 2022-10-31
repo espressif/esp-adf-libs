@@ -4,18 +4,6 @@
 #ifndef ESP_JPEG_DEC_H
 #define ESP_JPEG_DEC_H
 
-/**
- * @file esp_jpeg_dec.h
- * @brief Create an JPEG decoder.
- *        Currently, support functions as follows:
- *             - Support variety of width and height to decoder
- *             - Support RGB888 RGB565(big end) RGB565(little end) raw data to output
- *             - Support 0, 90 180 270 degree clockwise rotation, under width and height are multiply of 8.
- *        The encoder do ASM optimization in ESP32S3. The encoder frame rate performs better than the others chips.
- * @version 1.0.0
- *
- */
-
 #ifdef __cplusplus
 extern "C" {
 #endif

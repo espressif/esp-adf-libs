@@ -3,27 +3,6 @@
 
 #pragma once
 
-/**
- * @file esp_jpeg_enc.h
- * @brief Create an JPEG encoder.
- *        Currently, support functions as follows:
- *             - Support variety of width and height to encoder
- *             - Support RGB888 RGBA YCbYCr YCbY2YCrY2 GRAY raw data to encode
- *             - Support sub-sample(YUV444 YUV422 Yuv420)
- *             - Support quality(1-100)
- *             - Support 0, 90 180 270 degree clockwise rotation, under src_type = JPEG_RAW_TYPE_YCbYCr,
- *               subsampling = JPEG_SUB_SAMPLE_YUV420, width and height are multiply of 16  and
- *               src_type = JPEG_RAW_TYPE_YCbYCr, subsampling = JPEG_SUB_SAMPLE_Y, width and height are multiply of 8.
- *             - Support dual-task
- *             - Support two mode encoder, respectively block encoder and one image encoder
- *        The encoder does ASM optimization in ESP32S3. The encoder frame rate performs better than the others chips.
- *        Under src_type = JPEG_RAW_TYPE_YCbYCr, subsampling = JPEG_SUB_SAMPLE_YUV420, width % 16 == 0. height % 16 = 0 conditions,
- *        memory consumption is about 9K.Others, with wider the image and larger `subsampling`, the greater memory consumption will be.
- *
- * @version 1.0.0
- *
- */
-
 #include "stdbool.h"
 #include "stdint.h"
 #include "esp_jpeg_common.h"
