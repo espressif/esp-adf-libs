@@ -7,9 +7,12 @@
 extern "C" {
 #endif
 
-#define ESP_JPEG_VERION "1.1.0"
+#define ESP_JPEG_VERION "1.2.0"
 
 /**
+ * @version 1.2.0:
+ *     - Add CbYCrY output type for decoder.
+ *     - Support 0, 90 180 270 degree clockwise rotation for CbYCrY output type in decoder.
  *
  * @version 1.1.0:
  *     - Add gray decoder.
@@ -32,7 +35,7 @@ extern "C" {
  *          - Support three channels decoder
  *          - Support RGB888 RGB565(big end) RGB565(little end) raw data to output
  *          - Support 0, 90 180 270 degree clockwise rotation, under width and height are multiply of 8.
- * 
+ *
  * @note :
  *     - The encoder/decoder do ASM optimization in ESP32S3. Frame rate performs better than the others chips.
  *     - In encoder, under src_type = JPEG_RAW_TYPE_YCbYCr, subsampling = JPEG_SUB_SAMPLE_YUV420, width % 16 == 0. height % 16 = 0 conditions,
