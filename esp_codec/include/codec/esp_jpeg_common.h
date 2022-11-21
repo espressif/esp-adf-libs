@@ -21,21 +21,22 @@ typedef enum {
  * raw data ---> encoder  --->  encoded data ---> transmit  ---> decoder ---> raw data
  */
 typedef enum {
-    JPEG_RAW_TYPE_GRAY = 0,       /*!< Grayscale. encoder supported. decoder un-supported.*/
-    JPEG_RAW_TYPE_RGB888 = 1,     /*!< RGB888. encoder supported.  decoder supported. */
-    JPEG_RAW_TYPE_RGBA = 2,       /*!< RGBA. encoder supported.  decoder un-supported.*/
-    JPEG_RAW_TYPE_YCbYCr = 3,     /*!< Y422. encoder supported.  decoder un-supported.*/
-    JPEG_RAW_TYPE_YCbY2YCrY2 = 4, /*!< Y420. encoder supported.  decoder un-supported.*/
-    JPEG_RAW_TYPE_RGB565_BE = 5,  /*!< RGB565. The data is big end. encoder un-supported.  decoder supported. */
-    JPEG_RAW_TYPE_RGB565_LE = 6,  /*!< RGB565. The data is little end. encoder un-supported.  decoder supported.*/
+    JPEG_RAW_TYPE_GRAY = 0,       /*!< Grayscale. Encoder supported. Decoder un-supported.*/
+    JPEG_RAW_TYPE_RGB888 = 1,     /*!< RGB888. Encoder supported.  Decoder supported. */
+    JPEG_RAW_TYPE_RGBA = 2,       /*!< RGBA. Encoder supported.  Decoder un-supported.*/
+    JPEG_RAW_TYPE_YCbYCr = 3,     /*!< Y422. Data order is YCbYCr. Encoder supported.  Decoder un-supported.*/
+    JPEG_RAW_TYPE_YCbY2YCrY2 = 4, /*!< Y420. Encoder supported.  Decoder un-supported.*/
+    JPEG_RAW_TYPE_RGB565_BE = 5,  /*!< RGB565. The data is big end. Encoder un-supported.  Decoder supported. */
+    JPEG_RAW_TYPE_RGB565_LE = 6,  /*!< RGB565. The data is little end. Encoder un-supported.  Decoder supported.*/
+    JPEG_RAW_TYPE_CbYCrY = 7,     /*!< Y422. Data order is CbYCrY. Encoder un-supported.  Decoder supported.*/
 } jpeg_raw_type_t;
 
 /* JPEG chroma subsampling factors */
 typedef enum {
     JPEG_SUB_SAMPLE_Y = 0,      /*!< Grayscale */
-    JPEG_SUB_SAMPLE_YUV444 = 1, /*!< data order:YUV 1x1x1   3 pixel per MCU  Y444*/
-    JPEG_SUB_SAMPLE_YUV422 = 2, /*!< data order:YUYV 2x1x1  2 pixel per MCU  Y422*/
-    JPEG_SUB_SAMPLE_YUV420 = 3  /*!< data order:YUY2YVY2 4x1x1  1.25 pixel per MCU  Y420)*/
+    JPEG_SUB_SAMPLE_YUV444 = 1, /*!< Data order:YUV 1x1x1   3 pixel per MCU  Y444*/
+    JPEG_SUB_SAMPLE_YUV422 = 2, /*!< Data order:YUYV 2x1x1  2 pixel per MCU  Y422*/
+    JPEG_SUB_SAMPLE_YUV420 = 3  /*!< Data order:YUY2YVY2 4x1x1  1.25 pixel per MCU  Y420)*/
 } jpeg_subsampling_t;
 
 typedef enum {
@@ -48,16 +49,16 @@ typedef enum {
 /**
  * @brief      Convert YUV to RGB
  *
- * @param[in]      sub_sample    chroma subsampling factors. Grayscale is un-supported. The others are supported.
- * @param[in]      raw_type      raw data type. RGB888 and RGB565 are supported. The others are un-supported.
- * @param[in]      yuv_image     input YUV image data. The buffer must be aligned 16 byte.
- * @param[in]      width         image width
- * @param[in]      height        image height
- * @param[out]     rgb_image     output RGB image data
+ * @param[in]      sub_sample    Chroma subsampling factors. Grayscale is un-supported. The others are supported.
+ * @param[in]      raw_type      Raw data type. RGB888 and RGB565 are supported. The others are un-supported.
+ * @param[in]      yuv_image     Input YUV image data. The buffer must be aligned 16 byte.
+ * @param[in]      width         Image width
+ * @param[in]      height        Image height
+ * @param[out]     rgb_image     Output RGB image data
  *
  * @return     jpeg_error_t
- *             - JPEG_ERR_OK: on success
- *             - Others: error occurs
+ *             - JPEG_ERR_OK: On success
+ *             - Others: Error occurs
  */
 jpeg_error_t jpeg_yuv2rgb(jpeg_subsampling_t sub_sample, jpeg_raw_type_t raw_type, uint8_t *yuv_image, int width, int height, uint8_t *rgb_image);
 
@@ -67,8 +68,8 @@ jpeg_error_t jpeg_yuv2rgb(jpeg_subsampling_t sub_sample, jpeg_raw_type_t raw_typ
  * @param[in]      size    Allocate buffer size.
  * @param[in]      aligned Aligned byte
  *
- * @return     positive:   Allocate buffer address
- *             NULL: failed
+ * @return     Positive:   Allocate buffer address
+ *             NULL: Failed
  */
 void *jpeg_malloc_align(int size, int aligned);
 
