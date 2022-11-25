@@ -48,7 +48,7 @@ extern "C" {
  *
 */
 
-extern int audio_forge_set_gain_value[];  /*!< the paramenter is for equalizer */
+extern int audio_forge_set_gain_value[]; /*!< the paramenter is for equalizer */
 
 /**
  * @brief      Information of source files
@@ -125,7 +125,6 @@ typedef struct {
 #define AUDIO_FORGE_RINGBUFFER_SIZE      (8 * 1024)
 #define AUDIO_FORGE_SAMPLE_SIZE          (256)
 
-
 #define AUDIO_FORGE_CFG_DEFAULT() {                                        \
     .audio_forge = {                                                       \
         .dest_samplerate = 48000,                                          \
@@ -134,7 +133,7 @@ typedef struct {
         .alc_volume = 0,                                                   \
         .sonic_pitch = 1.0,                                                \
         .sonic_speed = 1.0,                                                \
-        .equalizer_gain = NULL,                      \
+        .equalizer_gain = NULL,                                            \
         .component_select = AUDIO_FORGE_SELECT_RESAMPLE,                   \
         .max_sample = AUDIO_FORGE_SAMPLE_SIZE,                             \
         .source_num = 2,                                                   \
@@ -247,7 +246,35 @@ esp_err_t audio_forge_alc_get_volume(audio_element_handle_t self, int *volume);
  *             ESP_OK
  *             ESP_FAIL
  */
-esp_err_t audio_forge_eq_set_gain(audio_element_handle_t self, int eq_gain, int band_index);
+esp_err_t __attribute__((deprecated)) audio_forge_eq_set_gain(audio_element_handle_t self, int eq_gain, int band_index);
+
+/**
+ * @brief      Set the audio gain to be processed by the equalizer.
+ *
+ * @param      self          audio element handle
+ * @param      band_index    the position of center frequencies of equalizer
+ * @param      nch           the number of channel index
+ * @param      eq_gain       the value of audio gain which in `index`
+ *
+ * @return
+ *             ESP_OK
+ *             ESP_FAIL
+ */
+esp_err_t audio_forge_eq_set_gain_by_channel(audio_element_handle_t self, int band_index, int nch, int eq_gain);
+
+/**
+* @brief      Get the audio gain.
+*
+* @param      self          audio element handle
+* @param      band_index    the position of center frequencies of equalizer
+* @param      nch           the number of channel index
+* @param      eq_gain       the pointer of the gain processed by equalizer
+*
+* @return
+*             ESP_OK
+*             ESP_FAIL
+*/
+esp_err_t audio_forge_eq_get_gain_by_channel(audio_element_handle_t self, int band_index, int nch, int *eq_gain);
 
 /**
  * @brief      Set the component select.

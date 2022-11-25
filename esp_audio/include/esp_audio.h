@@ -13,10 +13,15 @@ extern "C" {
 
 typedef void *esp_audio_handle_t;
 
+#define ESP_AUDIO_COMPONENT_SELECT_DEFAULT    0x00      /*!< Default selected */
+#define ESP_AUDIO_COMPONENT_SELECT_ALC        0x04      /*!< ALC selected */
+#define ESP_AUDIO_COMPONENT_SELECT_EQUALIZER  0x08      /*!< Equalizer selected */
+
 #define DEFAULT_ESP_AUDIO_CONFIG() {\
     .in_stream_buf_size = 10*1024,\
     .out_stream_buf_size = 4*1024,\
     .resample_rate = 0,\
+    .component_select = ESP_AUDIO_COMPONENT_SELECT_DEFAULT,\
     .evt_que = NULL,\
     .cb_func = NULL,\
     .cb_ctx = NULL,\
@@ -38,7 +43,8 @@ typedef struct {
      * Destination sample rate, 0: disable resample; others: 44.1K, 48K, 32K, 16K, 8K has supported
      * It should be make sure same with I2S stream `sample_rate`
      */
-    int                         resample_rate;                             
+    int                         resample_rate;
+    int                         component_select;           /*!< The select of audio forge component. eg. To choose equalizer and ALC together, please enter ESP_AUDIO_COMPONENT_SELECT_ALC | ESP_AUDIO_COMPONENT_SELECT_EQUALIZER.*/      
     QueueHandle_t               evt_que;                    /*!< For received esp_audio events (optional)*/
     esp_audio_event_callback    cb_func;                    /*!< esp_audio events callback (optional)*/
     void                       *cb_ctx;                     /*!< esp_audio callback context (optional)*/
@@ -304,14 +310,68 @@ audio_err_t esp_audio_pause(esp_audio_handle_t handle);
  */
 audio_err_t esp_audio_resume(esp_audio_handle_t handle);
 
+/*
+Note:
+1) This figure indicate the default eq gain of every band in current equazier.
+2) Every channel have 10 band to set.
+
++------------------------------------------------------------------+
+|                               MONO                               |
++------------------------------------------------------------------+
+|               Only Left channel/Only Right channel               |
++------------------------------------------------------------------+
+|band0|band1|band2|band3|band4|band5|band6|band7|band8|band9|band10|
++------------------------------------------------------------------+
+|  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0   |
++------------------------------------------------------------------+
+
++------------------------------------------------------------------+------------------------------------------------------------------+
+|                                                                 DUAL                                                                |
++------------------------------------------------------------------+------------------------------------------------------------------+
+|                          Left channel                            |                          Reft channel                            |
++------------------------------------------------------------------+------------------------------------------------------------------+
+|band0|band1|band2|band3|band4|band5|band6|band7|band8|band9|band10|band0|band1|band2|band3|band4|band5|band6|band7|band8|band9|band10|
++------------------------------------------------------------------+------------------------------------------------------------------+
+|  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0   |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0  |  0   |
++------------------------------------------------------------------+------------------------------------------------------------------+
+*/
+
+/**
+ * @brief      Set the audio gain to be processed by the equalizer.
+ *
+ * @param[in]      handle        The esp_audio instance
+ * @param[in]      band_index    The position of center frequencies of equalizer. The range of eq band index is [0 - 9].
+ * @param[in]      nch           The number of channel. As for mono, the nch can only set to 1. As for dual, thc nch can set to 1 and 2.
+ * @param[in]      eq_gain       The value of audio gain which in `band_index`. 
+ * 
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_eq_gain_set(esp_audio_handle_t handle, int band_index, int nch, int eq_gain);
+
+/**
+ * @brief      Get the audio gain to be processed by the equalizer.
+ *
+ * @param[in]      handle        Audio element handle
+ * @param[in]      band_index    The position of center frequencies of equalizer. The range of eq band index is [0 - 9].
+ * @param[in]      nch           The number of channel. As for mono, the nch can only set to 1. As for dual, thc nch can set to 1 and 2.
+ * @param[out]     eq_gain       The pointer of the gain processed by equalizer
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_eq_gain_get(esp_audio_handle_t handle, int band_index, int nch, int *eq_gain);
+
 /**
  * @brief Getting esp_audio play speed index, index value is from "esp_audio_speed_t" enum.
  *
  * @param[in]  handle          The esp_audio instance
  * @param[out] speed_index     Current audio play speed index. 
+ * 
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
- *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_speed_get(esp_audio_handle_t handle, esp_audio_play_speed_t *speed_index);
@@ -321,9 +381,9 @@ audio_err_t esp_audio_speed_get(esp_audio_handle_t handle, esp_audio_play_speed_
  *
  * @param[in] handle          The esp_audio instance
  * @param[in] speed_index     Value from "esp_audio_speed_t" enum.  
+ * 
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
- *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_speed_set(esp_audio_handle_t handle, esp_audio_play_speed_t speed_index);
@@ -334,9 +394,9 @@ audio_err_t esp_audio_speed_set(esp_audio_handle_t handle, esp_audio_play_speed_
  * @param[in]  handle          The esp_audio instance
  * @param[in]  speed_index     Current audio play speed index. 
  * @param[out] speed           Current audio play speed. 
+ * 
  * @return
  *      - ESP_ERR_AUDIO_NO_ERROR: on success
- *      - ESP_ERR_AUDIO_CTRL_HAL_FAIL: error with hardware.
  *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
  */
 audio_err_t esp_audio_speed_idx_to_float(esp_audio_handle_t handle, esp_audio_play_speed_t speed_index, float *speed);

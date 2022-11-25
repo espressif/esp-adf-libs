@@ -100,80 +100,98 @@ jpeg_error_t jpeg_dec_close(jpeg_dec_handle_t *jpeg_dec);
 /**
  * Example usage:
  * @code{c}
- * 
+ *
  * // Function for decode one jpeg picture
  * // input_buf   input picture data
  * // len         input picture data length
- * int esp_jpeg_decoder_one_picture(unsigned char *input_buf, int len, unsigned char **output_buf)
+ * // output_buf  allocated in `esp_jpeg_decoder_one_picture` but it isn't to free. Please free this buffer.
+ * jpeg_error_t esp_jpeg_decoder_one_picture(unsigned char *input_buf, int len, unsigned char **output_buf)
  * {
+ *      int outbuf_len = 0;
+ *      unsigned char *out_buf = NULL;
+ *      jpeg_error_t ret = JPEG_ERR_OK;
+ *      jpeg_dec_io_t *jpeg_io = NULL;
+ *      jpeg_dec_header_info_t *out_info = NULL;
  *      // Generate default configuration
  *      jpeg_dec_config_t config = DEFAULT_JPEG_DEC_CONFIG();
- *      
+ *
  *      // Empty handle to jpeg_decoder
  *      jpeg_dec_handle_t jpeg_dec = NULL;
- *      
+ *
  *      // Create jpeg_dec
  *      jpeg_dec = jpeg_dec_open(&config);
- * 
+ *      if(jpeg_dec == NULL) {
+ *          ret = JPEG_ERR_PAR;
+ *          goto jpeg_dec_failed;
+ *      }
+ *
  *      // Create io_callback handle
- *      jpeg_dec_io_t *jpeg_io = calloc(1, sizeof(jpeg_dec_io_t));
+ *      jpeg_io = calloc(1, sizeof(jpeg_dec_io_t));
  *      if (jpeg_io == NULL) {
- *          return ESP_FAIL;
+ *          ret = JPEG_ERR_MEM;
+ *          goto jpeg_dec_failed;
  *      }
- *      
+ *
  *      // Create out_info handle
- *      jpeg_dec_header_info_t *out_info = calloc(1, sizeof(jpeg_dec_header_info_t));
+ *      out_info = calloc(1, sizeof(jpeg_dec_header_info_t));
  *      if (out_info == NULL) {
- *          return ESP_FAIL;
+ *          ret = JPEG_ERR_MEM;
+ *          goto jpeg_dec_failed;
  *      }
- * 
+ *
  *      // Set input buffer and buffer len to io_callback
  *      jpeg_io->inbuf = input_buf;
  *      jpeg_io->inbuf_len = len;
- *      
- *      int ret = 0;
+ *
  *      // Parse jpeg picture header and get picture for user and decoder
  *      ret = jpeg_dec_parse_header(jpeg_dec, jpeg_io, out_info);
- *      if (ret < 0) {
- *          return ret;
+ *      if (ret != JPEG_ERR_OK) {
+ *           goto jpeg_dec_failed;
  *      }
- * 
+ *
  *      // Calloc out_put data buffer and update inbuf ptr and inbuf_len
- *      int outbuf_len;
  *      if (config.output_type == JPEG_RAW_TYPE_RGB565_LE
- *          || config.output_type == JPEG_RAW_TYPE_RGB565_BE) {
+ *          || config.output_type == JPEG_RAW_TYPE_RGB565_BE
+ *          || config.output_type == JPEG_RAW_TYPE_CbYCrY) {
  *          outbuf_len = out_info->width * out_info->height * 2;
  *      } else if (config.output_type == JPEG_RAW_TYPE_RGB888) {
  *          outbuf_len = out_info->width * out_info->height * 3;
  *      } else {
- *          return ESP_FAIL;
+ *          ret = JPEG_ERR_PAR;
+ *          goto jpeg_dec_failed;
  *      }
- *      unsigned char *out_buf = jpeg_malloc_align(outbuf_len, 16);
+ *      out_buf = jpeg_malloc_align(outbuf_len, 16);
  *      if (out_buf == NULL) {
- *         return ESP_FAIL;     
+ *          ret = JPEG_ERR_MEM;
+ *          goto jpeg_dec_failed;
  *      }
  *      jpeg_io->outbuf = out_buf;
  *      *output_buf = out_buf;
  *      int inbuf_consumed = jpeg_io->inbuf_len - jpeg_io->inbuf_remain;
  *      jpeg_io->inbuf = input_buf + inbuf_consumed;
  *      jpeg_io->inbuf_len = jpeg_io->inbuf_remain;
- * 
+ *
  *      // Start decode jpeg raw data
  *      ret = jpeg_dec_process(jpeg_dec, jpeg_io);
- *      if (ret < 0) {
- *          return ret;
+ *      if (ret != JPEG_ERR_OK) {
+ *          goto jpeg_dec_failed;
  *      }
- * 
- *      // Decoder deinitialize 
+ *
+ *      // Decoder deinitialize
+ * jpeg_dec_failed:
  *      jpeg_free_align(out_buf);
  *      jpeg_dec_close(jpeg_dec);
- *      free(out_info);
- *      free(jpeg_io);
- *      return ESP_OK;
+ *      if(out_info) {
+ *          free(out_info);
+ *      }
+ *      if(jpeg_io) {
+ *         free(jpeg_io);
+ *      }
+ *      return ret;
  * }
  * 
  * @endcode
- *  
+ *
  */
 
 #ifdef __cplusplus
