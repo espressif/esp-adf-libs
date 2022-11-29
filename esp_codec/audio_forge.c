@@ -126,6 +126,7 @@ typedef struct {
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
+
 static esp_err_t dm_open(audio_forge_t *audio_forge)
 {
     for (int i = 0; i < audio_forge->downmix.source_num; i++) {
@@ -313,11 +314,19 @@ static esp_err_t audio_forge_open(audio_element_handle_t self)
 #endif
     if (audio_forge->component_select & AUDIO_FORGE_SELECT_ALC) {
         //alc
+        if (audio_forge->inbuf[0] == NULL) {
+            audio_forge->inbuf[0] = audio_calloc(1, audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
+            AUDIO_NULL_CHECK(TAG, audio_forge->inbuf[0], return ESP_FAIL);
+        }
         audio_forge->volume_handle = alc_volume_setup_open();
         AUDIO_NULL_CHECK(TAG, audio_forge->volume_handle, return ESP_FAIL);
     }
     if (audio_forge->component_select & AUDIO_FORGE_SELECT_EQUALIZER) {
         //equalizer
+        if (audio_forge->inbuf[0] == NULL) {
+            audio_forge->inbuf[0] = audio_calloc(1, audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
+            AUDIO_NULL_CHECK(TAG, audio_forge->inbuf[0], return ESP_FAIL);
+        }
         ret |= eq_open(audio_forge);
     }
     if (audio_forge->component_select & AUDIO_FORGE_SELECT_SONIC) {
@@ -345,6 +354,14 @@ esp_err_t audio_forge_destroy(audio_element_handle_t self)
         audio_forge->inbuf = NULL;
     }
     if (audio_forge->rsp_handle) {
+        for (int i = 0; i < audio_forge->downmix.source_num; i++) {
+            if (audio_forge->rsp_handle[i] != NULL) {
+                esp_resample_destroy(audio_forge->rsp_handle[i]);
+                audio_forge->rsp_out[i] = NULL;
+                audio_forge->rsp_in[i] = NULL;
+                audio_forge->rsp_handle[i] = NULL;
+            }
+        }
         audio_free(audio_forge->rsp_handle);
         audio_forge->rsp_handle = NULL;
     }
@@ -545,6 +562,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
     codec_tick_count_start(audio_forge->audio_forge_tick_handle, 1);
 #endif
     int ret = 0;
+    mutex_lock(audio_forge->lock);
     if (!(audio_forge->reflag == ADUIO_FORGE_ISSTART)) {
         if (audio_forge->reflag & ADUIO_FORGE_DM_RESTART) {
             if (audio_forge->downmix_handle != NULL) {
@@ -553,6 +571,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
             }
             ret = dm_open(audio_forge);
             if (ret != ESP_OK) {
+                mutex_unlock(audio_forge->lock);
                 return ESP_FAIL;
             }
             audio_forge->reflag &= (~ADUIO_FORGE_DM_RESTART);
@@ -564,6 +583,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
             }
             ret = eq_open(audio_forge);
             if (ret != ESP_OK) {
+                mutex_unlock(audio_forge->lock);
                 return ESP_FAIL;
             }
             audio_forge->reflag &= (~ADUIO_FORGE_EQ_RESTART);
@@ -575,6 +595,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
             }
             ret = sonic_open(audio_forge);
             if (ret != ESP_OK) {
+                mutex_unlock(audio_forge->lock);
                 return ESP_FAIL;
             }
             audio_forge->reflag &= (~ADUIO_FORGE_SONIC_RESTART);
@@ -584,7 +605,6 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
     int w_size = 0;
     int j = 0;
     int rsp_ret = 0;
-    mutex_lock(audio_forge->lock);
     for (j = 0; j < audio_forge->sonic_num; j++) {
         for (int i = 0; i < audio_forge->downmix.source_num; i++) {
             //resample
@@ -874,7 +894,7 @@ esp_err_t audio_forge_eq_set_gain(audio_element_handle_t self, int eq_gain, int 
     if (!(audio_forge->component_select & AUDIO_FORGE_SELECT_EQUALIZER)) {
         return ESP_OK;
     }
-    if ((band_index < 0) || (band_index > NUMBER_BAND)) {
+    if ((band_index < 0) || (band_index > 9)) {
         ESP_LOGE(TAG,"The range of index for audio gain of equalizer should be [0 9]. Here is %d. (line %d)", band_index, __LINE__);
         return ESP_ERR_INVALID_ARG;
     }
@@ -893,6 +913,52 @@ esp_err_t audio_forge_eq_set_gain(audio_element_handle_t self, int eq_gain, int 
     }
     audio_forge->reflag |= ADUIO_FORGE_EQ_RESTART;
     audio_forge->equalizer_gain[band_index] = eq_gain;
+    return ESP_OK;
+}
+
+esp_err_t audio_forge_eq_set_gain_by_channel(audio_element_handle_t self, int band_index, int nch, int eq_gain)
+{
+    audio_forge_t *audio_forge = (audio_forge_t *)audio_element_getdata(self);
+    if (!(audio_forge->component_select & AUDIO_FORGE_SELECT_EQUALIZER)) {
+        ESP_LOGE(TAG, " The EQUALIZER has not been used.");
+        return ESP_FAIL;
+    }
+    if ((band_index < 0) || (band_index > 9)) {
+        ESP_LOGE(TAG,"The range of index for audio gain of equalizer should be [0 9]. Here is %d. (line %d)", band_index, __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if ((nch > 2) || (nch < 1)) {
+        ESP_LOGE(TAG,"The channel number should be 1 or 2. Here is %d. (line %d)", nch, __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (audio_forge->equalizer_gain[(nch - 1) * NUMBER_BAND + band_index] == eq_gain) {
+        return ESP_OK;
+    }
+    audio_forge->reflag |= ADUIO_FORGE_EQ_RESTART;
+    audio_forge->equalizer_gain[(nch - 1) * NUMBER_BAND + band_index] = eq_gain;
+    return ESP_OK;
+}
+
+esp_err_t audio_forge_eq_get_gain_by_channel(audio_element_handle_t self, int band_index, int nch, int *eq_gain)
+{
+    audio_forge_t *audio_forge = (audio_forge_t *)audio_element_getdata(self);
+    if ((band_index < 0) || (band_index > 9)) {
+        ESP_LOGE(TAG,"The range of index for audio gain of equalizer should be [0 9]. Here is %d. (line %d)", band_index, __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if ((nch > 2) || (nch < 1)) {
+        ESP_LOGE(TAG,"The channel number should be 1 or 2. Here is %d. (line %d)", nch, __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (eq_gain == NULL) {
+        ESP_LOGE(TAG,"The pointer of eq_gain is null. line:%d", __LINE__);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (!(audio_forge->component_select & AUDIO_FORGE_SELECT_EQUALIZER)) {
+        ESP_LOGE(TAG, " The EQUALIZER has not been used.line:%d", __LINE__);
+        return ESP_FAIL;
+    }
+    *eq_gain = audio_forge->equalizer_gain[(nch - 1) * NUMBER_BAND + band_index];
     return ESP_OK;
 }
 
@@ -1117,6 +1183,9 @@ audio_element_handle_t audio_forge_init(audio_forge_cfg_t *config)
     if (audio_forge->equalizer_gain == NULL) {
         audio_forge->equalizer_gain = audio_calloc(1, NUMBER_BAND * 2 * sizeof(int));
         AUDIO_MEM_CHECK(TAG, audio_forge->equalizer_gain, { goto exit; });
+        if (config->audio_forge.equalizer_gain != NULL) {
+            memcpy(audio_forge->equalizer_gain, config->audio_forge.equalizer_gain, NUMBER_BAND * 2 * sizeof(int));
+        }
     }  
     audio_forge->downmix.source_info = audio_calloc(audio_forge->downmix.source_num, sizeof(esp_downmix_input_info_t));
     AUDIO_MEM_CHECK(TAG, audio_forge->downmix.source_info, { goto exit; });
