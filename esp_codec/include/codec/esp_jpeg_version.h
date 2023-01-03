@@ -7,9 +7,12 @@
 extern "C" {
 #endif
 
-#define ESP_JPEG_VERION "1.2.0"
+#define ESP_JPEG_VERION "1.2.1"
 
 /**
+ * @version 1.2.1:
+ *     - use heap_caps_calloc_prefer to instead of heap_caps_calloc
+ *
  * @version 1.2.0:
  *     - Add CbYCrY output type for decoder.
  *     - Support 0, 90 180 270 degree clockwise rotation for CbYCrY output type in decoder.
