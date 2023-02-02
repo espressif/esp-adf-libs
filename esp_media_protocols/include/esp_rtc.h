@@ -106,6 +106,12 @@ typedef struct {
     bool                        use_public_addr;     /*!< Use the public IP address returned by the server (RFC3581) */
     bool                        send_options;        /*!< Use 'OPTIONS' messages replace keep-alive to server for keep NAT hole opened */
     int                         keepalive;           /*!< Send keep-alive or 'OPTIONS' messages interval in seconds (defaults is 30s) */
+    const char                  *cert_pem;           /*!< SSL server certification, PEM format as string, if the client requires to verify server */
+    const char                  *client_cert_pem;    /*!< SSL client certification, PEM format as string, if the server requires to verify client */
+    const char                  *client_key_pem;     /*!< SSL client key, PEM format as string, if the server requires to verify client */
+    int                         (*crt_bundle_attach)(void *conf);
+                                                     /*!< Function pointer to esp_crt_bundle_attach. Enables the use of certification
+                                                          bundle for server verification, must be enabled in menuconfig */
 } esp_rtc_config_t;
 
 /**
