@@ -1,5 +1,7 @@
 # Set the supported library variable for different chips
 
+set(esp_h264_name "")
+
 IF (CONFIG_IDF_TARGET STREQUAL "esp32")
 set(recorder_engine_name "recorder_engine")
 
@@ -8,6 +10,8 @@ set(recorder_engine_name "")
 
 ELSEIF (CONFIG_IDF_TARGET STREQUAL "esp32s3")
 set(recorder_engine_name "recorder_engine")
+set(esp_h264_name "esp_h264")
+list(APPEND COMPONENT_ADD_INCLUDEDIRS ./esp_h264/include)
 
 ELSEIF (CONFIG_IDF_TARGET STREQUAL "esp32c3")
 set(recorder_engine_name "")
@@ -97,9 +101,12 @@ IF (IDF_VERSION_MAJOR GREATER 3)
                  PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_muxer "${CMAKE_CURRENT_SOURCE_DIR}/esp_muxer/lib/${CONFIG_IDF_TARGET}/libesp_muxer.a"
                  PRIV_REQUIRES esp-adf-libs)
+    add_prebuilt_library(esp_h264 "${CMAKE_CURRENT_SOURCE_DIR}/${esp_h264_name}/lib/${CONFIG_IDF_TARGET}/lib${esp_h264_name}.a"
+                 PRIV_REQUIRES esp-adf-libs)
 ENDIF (IDF_VERSION_MAJOR GREATER 3)
 
-set(TARGET_LIB_NAME esp_processing esp_audio esp_codec esp_muxer ${target_recorder_engine})
+set(TARGET_LIB_NAME esp_processing esp_audio esp_codec esp_muxer ${esp_h264_name} ${target_recorder_engine})
+
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
     list(APPEND TARGET_LIB_NAME esp_media_protocols)
 endif()

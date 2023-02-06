@@ -1,0 +1,6 @@
+version: "0.1.0"
+description: Espressif H264 encoder and decoder
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_h264
+dependencies:
+  IDF : ">=4.4"
+   
