@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include "media_lib_err.h"
 #include "media_lib_os.h"
+#include "media_lib_tls.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,6 +105,7 @@ typedef struct {
     char                  *url;        /*!< Server url format rtmp://ipaddress:port/app_name/stream_name */
     uint32_t               chunk_size; /*!< Maximum chunk size */
     media_lib_thread_cfg_t thread_cfg; /*!< Configuration for receiving data thread */
+    media_lib_tls_cfg_t*   ssl_cfg;    /*!< Set when use RTMPS protocol */
 } rtmp_push_cfg_t;
 
 /**

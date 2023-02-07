@@ -36,12 +36,19 @@ esp_err_t media_lib_tls_register(media_lib_tls_t *tls_lib)
     MEDIA_LIB_DEFAULT_INSTALLER(tls_lib, &media_tls_lib, media_lib_tls_t);
 }
 
-media_lib_tls_handle_t media_lib_tls_new(const char *hostname, int hostlen, int port, const esp_tls_cfg_t *cfg)
+media_lib_tls_handle_t media_lib_tls_new(const char *hostname, int hostlen, int port, const media_lib_tls_cfg_t *cfg)
 {
     if (media_tls_lib.tls_new) {
         return media_tls_lib.tls_new(hostname, hostlen, port, cfg);
     }
+    return NULL;
+}
 
+media_lib_tls_handle_t media_lib_tls_new_server(int fd, const media_lib_tls_server_cfg_t *cfg)
+{
+    if (media_tls_lib.tls_new_server) {
+        return media_tls_lib.tls_new_server(fd, cfg);
+    }
     return NULL;
 }
 
