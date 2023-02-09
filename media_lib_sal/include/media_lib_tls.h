@@ -32,11 +32,18 @@ extern "C" {
 #endif
 
 /**
- * @brief      Wrapper for esp_tls new
+ * @brief      Wrapper for create tls client instance
  * @return     - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
  *             - Others: returned by wrapper function directly
  */
-media_lib_tls_handle_t media_lib_tls_new(const char *hostname, int hostlen, int port, const esp_tls_cfg_t *cfg);
+media_lib_tls_handle_t media_lib_tls_new(const char *hostname, int hostlen, int port, const media_lib_tls_cfg_t *cfg);
+
+/**
+ * @brief      Wrapper for create tls server instance
+ * @return     - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
+ *             - Others: returned by wrapper function directly
+ */
+media_lib_tls_handle_t media_lib_tls_new_server(int fd, const media_lib_tls_server_cfg_t *cfg);
 
 /**
  * @brief      Wrapper for esp_tls write

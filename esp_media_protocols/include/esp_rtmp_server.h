@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include "media_lib_err.h"
 #include "media_lib_os.h"
+#include "media_lib_tls.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,14 +46,15 @@ typedef bool (*rtmp_server_auth_cb) (char *stream_key, void * ctx);
  * @brief RTMP server configuration
  */
 typedef struct {
-    uint32_t               chunk_size;        /*!< Maximum chunk size */
-    char                  *app_name;          /*!< Application name */
-    uint16_t               port;              /*!< Listen on port */
-    uint8_t                max_clients;       /*!< Limit of maximum client number */
-    uint32_t               client_cache_size; /*!< Maximum cache size for client send buffer, if not provided default use 160KB */
-    media_lib_thread_cfg_t thread_cfg;        /*!< Configuration for receiving data and connecting thread */
-    rtmp_server_auth_cb    auth_cb;           /*!< Callback for client authorize, if not provided treated as allowed */
-    void                  *ctx;               /*!< Input Context */
+    uint32_t                     chunk_size;        /*!< Maximum chunk size */
+    char                        *app_name;          /*!< Application name */
+    uint16_t                     port;              /*!< Listen on port */
+    uint8_t                      max_clients;       /*!< Limit of maximum client number */
+    uint32_t                     client_cache_size; /*!< Maximum cache size for client send buffer, if not provided default use 160KB */
+    media_lib_thread_cfg_t       thread_cfg;        /*!< Configuration for receiving data and connecting thread */
+    rtmp_server_auth_cb          auth_cb;           /*!< Callback for client authorize, if not provided treated as allowed */
+    void                        *ctx;               /*!< Input Context */
+    media_lib_tls_server_cfg_t  *ssl_cfg;           /*!< Set when use RTMPS protocol */
 } rtmp_server_cfg_t;
 
 /**

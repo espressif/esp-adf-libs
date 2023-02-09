@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define ESP_RTMP_VERION "1.1.0"
+#define ESP_RTMP_VERION "1.2.0"
 
 /**
  *  Features:
@@ -50,6 +50,11 @@ extern "C" {
  *     - Add G711 alaw, ulaw support
  *     - Use select to poll all client request to avoid create receive threads
  *     - Add cache logic for client send buffer to avoid client block each other
+ *     v1.2.0:
+ *     - Add RTMPS support for both server and client
+ *     - Support url parser to get ip address, set default port if not provided
+ *     - Fix H264 SPS-PPS parameter parse wrong
+ *     - Fix racing condition when receive instance is freed after use
  *
  *  Notes:
  *     - MJPEG video codec is supported in private format (use FLV video codecid 1)

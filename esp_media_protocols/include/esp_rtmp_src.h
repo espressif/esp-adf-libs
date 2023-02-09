@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include "media_lib_err.h"
 #include "media_lib_os.h"
+#include "media_lib_tls.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +41,7 @@ typedef struct {
     uint32_t               chunk_size; /*!< Maximum chunk size */
     uint32_t               fifo_size;  /*!< Ringfifo size to cache input media data */
     media_lib_thread_cfg_t thread_cfg; /*!< Configuration for receiving data thread */
+    media_lib_tls_cfg_t   *ssl_cfg;    /*!< Set when use RTMPS protocol */
 } rtmp_src_cfg_t;
 
 /**
