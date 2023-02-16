@@ -172,13 +172,14 @@ static int _sema_create(media_lib_sema_handle_t *sema)
 static int _mutex_create(media_lib_mutex_handle_t *mutex)
 {
     if (mutex) {
-        *mutex = (media_lib_mutex_handle_t)xSemaphoreCreateMutex();
+        *mutex = (media_lib_mutex_handle_t)xSemaphoreCreateRecursiveMutex();
         if (*mutex != NULL) {
             return ESP_OK;
         }
     }
     return ESP_FAIL;
 }
+
 static int _os_lock_timeout(void *lock, uint32_t timeout)
 {
     RETURN_ON_NULL_HANDLE(lock);
@@ -190,7 +191,11 @@ static int _os_lock_timeout(void *lock, uint32_t timeout)
 
 static int _mutex_lock_timeout(media_lib_mutex_handle_t mutex, uint32_t timeout)
 {
-    return _os_lock_timeout(mutex, timeout);
+    RETURN_ON_NULL_HANDLE(mutex);
+    if (timeout != portMAX_DELAY) {
+        timeout /= portTICK_PERIOD_MS;
+    }
+    return xSemaphoreTakeRecursive(mutex, timeout);
 }
 
 static int _sema_lock_timeout(media_lib_sema_handle_t sema, uint32_t timeout)
@@ -207,7 +212,8 @@ static int _os_unlock(void *lock)
 
 static int _mutex_unlock(media_lib_mutex_handle_t mutex)
 {
-    return _os_unlock(mutex);
+    RETURN_ON_NULL_HANDLE(mutex);
+    return xSemaphoreGiveRecursive(mutex);
 }
 
 static int _sema_unlock(media_lib_sema_handle_t sema)
