@@ -29,7 +29,12 @@
 #include "media_lib_common.h"
 #include "media_lib_os.h"
 
+#define MEDIA_LIB_DEFAULT_THREAD_CORE 0
+#define MEDIA_LIB_DEFAULT_THREAD_PRIORITY 10
+#define MEDIA_LIB_DEFAULT_THREAD_STACK_SIZE (4*1024)
+
 static media_lib_os_t media_os_lib;
+static media_lib_thread_sched_param_cb thread_sched_cb;
 
 esp_err_t media_lib_os_register(media_lib_os_t *os_lib)
 {
@@ -93,6 +98,11 @@ int media_lib_asprintf(char **str, const char *fmt, ...)
     return size;
 }
 
+void media_lib_thread_set_schedule_cb(media_lib_thread_sched_param_cb cb)
+{
+    thread_sched_cb = cb;
+}
+
 int media_lib_thread_create(media_lib_thread_handle_t *handle, const char *name,
                             void(*body)(void *arg), void *arg,
                             uint32_t stack_size, int prio, int core)
@@ -102,6 +112,20 @@ int media_lib_thread_create(media_lib_thread_handle_t *handle, const char *name,
                                           prio, core);
     }
     return ESP_ERR_NOT_SUPPORTED;
+}
+
+int media_lib_thread_create_from_scheduler(media_lib_thread_handle_t *handle, const char *name, void(*body)(void *arg), void *arg)
+{
+    media_lib_thread_cfg_t thread_cfg = {
+        .core_id = MEDIA_LIB_DEFAULT_THREAD_CORE,
+        .priority = MEDIA_LIB_DEFAULT_THREAD_PRIORITY,
+        .stack_size = MEDIA_LIB_DEFAULT_THREAD_STACK_SIZE,
+    };
+    if (thread_sched_cb) {
+        thread_sched_cb(name, &thread_cfg);
+    }
+    return media_lib_thread_create(handle, name, body, arg,
+                      thread_cfg.stack_size, thread_cfg.priority, thread_cfg.core_id);
 }
 
 void media_lib_thread_destroy(media_lib_thread_handle_t handle)
@@ -190,7 +214,7 @@ int media_lib_mutex_destroy(media_lib_mutex_handle_t mutex)
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-int media_lib_enter_critical_section()
+int media_lib_enter_critical_section(void)
 {
     if (media_os_lib.leave_critical) {
         return media_os_lib.leave_critical();
@@ -198,7 +222,7 @@ int media_lib_enter_critical_section()
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-int media_lib_leave_critical_section()
+int media_lib_leave_critical_section(void)
 {
     if (media_os_lib.leave_critical) {
         return media_os_lib.leave_critical();

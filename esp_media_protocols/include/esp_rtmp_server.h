@@ -55,12 +55,18 @@ typedef struct {
     rtmp_server_auth_cb          auth_cb;           /*!< Callback for client authorize, if not provided treated as allowed */
     void                        *ctx;               /*!< Input Context */
     media_lib_tls_server_cfg_t  *ssl_cfg;           /*!< Set when use RTMPS protocol */
+    bool                         keep_src;          /*!< Keep source when Pusher closed */
 } rtmp_server_cfg_t;
 
 /**
  * @brief RTMP server handle
  */
 typedef void *rtmp_server_handle_t;
+
+/**
+ * @brief RTMP puller active callback
+ */
+typedef int (*rtmp_server_puller_active_cb)(char *stream_name, bool active, void *ctx);
 
 /**
  * @brief         Open RTMP server
@@ -82,6 +88,24 @@ rtmp_server_handle_t esp_rtmp_server_open(rtmp_server_cfg_t *cfg);
  *               - ESP_MEDIA_ERR_FAIL: Fail to do server setup
  */
 esp_media_err_t esp_rtmp_server_setup(rtmp_server_handle_t server);
+
+/**
+ * @brief        Query status of server, for debug only
+ * @param        server:  RTMP server handle
+ * @return       - ESP_MEDIA_ERR_OK: On success
+ *               - ESP_MEDIA_ERR_INVALID_ARG: Wrong server handle
+ */
+esp_media_err_t esp_rtmp_server_query(rtmp_server_handle_t server);
+
+/**
+ * @brief        Set puller active callback
+ *               NOTES: It is specially used when use local pusher
+ *                      So that when no puller connected in local pusher can stop pushing data
+ * @param        server:  RTMP server handle
+ * @return       - ESP_MEDIA_ERR_OK: On success
+ *               - ESP_MEDIA_ERR_INVALID_ARG: Wrong server handle
+ */
+esp_media_err_t esp_rtmp_server_monitor_puller(rtmp_server_handle_t server, rtmp_server_puller_active_cb cb);
 
 /**
  * @brief        Close RTMP server

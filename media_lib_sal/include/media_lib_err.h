@@ -50,7 +50,8 @@ typedef enum {
     ESP_MEDIA_ERR_WRITE_DATA                = (ESP_MEDIA_ERR_BASE + 2),
     ESP_MEDIA_ERR_BAD_DATA                  = (ESP_MEDIA_ERR_BASE + 3),
     ESP_MEDIA_ERR_EXCEED_LIMIT              = (ESP_MEDIA_ERR_BASE + 4),
-    ESP_MEDIA_ERR_CONNECT_FAIL              = (ESP_MEDIA_ERR_BASE + 5)
+    ESP_MEDIA_ERR_CONNECT_FAIL              = (ESP_MEDIA_ERR_BASE + 5),
+    ESP_MEDIA_ERR_RESET                     = (ESP_MEDIA_ERR_BASE + 6),
 } esp_media_err_t;
 
 #ifdef __cplusplus

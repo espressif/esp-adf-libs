@@ -25,6 +25,8 @@
 #ifndef MEDIA_LIB_OS_REG_H
 #define MEDIA_LIB_OS_REG_H
 
+#include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include "esp_err.h"
 
