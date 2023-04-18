@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define ESP_RTMP_VERION "1.2.0"
+#define ESP_RTMP_VERION "1.3.0"
 
 /**
  *  Features:
@@ -42,7 +42,6 @@ extern "C" {
  *     - Support nginx-RTMP server
  *
  *  To be implemented:
- *     - To support HTTPS
  *     - To support AMF3 parse
  * 
  *  Release Notes:
@@ -50,11 +49,19 @@ extern "C" {
  *     - Add G711 alaw, ulaw support
  *     - Use select to poll all client request to avoid create receive threads
  *     - Add cache logic for client send buffer to avoid client block each other
+ *
  *     v1.2.0:
  *     - Add RTMPS support for both server and client
  *     - Support url parser to get ip address, set default port if not provided
  *     - Fix H264 SPS-PPS parameter parse wrong
  *     - Fix racing condition when receive instance is freed after use
+ * 
+ *     v1.3.0:
+ *     - Add customized command exchange between pusher and puller when using `esp_rtmp_server`
+ *     - RTMP source add support for callback media data and metadata directly without mux to FLV
+ *     - Support send command and data using priority
+ *     - Add drop data logic when server detects client read data too slow instead of close client directly
+ *     - Enhance receive data logic to avoid client with little input data being processed too later
  *
  *  Notes:
  *     - MJPEG video codec is supported in private format (use FLV video codecid 1)

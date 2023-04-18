@@ -24,8 +24,7 @@
 #ifndef RTMP_PUSH_H
 #define RTMP_PUSH_H
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "esp_rtmp_types.h"
 #include "media_lib_err.h"
 #include "media_lib_os.h"
 #include "media_lib_tls.h"
@@ -33,70 +32,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/**
- * @brief RTMP video codec type
- */
-typedef enum {
-    RTMP_VIDEO_CODEC_NONE,  /*!< Invalid video type */
-    RTMP_VIDEO_CODEC_H264,  /*!< H264 video type */
-    RTMP_VIDEO_CODEC_MJPEG, /*!< MJPEG video type */
-} esp_rtmp_video_codec_t;
-
-/**
- * @brief RTMP audio codec type
- */
-typedef enum {
-    RTMP_AUDIO_CODEC_NONE,  /*!< Invalid audio type */
-    RTMP_AUDIO_CODEC_AAC,   /*!< AAC audio type */
-    RTMP_AUDIO_CODEC_MP3,   /*!< MP3 audio type */
-    RTMP_AUDIO_CODEC_PCM,   /*!< PCM audio type */
-    RTMP_AUDIO_CODEC_G711A, /*!< G711 alaw audio type */
-    RTMP_AUDIO_CODEC_G711U, /*!< G711 ulaw audio type */
-} esp_rtmp_audio_codec_t;
-
-/**
- * @brief Audio information for RTMP
- */
-typedef struct {
-    esp_rtmp_audio_codec_t codec;           /*!< Audio codec type */
-    uint8_t                channel;         /*!< Audio channel */
-    uint8_t                bits_per_sample; /*!< Audio bits per sample */
-    uint16_t               sample_rate;     /*!< Audio sample rate */
-    void                  *codec_spec_info; /*!< Audio codec specified information */
-    int                    spec_info_len;   /*!< Audio codec specified information length */
-} esp_rtmp_audio_info_t;
-
-/**
- * @brief Video information for RTMP
- */
-typedef struct {
-    void                  *codec_spec_info; /*!< Video codec specified info, 
-                                                 For H264 need to provide SPS and PPS information*/
-    int                    spec_info_len;   /*!< Video codec specified information length */
-    esp_rtmp_video_codec_t codec;           /*!< Video codec type */
-    uint16_t               width;           /*!< Video width */
-    uint16_t               height;          /*!< Video height */
-    uint8_t                fps;             /*!< Video framerate per second */
-} esp_rtmp_video_info_t;
-
-/**
- * @brief Video data for RTMP
- */
-typedef struct {
-    uint32_t pts;       /*!< PTS of video data */
-    bool     key_frame; /*!< Whether it is key frame */
-    uint8_t *data;      /*!< Video data pointer */
-    uint32_t size;      /*!< Video data size */
-} esp_rtmp_video_data_t;
-
-/**
- * @brief Audio data for RTMP
- */
-typedef struct {
-    uint32_t pts;  /*!< PTS of audio data */
-    uint8_t *data; /*!< Audio data pointer */
-    uint32_t size; /*!< Audio data size */
-} esp_rtmp_audio_data_t;
 
 /**
  * @brief Configuration information for RTMP push
@@ -105,7 +40,9 @@ typedef struct {
     char                  *url;        /*!< Server url format rtmp://ipaddress:port/app_name/stream_name */
     uint32_t               chunk_size; /*!< Maximum chunk size */
     media_lib_thread_cfg_t thread_cfg; /*!< Configuration for receiving data thread */
-    media_lib_tls_cfg_t*   ssl_cfg;    /*!< Set when use RTMPS protocol */
+    media_lib_tls_cfg_t   *ssl_cfg;    /*!< Set when use RTMPS protocol */
+    rtmp_event_cb          event_cb;   /*!< Callback for RTMP events */
+    void                  *ctx;        /*!< Callback input context */
 } rtmp_push_cfg_t;
 
 /**
@@ -178,6 +115,36 @@ esp_media_err_t esp_rtmp_push_audio(rtmp_push_handle_t handle, esp_rtmp_audio_da
  *                - ESP_MEDIA_ERR_WRITE_DATA: Fail to send data to server
  */
 esp_media_err_t esp_rtmp_push_video(rtmp_push_handle_t handle, esp_rtmp_video_data_t *video_data);
+
+/**
+ * @brief        Push client send customized command
+ *               NOTES: This is none-standard behavior
+ *                      It is special used to send command to `esp_rtmp_server`
+ *                      Please do not use when use common RTMP server
+ * @param        handle: Push handle
+ * @param        cmd: Command Data
+ * @param        len: Length of command data
+ * @return        - ESP_MEDIA_ERR_OK: On success
+ *                - ESP_MEDIA_ERR_INVALID_ARG: Invalid argument is wrong
+ *                - ESP_MEDIA_ERR_WRITE_DATA: Fail to send data to server
+ */
+esp_media_err_t esp_rtmp_push_send_command(rtmp_push_handle_t handle, uint8_t *cmd, int len);
+
+/**
+ * @brief        Set callback to receive customized command from peer
+ *               NOTES: This is none-standard behavior,
+ *                      It is special used to get customized command from puller client when use `esp_rtmp_server`
+ *                      Please do not use when use common RTMP server
+ * @param        handle: Push handle
+ * @param        cmd_cb: Command Callback
+ * @param        ctx: Input context for callback
+ * @return        - ESP_MEDIA_ERR_OK: On success
+ *                - ESP_MEDIA_ERR_INVALID_ARG: Invalid argument is wrong
+ */
+esp_media_err_t esp_rtmp_push_set_command_cb(
+                rtmp_push_handle_t handle, 
+                int (*cmd_cb)(uint8_t *cmd, int len, void *ctx),
+                void *ctx);
 
 /**
  * @brief        Close RTMP push instance
