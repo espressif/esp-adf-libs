@@ -66,6 +66,16 @@ static int _getsockname(int s, struct sockaddr *name, socklen_t *namelen)
     return getsockname(s, name, namelen);
 }
 
+static int _select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, media_lib_timeval *timeout) {
+    int ret;
+    struct timeval tm = {
+        .tv_sec = timeout->tv_sec,
+        .tv_usec = timeout->tv_usec,
+    };
+    ret = lwip_select(maxfdp1, readset, writeset, exceptset, &tm);
+    return ret;
+}
+
 esp_err_t media_lib_add_default_socket_adapter(void)
 {
     media_lib_socket_t sock_lib = {
@@ -86,7 +96,7 @@ esp_err_t media_lib_add_default_socket_adapter(void)
         .sock_open = lwip_socket,
         .sock_write = lwip_write,
         .sock_writev = lwip_writev,
-        .sock_select = lwip_select,
+        .sock_select = _select,
         .sock_ioctl = lwip_ioctl,
         .sock_fcntl = lwip_fcntl,
         .sock_inet_ntop = _inet_ntop,

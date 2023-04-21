@@ -32,6 +32,14 @@
 extern "C" {
 #endif
 
+/**
+ * @brief      Use short timeval to compatible with IDF higher version which support 64bits timer
+ */
+typedef struct {
+    int tv_sec;
+    int tv_usec;
+} media_lib_timeval;
+
 typedef int (*__media_lib_socket_accept)(int s, struct sockaddr *addr, socklen_t *addrlen);
 typedef int (*__media_lib_socket_bind)(int s, const struct sockaddr *name, socklen_t namelen);
 typedef int (*__media_lib_socket_shutdown)(int s, int how);
@@ -49,7 +57,7 @@ typedef ssize_t (*__media_lib_socket_sendto)(int s, const void *dataptr, size_t 
 typedef int (*__media_lib_socket_open)(int domain, int type, int protocol);
 typedef ssize_t (*__media_lib_socket_write)(int s, const void *dataptr, size_t size);
 typedef ssize_t (*__media_lib_socket_writev)(int s, const struct iovec *iov, int iovcnt);
-typedef int (*__media_lib_socket_select)(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout);
+typedef int (*__media_lib_socket_select)(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, media_lib_timeval *timeout);
 typedef int (*__media_lib_socket_ioctl)(int s, long cmd, void *argp);
 typedef int (*__media_lib_socket_fcntl)(int s, int cmd, int val);
 typedef const char *(*__media_lib_socket_inet_ntop)(int af, const void *src, char *dst, socklen_t size);

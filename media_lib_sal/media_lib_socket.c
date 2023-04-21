@@ -178,7 +178,7 @@ ssize_t media_lib_socket_writev(int s, const struct iovec *iov, int iovcnt)
 }
 
 int media_lib_socket_select(int maxfdp1, fd_set *readset, fd_set *writeset,
-                            fd_set *exceptset, struct timeval *timeout)
+                            fd_set *exceptset, media_lib_timeval *timeout)
 {
     if (media_socket_lib.sock_select) {
         return media_socket_lib.sock_select(maxfdp1, readset, writeset,

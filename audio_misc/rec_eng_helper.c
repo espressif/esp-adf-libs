@@ -23,8 +23,12 @@
  */
 
 #include "esp_log.h"
-#include "esp_wn_iface.h"
 #include "sdkconfig.h"
+
+// TODO C6 not support wakenet currently
+#if CONFIG_IDF_TARGET_ESP32C6 || CONFIG_IDF_TARGET_ESP32C3
+#else
+#include "esp_wn_iface.h"
 #include "dl_lib_coefgetter_if.h"
 
 extern const esp_wn_iface_t esp_sr_wakenet3_quantized;
@@ -113,3 +117,5 @@ void get_wakenet_coeff(model_coeff_getter_t **model_coeff)
 #endif
 
 }
+
+#endif

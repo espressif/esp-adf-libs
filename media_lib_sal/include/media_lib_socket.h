@@ -161,7 +161,7 @@ ssize_t media_lib_socket_writev(int s, const struct iovec *iov, int iovcnt);
  * @return     - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
  *             - Others: returned by select wrapper function directly
  */
-int media_lib_socket_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout);
+int media_lib_socket_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, media_lib_timeval *timeout);
 
 /**
  * @brief      Wrapper for socket ioctl
