@@ -75,6 +75,15 @@ esp_err_t media_lib_add_default_socket_adapter(void);
  */
 esp_err_t media_lib_add_default_tls_adapter(void);
 
+/**
+ * @brief      Add default network interface related wrapper functions
+ *
+ * @return
+ *             - ESP_OK: on success
+ *             - ESP_ERR_INVALID_ARG: Network interface wrapper functions not OK
+ */
+esp_err_t media_lib_add_default_netif_adapter(void);
+
 #ifdef __cplusplus
 }
 #endif

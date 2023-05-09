@@ -28,6 +28,11 @@
 #include "media_lib_crypt_reg.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
+#include "mbedtls/md5.h"
+#include "esp_idf_version.h"
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+#include "mbedtls/compat-2.x.h"
+#endif
 
 #ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
 

@@ -38,6 +38,10 @@
 
 #ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
 
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+#define esp_tls_conn_delete esp_tls_conn_destroy
+#endif
+
 #define TAG "TLS_Lib"
 typedef struct {
     esp_tls_t* tls;
@@ -151,7 +155,13 @@ static int _tls_getsockfd(media_lib_tls_handle_t tls)
 {
     if (tls) {
         media_lib_tls_inst_t *tls_lib = (media_lib_tls_inst_t *)tls;
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+        int sock_fd = -1;
+        esp_tls_get_conn_sockfd(tls_lib->tls, &sock_fd);
+        return sock_fd;
+#else
         return tls_lib->tls->sockfd;
+#endif
     } else {
         return ESP_ERR_INVALID_ARG;
     }

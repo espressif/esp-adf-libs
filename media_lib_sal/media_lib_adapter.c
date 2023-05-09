@@ -34,20 +34,24 @@ esp_err_t media_lib_add_default_adapter(void)
     esp_err_t ret;
     ret = media_lib_add_default_os_adapter();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Fail to add os lib\n");
+        ESP_LOGE(TAG, "Fail to add os lib");
     }
 #ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
     ret = media_lib_add_default_crypt_adapter();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Fail to add crypt lib\n");
+        ESP_LOGE(TAG, "Fail to add crypt lib");
     }
     ret = media_lib_add_default_socket_adapter();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Fail to add socket lib\n");
+        ESP_LOGE(TAG, "Fail to add socket lib");
     }
     ret = media_lib_add_default_tls_adapter();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Fail to add tls lib\n");
+        ESP_LOGE(TAG, "Fail to add tls lib");
+    }
+    ret = media_lib_add_default_netif_adapter();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Fail to add netif lib");
     }
 #endif
     return ret;

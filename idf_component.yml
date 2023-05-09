@@ -1,0 +1,5 @@
+dependencies:
+  espressif/nghttp:
+    version: "^1.50.0"
+    rules:
+      - if: "idf_version >=5.0"
