@@ -209,10 +209,11 @@ static esp_err_t rsp_open(audio_forge_t *audio_forge, int index)
     } else {
         audio_forge->inbuf[index] = audio_forge->rsp_out[index];
     }
-    if (audio_forge->rsp_info[index].src_ch != audio_forge->downmix.source_info[index].channel) {
-        audio_forge->downmix.source_info[index].channel = audio_forge->rsp_info[index].src_ch;
+    if (audio_forge->rsp_info[index].src_ch != audio_forge->channel) {
         audio_forge->component_select |= AUDIO_FORGE_SELECT_DOWNMIX;
         audio_forge->reflag |= ADUIO_FORGE_DM_RESTART;
+    } else {
+        audio_forge->component_select &= (~AUDIO_FORGE_SELECT_DOWNMIX);
     }
     audio_forge->downmix.source_info[index].channel = audio_forge->rsp_info[index].src_ch;
     return ESP_OK;
