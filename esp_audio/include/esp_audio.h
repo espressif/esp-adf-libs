@@ -94,6 +94,17 @@ typedef struct {
 } esp_audio_info_t;
 
 /**
+ * @brief The music informations
+ */
+typedef struct {
+    int                 sample_rates;                        /*!< Sample rates in Hz */
+    int                 channels;                            /*!< Number of audio channel, mono is 1, stereo is 2 */
+    int                 bits;                                /*!< Bit wide (8, 16, 24, 32 bits) */
+    int                 bps;                                 /*!< Bit per second */
+    esp_codec_type_t    codec_fmt;                           /*!< Music format */
+} esp_audio_music_info_t;
+
+/**
  * @brief esp_audio play speed 
  */
 typedef enum {
@@ -498,8 +509,22 @@ audio_err_t esp_audio_setup(esp_audio_handle_t handle, esp_audio_setup_t *sets);
  */
 audio_err_t esp_audio_media_type_set(esp_audio_handle_t handle, media_source_type_t type);
 
+/* @brief Get the current music information to `info`.
+ * 
+ * @param[in] handle    The esp_audio instance
+ * @param[in] info      A pointer to esp_audio_music_info_t
+ *
+ * @return
+ *      - ESP_ERR_AUDIO_NO_ERROR: on success
+ *      - ESP_ERR_AUDIO_NOT_READY: there is no codec handle
+ *      - ESP_ERR_AUDIO_INVALID_PARAMETER: invalid arguments
+ */
+audio_err_t esp_audio_music_info_get(esp_audio_handle_t handle, esp_audio_music_info_t *info);
+
 /* @brief Duplicate the current audio information to `info`.
  *
+ * @note `Info` need to released by `esp_audio_info_set`
+ * 
  * @param[in] handle    The esp_audio instance
  * @param[in] info      A pointer to esp_audio_info_t
  *
@@ -511,7 +536,7 @@ audio_err_t esp_audio_media_type_set(esp_audio_handle_t handle, media_source_typ
  */
 audio_err_t esp_audio_info_get(esp_audio_handle_t handle, esp_audio_info_t *info);
 
-/* @brief Restore the backup audio information to prevoise state.
+/* @brief Restore the prevoise linked elements and release the audio information pointer.
  *
  * @note  If ESP_ERR_AUDIO_NO_ERROR returned, the info->codec_info.uri, info->in_el, info->codec_el,
  *        info->out_el and info->filter_el are set NULL.
