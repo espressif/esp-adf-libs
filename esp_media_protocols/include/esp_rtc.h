@@ -38,6 +38,7 @@ typedef enum {
     RTC_ACODEC_NULL,
     RTC_ACODEC_G711A,
     RTC_ACODEC_G711U,
+    RTC_ACODEC_OPUS,
 } rtc_payload_acodec_t;
 
 /**
@@ -46,6 +47,7 @@ typedef enum {
 typedef enum {
     RTC_VCODEC_NULL,
     RTC_VCODEC_MJPEG,
+    RTC_VCODEC_H264,
 } rtc_payload_vcodec_t;
 
 /**
@@ -73,6 +75,8 @@ typedef int (*__esp_rtc_receive_video)(unsigned char *data, int len, void *ctx);
 
 /**
  * @brief RTC session data callback
+ *
+ * @note When a DTMF (RFC2833) event is received, it will be returned through the audio data channel in the format of "DTMF-ID".
  */
 typedef struct {
     __esp_rtc_send_audio        send_audio;
@@ -112,6 +116,8 @@ typedef struct {
     int                         (*crt_bundle_attach)(void *conf);
                                                      /*!< Function pointer to esp_crt_bundle_attach. Enables the use of certification
                                                           bundle for server verification, must be enabled in menuconfig */
+    int                         register_interval;   /*!< Registration interval in seconds (defaults is 3600s) */
+    const char                  *user_agent;         /*!< Set user agent field (defaults is "ESP32 SIP/2.0") */
 } esp_rtc_config_t;
 
 /**
@@ -180,6 +186,30 @@ int esp_rtc_bye(esp_rtc_handle_t esp_rtc);
  *     - ESP_ERR_INVALID_ARG on wrong handle
  */
 int esp_rtc_deinit(esp_rtc_handle_t esp_rtc);
+
+/**
+ * @brief      Send DTMF event ( Only support out band method (RFC2833) )
+ *
+ * @param[in]  esp_rtc      The rtc handle
+ * @param[in]  dtmf_event   DTMF event ID (0-15)
+ *s
+ * @return
+ *     - ESP_OK on success
+ *     - ESP_ERR_INVALID_ARG on wrong handle
+ */
+int esp_rtc_send_dtmf(esp_rtc_handle_t esp_rtc, uint8_t dtmf_event);
+
+/**
+ * @brief      Set private header
+ *
+ * @param[in]  esp_rtc      The rtc handle
+ * @param[in]  pheader      Private header data
+ *
+ * @return
+ *     - ESP_OK on success
+ *     - ESP_ERR_INVALID_ARG on wrong handle
+ */
+int esp_rtc_set_private_header(esp_rtc_handle_t esp_rtc, const char *pheader);
 
 #ifdef __cplusplus
 }
