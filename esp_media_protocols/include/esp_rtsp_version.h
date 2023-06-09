@@ -33,17 +33,17 @@ extern "C" {
  *     - Use RTSP version 1.0 (RFC2326)
  *     - Support RTSP Pusher, RTSP Server, RTSP Client
  *     - Support audio codecs: G711A, G711U
- *     - Support video codecs: MJPEG
+ *     - Support video codecs: MJPEG, H264
  *     - Support unicast (rtp over udp, rtp over tcp)
  *     - Support Public method : OPTIONS, DESCRIBE, SETUP, PLAY, TEARDOWN
  *     - Support EasyDarwin and other common RTSP server
  *     - Support VLC, Potplayer, FFMPEG, etc
  *
  *  To be implemented:
- *     - To support H264, AAC
+ *     - To support AAC
  *     - To support digest authentication
  */
-#define ESP_RTSP_VERSION "1.0.0"
+#define ESP_RTSP_VERSION "1.1.0"
 
 #ifdef __cplusplus
 }

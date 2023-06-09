@@ -33,15 +33,15 @@ extern "C" {
  *     - Use SIP version 2.0 (RFC3261)
  *     - Support real-time communication and VoIP
  *     - Support UDP, TCP, TLS transport
- *     - Support audio codecs: G711A, G711U
- *     - Support video codecs: MJPEG
+ *     - Support audio codecs: G711A, G711U, OPUS
+ *     - Support video codecs: MJPEG, H264
  *     - Support md5 digest authentication
  *     - Support Freeswitch and FreePBX, etc
  *
  *  To be implemented:
- *     - To support H264, AAC
+ *     - To support AAC
  */
-#define ESP_RTC_VERSION "1.0.0"
+#define ESP_RTC_VERSION "1.1.0"
 
 #ifdef __cplusplus
 }

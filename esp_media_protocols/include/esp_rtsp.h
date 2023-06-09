@@ -40,6 +40,7 @@ typedef enum {
     RTSP_ACODEC_G711A,
     RTSP_ACODEC_G711U,
     RTSP_VCODEC_MJPEG,
+    RTSP_VCODEC_H264,
 } rtsp_payload_codec_t;
 
 /**
