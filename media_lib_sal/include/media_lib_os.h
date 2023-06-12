@@ -89,6 +89,34 @@ char *media_lib_strdup(const char *str);
 int media_lib_asprintf(char **str, const char *fmt, ...);
 
 /**
+ * @brief      Module malloc
+ */
+void *media_lib_module_malloc(const char* module, size_t size);
+
+/**
+ * @brief      Module calloc
+ */
+void *media_lib_module_calloc(const char* module, size_t num, size_t size);
+
+/**
+ * @brief      Module realloc
+ */
+void *media_lib_module_realloc(const char* module, void *buf, size_t size);
+
+/**
+ * @brief      Module strdup
+ */
+char *media_lib_module_strdup(const char* module, const char *str);
+
+/**
+ * @brief      Get stack frame
+ * @param         addr: Address array to store stack frame PC
+ * @param         n: Stack depth to trace
+ * @return        Stack depth be traced
+ */
+int media_lib_get_stack_frame(void** addr, int n);
+
+/**
  * @brief      Wrapper for thread create
  * @param[out]    handle: Thread handle
  * @param         name: Thread name

@@ -28,6 +28,8 @@
 #include "media_lib_os_reg.h"
 #include "media_lib_common.h"
 #include "media_lib_os.h"
+#include "media_lib_err.h"
+#include "media_lib_mem_trace.h"
 
 #define MEDIA_LIB_DEFAULT_THREAD_CORE 0
 #define MEDIA_LIB_DEFAULT_THREAD_PRIORITY 10
@@ -39,6 +41,33 @@ static media_lib_thread_sched_param_cb thread_sched_cb;
 esp_err_t media_lib_os_register(media_lib_os_t *os_lib)
 {
     MEDIA_LIB_DEFAULT_INSTALLER(os_lib, &media_os_lib, media_lib_os_t);
+}
+
+int media_lib_get_mem_lib(media_lib_mem_t* mem_lib)
+{
+    if (mem_lib == NULL) {
+        return ESP_MEDIA_ERR_INVALID_ARG;
+    }
+    mem_lib->malloc = media_os_lib.malloc;
+    mem_lib->free = media_os_lib.free;
+    mem_lib->calloc = media_os_lib.calloc;
+    mem_lib->realloc = media_os_lib.realloc;
+    mem_lib->strdup = media_os_lib.strdup;
+    mem_lib->get_stack_frame = media_os_lib.get_stack_frame;
+    return ESP_MEDIA_ERR_OK;
+}
+
+int media_lib_set_mem_lib(media_lib_mem_t* mem_lib)
+{
+    if (mem_lib == NULL) {
+        return ESP_MEDIA_ERR_INVALID_ARG;
+    }
+    media_os_lib.malloc = mem_lib->malloc;
+    media_os_lib.free = mem_lib->free;
+    media_os_lib.calloc = mem_lib->calloc;
+    media_os_lib.realloc = mem_lib->realloc;
+    media_os_lib.strdup = mem_lib->strdup;
+    return ESP_MEDIA_ERR_OK;
 }
 
 void *media_lib_malloc(size_t size)
@@ -96,6 +125,14 @@ int media_lib_asprintf(char **str, const char *fmt, ...)
     size = vsprintf(*str, fmt, args);
     va_end(args);
     return size;
+}
+
+int media_lib_get_stack_frame(void** addr, int n)
+{
+    if (media_os_lib.get_stack_frame) {
+        return media_os_lib.get_stack_frame(addr, n);
+    }
+    return 0;
 }
 
 void media_lib_thread_set_schedule_cb(media_lib_thread_sched_param_cb cb)

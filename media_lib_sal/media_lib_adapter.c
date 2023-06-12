@@ -26,8 +26,30 @@
 
 #include "esp_log.h"
 #include "media_lib_adapter.h"
+#include "media_lib_mem_trace.h"
 
 #define TAG "MEDIA_ADAPTER"
+
+#ifdef CONFIG_MEDIA_LIB_MEM_AUTO_TRACE
+static void add_memory_trace(void)
+{
+    media_lib_mem_trace_cfg_t trace_cfg = {0};
+#ifdef CONFIG_MEDIA_LIB_MEM_TRACE_MODULE
+    trace_cfg.trace_type |= MEDIA_LIB_MEM_TRACE_MODULE_USAGE;
+#endif
+#ifdef CONFIG_MEDIA_LIB_MEM_TRACE_LEAKAGE
+    trace_cfg.trace_type |= MEDIA_LIB_MEM_TRACE_LEAK;
+#endif
+#ifdef CONFIG_MEDIA_LIB_MEM_TRACE_SAVE_HISTORY
+    trace_cfg.trace_type |= MEDIA_LIB_MEM_TRACE_SAVE_HISTORY;
+    trace_cfg.save_cache_size = CONFIG_MEDIA_LIB_MEM_SAVE_CACHE_SIZE;
+    trace_cfg.save_path = CONFIG_MEDIA_LIB_MEM_TRACE_SAVE_PATH;
+#endif
+    trace_cfg.stack_depth = CONFIG_MEDIA_LIB_MEM_TRACE_DEPTH;
+    trace_cfg.record_num = CONFIG_MEDIA_LIB_MEM_TRACE_NUM;
+    media_lib_start_mem_trace(&trace_cfg);
+}
+#endif
 
 esp_err_t media_lib_add_default_adapter(void)
 {
@@ -53,6 +75,9 @@ esp_err_t media_lib_add_default_adapter(void)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Fail to add netif lib");
     }
+#endif
+#ifdef CONFIG_MEDIA_LIB_MEM_AUTO_TRACE
+    add_memory_trace();
 #endif
     return ret;
 }
