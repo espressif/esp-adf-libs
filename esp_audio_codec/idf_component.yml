@@ -1,0 +1,7 @@
+version: "1.0.0"
+description: Espressif audio encoder and decoder
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_audio_codec
+repository: https://github.com/espressif/esp-adf-libs.git
+issues: https://github.com/espressif/esp-adf/issues
+dependencies:
+  idf : ">=4.4"
