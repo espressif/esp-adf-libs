@@ -132,8 +132,18 @@ The following table shows the support of ESP_AUDIO_CODEC for Espressif SoCs. The
 
 Example of function call.
 ```c
+#include "esp_aac_enc.h"
+#include "esp_adpcm_enc.h"
+#include "esp_g711_enc.h"
+#include "esp_amrwb_enc.h"
+#include "esp_amrnb_enc.h"
+#include "esp_opus_enc.h"
+#include "esp_pcm_enc.h"
+#include "esp_audio_enc.h"
+#include "esp_audio_enc_def.h"
+#include "esp_audio_def.h"
 // This is an example of using encoder interface to encode audio.
-void app_main(void)
+void audio_encoder_test(void)
 {
     int times = 0;
     FILE *in_file = NULL;
@@ -162,7 +172,7 @@ void app_main(void)
     }
     // Set configuration
     esp_audio_enc_config_t cfg = {.type = ESP_AUDIO_TYPE_AAC, 
-                                  .cfg_size = sizeof(esp_aac_enc_config_t),};
+                                  .cfg_sz = sizeof(esp_aac_enc_config_t),};
     esp_aac_enc_config_t config = ESP_AAC_ENC_CONFIG_DEFAULT();
     config.sample_rate = 8000;
     config.channel = 1;
@@ -171,12 +181,13 @@ void app_main(void)
     cfg.cfg = &config;
     times = 1;
     // Open stream
-    in_file = fopen("pcm/thetest16_1.pcm", "rb");
+    // User need to initialize sdcard module before
+    in_file = fopen("/sdcard/pcm/thetest16_1.pcm", "rb");
     if (in_file == NULL) {
         printf("in_file open failed\n");
         goto audio_encoder_exit;
     }
-    out_file = fopen("out_music/test.aac", "w+");
+    out_file = fopen("/sdcard/out_music/test.aac", "w+");
     if (out_file == NULL) {
         printf("out_file open failed\n");
         goto audio_encoder_exit;
@@ -199,12 +210,12 @@ void app_main(void)
     // Malloc in/out buffer
     in_frame_size *= times;
     out_frame_size *= times;
-    inbuf = audio_codec_calloc(1, in_frame_size);
+    inbuf = calloc(1, in_frame_size);
     if (!inbuf) {
         printf("inbuf malloc failed.\n");
         goto audio_encoder_exit;
     }
-    outbuf = audio_codec_calloc(1, out_frame_size);
+    outbuf = calloc(1, out_frame_size);
     if (!outbuf) {
         printf("outbuf malloc failed.\n");
         goto audio_encoder_exit;
@@ -224,7 +235,7 @@ void app_main(void)
             printf("audio encoder process failed.\n");
             goto audio_encoder_exit;
         }
-        fwrite(outbuf, 1, out_frame.out_byte_len, out_file);
+        fwrite(outbuf, 1, out_frame.encoded_bytes, out_file);
     }
 audio_encoder_exit:
     if (in_file) {
@@ -234,10 +245,10 @@ audio_encoder_exit:
         fclose(out_file);
     }
     if (inbuf) {
-        audio_codec_free(inbuf);
+        free(inbuf);
     }
     if (outbuf) {
-        audio_codec_free(outbuf);
+        free(outbuf);
     }
     if (enc_handle) {
         esp_audio_enc_close(enc_handle);
@@ -248,22 +259,30 @@ audio_encoder_exit:
 ```
 
 ```c
+#include "esp_aac_enc.h"
+#include "esp_audio_enc_def.h"
+#include "esp_audio_def.h"
 // This is an example of using a simple encoder interface to encode audio.
-void app_main(void)
+void aac_encoder_test(void)
 {
     esp_audio_err_t ret;
     void *enc_handle = NULL;
+    FILE *in_file = NULL;
+    FILE *out_file = NULL;
+    uint8_t *inbuf = NULL;
+    uint8_t *outbuf = NULL;
     int in_read = 0;
     int in_frame_size = 0;
     int out_frame_size = 0;
     int times = 0;
     // Open stream
-    FILE *in_file = fopen("pcm/thetest8_1.pcm", "rb");
+    // User need to initialize sdcard module before
+    in_file = fopen("/sdcard/pcm/thetest8_1.pcm", "rb");
     if (in_file == NULL) {
         printf("in_file open failed\n");
         goto audio_encoder_exit;
     }
-    FILE *out_file = fopen("out_music/thetest1.aac", "w+");
+    out_file = fopen("/sdcard/out_music/thetest1.aac", "w+");
     if (out_file == NULL) {
         printf("out_file open failed\n");
         goto audio_encoder_exit;
@@ -285,12 +304,12 @@ void app_main(void)
     times = 4;
     in_frame_size *= times;
     out_frame_size *= times;
-    uint8_t *inbuf = audio_codec_calloc(1, in_frame_size);
+    inbuf = calloc(1, in_frame_size);
     if (inbuf == NULL) {
         printf("inbuf malloc failed.\n");
         goto audio_encoder_exit;
     }
-    uint8_t *outbuf = audio_codec_calloc(1, out_frame_size);
+    outbuf = calloc(1, out_frame_size);
     if (outbuf == NULL) {
         printf("outbuf malloc failed.\n");
         goto audio_encoder_exit;
@@ -321,10 +340,10 @@ audio_encoder_exit:
         fclose(out_file);
     }
     if (inbuf) {
-        audio_codec_free(inbuf);
+        free(inbuf);
     }
     if (outbuf) {
-        audio_codec_free(outbuf);
+        free(outbuf);
     }
     if (enc_handle) {
         esp_aac_enc_close(enc_handle);
