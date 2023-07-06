@@ -32,10 +32,32 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os_reg.h"
+#include "esp_idf_version.h"
+
+#if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
+#include "freertos/task_snapshot.h"
+#endif
+
+#ifdef __XTENSA__
+#include "esp_debug_helpers.h"
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+#include "esp_cpu_utils.h"
+#endif
+#endif
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+#include "esp_memory_utils.h"
+#else
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0))
+#include "soc/soc_memory_types.h"
+#else
+#include "soc/soc_memory_layout.h"
+#endif
+#endif
 
 #define RETURN_ON_NULL_HANDLE(h)                                               \
     if (h == NULL) {                                                           \
@@ -43,6 +65,9 @@
     }
 
 #define TAG "MEDIA_OS"
+#define MAX_STACK_SIZE      (100*1024)
+#define MAX_SEARCH_CODE_LEN (1024)
+#define RISC_V_RET_CODE     (0x8082)
 
 #if CONFIG_SPIRAM_BOOT_INIT
 static void *_malloc_in_heap(size_t size)
@@ -65,7 +90,7 @@ static void *_calloc_in_heap(size_t elm, size_t size)
     return buf;
 }
 
-static void *_relloc_in_heap(void *buf, size_t size)
+static void *_realloc_in_heap(void *buf, size_t size)
 {
     return heap_caps_realloc(buf, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 }
@@ -285,6 +310,129 @@ static int _event_group_destroy(media_lib_event_grp_handle_t group)
     return ESP_OK;
 }
 
+#ifdef __XTENSA__
+
+static int _get_stack_frame(void** addr, int n)
+{
+    int filled = 0;;
+#if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
+    esp_backtrace_frame_t frame = {};
+    TaskSnapshot_t snap_shot;
+    TaskHandle_t cur_task = xTaskGetCurrentTaskHandle();
+    vTaskGetSnapshot(cur_task, &snap_shot);
+    snap_shot.pxTopOfStack = pxTaskGetStackStart(cur_task);;
+    esp_backtrace_get_start(&(frame.pc), &(frame.sp), &(frame.next_pc));
+
+    for (int i = 0; i < n; i++) {
+        esp_backtrace_get_next_frame(&frame);
+        if (!((uint32_t)frame.sp >= (uint32_t)snap_shot.pxTopOfStack &&
+            ((uint32_t)frame.sp <= (uint32_t)snap_shot.pxEndOfStack))) {
+            break;
+        }
+        addr[filled] = (void*)esp_cpu_process_stack_pc(frame.pc);
+        if (!esp_ptr_executable((void*)addr[filled])) {
+            break;
+        }
+        filled++;
+    }
+#endif
+    return filled;
+}
+
+#else
+
+/**
+ * @brief   Get reserved stack size of a function from `addi` instruction before `ret`
+ *          Limitation: not support dynamic array on stack
+ *              Instruction: addi sp, sp, imm
+ *              Instruction size is 16 or 32 based on imm size
+ *                  sp(4:0): 2
+ *              When size is 16:
+ *                000|imm(5)|sp(4:0)|imm(4:0)|01
+ *                011|imm(9)|00010|imm(4|6|8:7|5)|01
+ *              When size is 32:
+ *                 imm(11:0)|sp(4:0)|000|sp(4:0)|0010011
+ */
+static int get_addi_size(uint32_t addi)
+{
+    if ((addi & 0x10113) == 0x10113) {
+        return addi >> 20;
+    }
+    addi >>= 16;
+    if ((addi & 0x6103) == 0x101) {
+        return (addi & 0xfc) >> 2;
+    }
+    if ((addi & 0x6103) == 0x6101) {
+        uint32_t s = 0;
+        if (addi & 0x40) {
+            s += 16;
+        }
+        if (addi & 0x20) {
+            s += 64;
+        }
+        if (addi & 0x10) {
+            s += 256;
+        }
+        if (addi & 0x08) {
+            s += 128;
+        }
+        if (addi & 0x04) {
+            s += 32;
+        }
+        return s;
+    }
+    return 0;
+}
+
+static int _get_stack_frame(void** addr, int n)
+{
+    int fill = 0;
+#if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
+    uint32_t pc, sp;
+    TaskSnapshot_t snap_shot;
+    TaskHandle_t cur_task = xTaskGetCurrentTaskHandle();
+    vTaskGetSnapshot(cur_task, &snap_shot);
+    snap_shot.pxTopOfStack = pxTaskGetStackStart(cur_task);
+    asm volatile ("addi %0, sp, 0\n"
+                  "auipc %1, 0\n"
+                  "addi %1, %1, 0\n"
+                  : "=r" (sp), "=r" (pc));
+    uint16_t* pc_addr = (uint16_t*)pc;
+    uint8_t* sp_addr = (uint8_t*)sp;
+    int depth = 0;
+    for (int i = 0; i < MAX_SEARCH_CODE_LEN; i++) {
+        if (pc_addr[i] != RISC_V_RET_CODE) {
+            continue;
+        }
+        uint32_t v = (pc_addr[i-1] << 16) + pc_addr[i-2];
+        int s = get_addi_size(v);
+        if (s == 0) {
+            break;
+        }
+        sp_addr += s;
+        if (sp_addr >= snap_shot.pxEndOfStack) {
+            break;
+        }
+        uint32_t lr = *((int*)sp_addr - 1) - 4;
+        if (esp_ptr_executable((void*)lr)) {
+            depth++;
+            if (depth >= 2) {
+                addr[fill++] = (void*) lr;
+                if (fill >= n) {
+                    break;
+                }
+            }
+            pc_addr = (uint16_t*) lr;
+            i = 0;
+            continue;
+        }
+        break;
+    }
+#endif
+    return fill;
+}
+#endif
+
 esp_err_t media_lib_add_default_os_adapter(void)
 {
     media_lib_os_t os_lib = {
@@ -292,7 +440,7 @@ esp_err_t media_lib_add_default_os_adapter(void)
         .malloc = _malloc_in_heap,
         .free = _free_in_heap,
         .calloc = _calloc_in_heap,
-        .realloc = _relloc_in_heap,
+        .realloc = _realloc_in_heap,
         .strdup = _strdup_in_heap,
 #else
         .malloc = malloc,
@@ -301,6 +449,7 @@ esp_err_t media_lib_add_default_os_adapter(void)
         .realloc = realloc,
         .strdup = strdup,
 #endif
+        .get_stack_frame = _get_stack_frame,
 
         .thread_create = _thread_create,
         .thread_destroy = _thread_destroy,

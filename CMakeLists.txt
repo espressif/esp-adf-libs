@@ -44,7 +44,10 @@ list(APPEND COMPONENT_SRCS ./esp_codec/audio_alc.c
                     ./esp_codec/filter_resample.c
                     ./esp_codec/wav_encoder.c
                     ./media_lib_sal/media_lib_common.c
-                    ./media_lib_sal/media_lib_os.c ./media_lib_sal/port/media_lib_os_freertos.c
+                    ./media_lib_sal/media_lib_os.c
+                    ./media_lib_sal/mem_trace/media_lib_mem_trace.c
+                    ./media_lib_sal/mem_trace/media_lib_mem_his.c
+                    ./media_lib_sal/port/media_lib_os_freertos.c
                     ./media_lib_sal/media_lib_adapter.c)
 
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
