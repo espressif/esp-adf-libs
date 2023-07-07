@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "media_lib_err.h"
+#include "esp_muxer_err.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,8 +36,6 @@ extern "C" {
 #define ESP_MUXER_MAX_SLICE_DURATION (0xFFFFFFFF)
 
 typedef void* esp_muxer_handle_t;
-
-typedef uint32_t pts_t;
 
 /**
  * @brief Muxer container type
@@ -78,7 +76,7 @@ typedef int (*muxer_data_callback)(esp_muxer_data_info_t* data, void* ctx);
  */
 typedef struct {
     esp_muxer_type_t    muxer_type;     /*!< Muxer container type */
-    uint32_t            slice_duration; /*!< Muxer file segment duration */
+    uint32_t            slice_duration; /*!< Muxer file segment duration, unit millisecond */
     muxer_url_pattern   url_pattern;    /*!< Muxer file path pattern callback */
     muxer_data_callback data_cb;        /*!< Muxer output callback can be coexist with url pattern.
                                              It is suitable for living stream scenario.
@@ -145,7 +143,7 @@ typedef struct {
     uint16_t                sample_rate;         /*!< Audio sample rate */
     uint32_t                min_packet_duration; /*!< Minimal packet duration (ms), used to estimate table size */
     void*                   codec_spec_info;     /*!< Audio codec specified info.
-                                                      For AAC need to provide AudioSpecicConfig:
+                                                      For AAC without ADTS header need provide AudioSpecicConfig:
                                                         Refer to: `https://wiki.multimedia.cx/index.php/MPEG-4_Audio`
                                                       Other audio format no need to provide */
     int                     spec_info_len;       /*!< Audio codec specified info length */
@@ -155,20 +153,20 @@ typedef struct {
  * @brief Muxer video packet information
  */
 typedef struct {
-    void* data;      /*!< Video packet data */
-    int   len;       /*!< Video packet length */
-    pts_t pts;       /*!< Video packet pts */
-    pts_t dts;       /*!< Video packet dts, if not exists set to 0 */
-    bool  key_frame; /*!< whether I frame or not */
+    void*    data;      /*!< Video packet data */
+    int      len;       /*!< Video packet length */
+    uint32_t pts;       /*!< Video packet pts */
+    uint32_t dts;       /*!< Video packet dts, if not exists set to 0 */
+    bool     key_frame; /*!< whether I frame or not */
 } esp_muxer_video_packet_t;
 
 /**
  * @brief Muxer audio packet information
  */
 typedef struct {
-    void* data; /*!< Audio packet data */
-    int   len;  /*!< Audio packet length */
-    pts_t pts;  /*!< Audio packet pts */
+    void*    data; /*!< Audio packet data */
+    int      len;  /*!< Audio packet length */
+    uint32_t pts;  /*!< Audio packet pts */
 } esp_muxer_audio_packet_t;
 
 /**
@@ -187,12 +185,12 @@ typedef struct {
  */
 typedef struct {
     esp_muxer_handle_t (*open)(esp_muxer_config_t* cfg, uint32_t size);
-    esp_media_err_t (*add_video_stream)(esp_muxer_handle_t muxer, esp_muxer_video_stream_info_t* video_info, int* stream_index);
-    esp_media_err_t (*add_audio_stream)(esp_muxer_handle_t muxer, esp_muxer_audio_stream_info_t* audio_info, int* stream_index);
-    esp_media_err_t (*set_writer)(esp_muxer_handle_t muxer, esp_muxer_file_writer_t* writer);
-    esp_media_err_t (*add_video_packet)(esp_muxer_handle_t muxer, int stream_index, esp_muxer_video_packet_t* packet);
-    esp_media_err_t (*add_audio_packet)(esp_muxer_handle_t muxer, int stream_index, esp_muxer_audio_packet_t* packet);
-    esp_media_err_t (*close)(esp_muxer_handle_t muxer);
+    esp_muxer_err_t (*add_video_stream)(esp_muxer_handle_t muxer, esp_muxer_video_stream_info_t* video_info, int* stream_index);
+    esp_muxer_err_t (*add_audio_stream)(esp_muxer_handle_t muxer, esp_muxer_audio_stream_info_t* audio_info, int* stream_index);
+    esp_muxer_err_t (*set_writer)(esp_muxer_handle_t muxer, esp_muxer_file_writer_t* writer);
+    esp_muxer_err_t (*add_video_packet)(esp_muxer_handle_t muxer, int stream_index, esp_muxer_video_packet_t* packet);
+    esp_muxer_err_t (*add_audio_packet)(esp_muxer_handle_t muxer, int stream_index, esp_muxer_audio_packet_t* packet);
+    esp_muxer_err_t (*close)(esp_muxer_handle_t muxer);
 } esp_muxer_reg_info_t;
 
 /**
@@ -200,11 +198,11 @@ typedef struct {
  *
  * @param         type: Muxer type
  * @param         reg_info: Register function table
- * @return        -ESP_MEDIA_ERR_OK: Register ok or already registered
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid input argument
- *                -ESP_MEDIA_ERR_NO_MEM: Memory not enough
+ * @return        -ESP_MUXER_ERR_OK: Register ok or already registered
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
+ *                -ESP_MUXER_ERR_NO_MEM: Memory not enough
  */
-esp_media_err_t esp_muxer_reg(esp_muxer_type_t type, esp_muxer_reg_info_t* reg_info);
+esp_muxer_err_t esp_muxer_reg(esp_muxer_type_t type, esp_muxer_reg_info_t* reg_info);
 
 /**
  * @brief         Unregister for all container type
@@ -227,10 +225,10 @@ esp_muxer_handle_t esp_muxer_open(esp_muxer_config_t* cfg, uint32_t size);
  *
  * @param         muxer: Muxer handle
  * @param         writer: File writer function table
- * @return        -ESP_MEDIA_ERR_OK: On success
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid writer settings
+ * @return        -ESP_MUXER_ERR_OK: On success
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid writer settings
  */
-esp_media_err_t esp_muxer_set_file_writer(esp_muxer_handle_t muxer, esp_muxer_file_writer_t* writer);
+esp_muxer_err_t esp_muxer_set_file_writer(esp_muxer_handle_t muxer, esp_muxer_file_writer_t* writer);
 
 /**
  * @brief         Add video stream to muxer
@@ -238,11 +236,11 @@ esp_media_err_t esp_muxer_set_file_writer(esp_muxer_handle_t muxer, esp_muxer_fi
  * @param         muxer: Muxer handle
  * @param         video_info: Video stream information to add
  * @param[out]    stream_index: Output stream index used to identify which video stream, used later for adding video packet
- * @return        -ESP_MEDIA_ERR_OK: On success
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid settings
+ * @return        -ESP_MUXER_ERR_OK: On success
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid settings
  *                - Others: Fail to add video stream
  */
-esp_media_err_t esp_muxer_add_video_stream(esp_muxer_handle_t muxer, esp_muxer_video_stream_info_t* video_info, int* stream_index);
+esp_muxer_err_t esp_muxer_add_video_stream(esp_muxer_handle_t muxer, esp_muxer_video_stream_info_t* video_info, int* stream_index);
 
 /**
  * @brief         Add audio stream to muxer
@@ -250,11 +248,11 @@ esp_media_err_t esp_muxer_add_video_stream(esp_muxer_handle_t muxer, esp_muxer_v
  * @param         muxer: Muxer handle
  * @param         audio_info: Audio stream information to add
  * @param[out]    stream_index: Output stream index used to identify which audio stream, used later for adding audio packet
- * @return        -ESP_MEDIA_ERR_OK: On success
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid settings
+ * @return        -ESP_MUXER_ERR_OK: On success
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid settings
  *                - Others: Fail to add audio stream
  */
-esp_media_err_t esp_muxer_add_audio_stream(esp_muxer_handle_t muxer, esp_muxer_audio_stream_info_t* audio_info, int* stream_index);
+esp_muxer_err_t esp_muxer_add_audio_stream(esp_muxer_handle_t muxer, esp_muxer_audio_stream_info_t* audio_info, int* stream_index);
 
 /**
  * @brief         Add video packet data to muxer
@@ -262,11 +260,11 @@ esp_media_err_t esp_muxer_add_audio_stream(esp_muxer_handle_t muxer, esp_muxer_a
  * @param         muxer: Muxer handle
  * @param         stream_index: Stream index to distinguish which video stream
  * @param         packet: Video packet to be muxed
- * @return        -ESP_MEDIA_ERR_OK: Success to add video packet
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid input arguments
+ * @return        -ESP_MUXER_ERR_OK: Success to add video packet
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
  *                - Others: Fail to add video packet
  */
-esp_media_err_t esp_muxer_add_video_packet(esp_muxer_handle_t muxer, int stream_index,
+esp_muxer_err_t esp_muxer_add_video_packet(esp_muxer_handle_t muxer, int stream_index,
                                            esp_muxer_video_packet_t* packet);
 
 /**
@@ -275,22 +273,22 @@ esp_media_err_t esp_muxer_add_video_packet(esp_muxer_handle_t muxer, int stream_
  * @param         muxer: Muxer handle
  * @param         stream_index: Stream index to distinguish which audio stream
  * @param         packet: Audio packet to be muxed
- * @return        -ESP_MEDIA_ERR_OK: Success to add audio packet
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid input arguments
+ * @return        -ESP_MUXER_ERR_OK: Success to add audio packet
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
  *                - Others: Fail to add audio packet
  */
-esp_media_err_t esp_muxer_add_audio_packet(esp_muxer_handle_t muxer, int stream_index,
+esp_muxer_err_t esp_muxer_add_audio_packet(esp_muxer_handle_t muxer, int stream_index,
                                            esp_muxer_audio_packet_t* packet);
 
 /**
  * @brief         Close muxer
  *
  * @param         muxer: Muxer handle
- * @return        -ESP_MEDIA_ERR_OK: On success
-  *               -ESP_MEDIA_ERR_INVALID_ARG: Invalid input arguments
+ * @return        -ESP_MUXER_ERR_OK: On success
+  *               -ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
  *                - Others: Fail to close
  */
-esp_media_err_t esp_muxer_close(esp_muxer_handle_t muxer);
+esp_muxer_err_t esp_muxer_close(esp_muxer_handle_t muxer);
 
 #ifdef __cplusplus
 }
