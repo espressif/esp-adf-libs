@@ -46,6 +46,7 @@ typedef enum {
     ESP_MUXER_TYPE_TS,  /*!< Muxer to TS */
     ESP_MUXER_TYPE_MP4, /*!< Muxer to MP4 */
     ESP_MUXER_TYPE_FLV, /*!< Muxer to FLV */
+    ESP_MUXER_TYPE_WAV, /*!< Muxer to WAV */
     ESP_MUXER_TYPE_MAX,
 } esp_muxer_type_t;
 
@@ -108,9 +109,14 @@ typedef enum {
  */
 typedef enum {
     ESP_MUXER_ADEC_NONE,
-    ESP_MUXER_ADEC_AAC, /*!< AAC audio type */
-    ESP_MUXER_ADEC_PCM, /*!< PCM audio type, only support little endian */
-    ESP_MUXER_ADEC_MP3, /*!< MP3 audio type */
+    ESP_MUXER_ADEC_AAC,    /*!< AAC audio type */
+    ESP_MUXER_ADEC_PCM,    /*!< PCM audio type, only support little endian */
+    ESP_MUXER_ADEC_MP3,    /*!< MP3 audio type */
+    ESP_MUXER_ADEC_ADPCM,  /*!< ADPCM audio type */
+    ESP_MUXER_ADEC_G711_A, /*!< G711 alaw audio type */
+    ESP_MUXER_ADEC_G711_U, /*!< G711 ulaw audio type */
+    ESP_MUXER_ADEC_AMR_NB, /*!< AMR-NB audio type */
+    ESP_MUXER_ADEC_AMR_WB, /*!< AMR-WB audio type */
 } esp_muxer_audio_codec_t;
 
 /**
