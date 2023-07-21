@@ -42,11 +42,11 @@ typedef struct {
 /**
  * @brief         Register muxer for MP4 container
  *
- * @return        -ESP_MEDIA_ERR_OK: Register ok
- *                -ESP_MEDIA_ERR_INVALID_ARG: Invalid input argument
- *                -ESP_MEDIA_ERR_NO_MEM: Memory not enough
+ * @return        -ESP_MUXER_ERR_OK: Register ok
+ *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
+ *                -ESP_MUXER_ERR_NO_MEM: Memory not enough
  */
-esp_media_err_t mp4_muxer_register(void);
+esp_muxer_err_t mp4_muxer_register(void);
 
 #ifdef __cplusplus
 }

@@ -18,5 +18,6 @@ jobs:
           directories: >
             esp_h264;
             esp_audio_codec;
+            esp_muxer;
           namespace: "espressif"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}

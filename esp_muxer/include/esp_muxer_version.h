@@ -1,7 +1,7 @@
 /*
  * ESPRESSIF MIT License
  *
- * Copyright (c) 2022 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2023 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
  *
  * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
  * it is free of charge, to any person obtaining a copy of this software and associated
@@ -22,30 +22,16 @@
  *
  */
 
-#ifndef FLV_MUXER_H
-#define FLV_MUXER_H
-
-#include "esp_muxer.h"
+#ifndef ESP_MUXER_VERSION_H
+#define ESP_MUXER_VERSION_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * @brief Flv muxer configuration
- */
-typedef struct {
-    esp_muxer_config_t base_config; /*!< Base configuration */
-} flv_muxer_config_t;
+#define ESP_MUXER_VERSION "1.0.0"
 
-/**
- * @brief         Register muxer for FLV container
- *
- * @return        -ESP_MUXER_ERR_OK: Register ok
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
- *                -ESP_MUXER_ERR_NO_MEM: Memory not enough
- */
-esp_muxer_err_t flv_muxer_register(void);
+const char *esp_muxer_get_version(void);
 
 #ifdef __cplusplus
 }
