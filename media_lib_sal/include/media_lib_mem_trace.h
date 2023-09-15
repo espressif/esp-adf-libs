@@ -63,12 +63,13 @@ typedef struct {
  * @brief      Memory library function pointers
  */
 typedef struct {
-    __media_lib_os_malloc      malloc;          /*!< Malloc wrapper */
-    __media_lib_os_free        free;            /*!< Free wrapper */
-    __media_lib_os_calloc      calloc;          /*!< Calloc wrapper */
-    __media_lib_os_realloc     realloc;         /*!< Realloc wrapper */
-    __media_lib_os_strdup      strdup;          /*!< Strdup wrapper */
-    __media_lib_os_stack_frame get_stack_frame; /*!< Get stack frame wrapper */
+    __media_lib_os_malloc            malloc;            /*!< Malloc wrapper */
+    __media_lib_os_free              free;              /*!< Free wrapper */
+    __media_lib_os_caps_malloc_align caps_malloc_align; /*!< Malloc align wrapper */
+    __media_lib_os_calloc            calloc;            /*!< Calloc wrapper */
+    __media_lib_os_realloc           realloc;           /*!< Realloc wrapper */
+    __media_lib_os_strdup            strdup;            /*!< Strdup wrapper */
+    __media_lib_os_stack_frame       get_stack_frame;   /*!< Get stack frame wrapper */
 } media_lib_mem_t;
 
 /**

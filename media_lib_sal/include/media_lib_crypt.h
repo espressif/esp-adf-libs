@@ -32,110 +32,158 @@ extern "C" {
 #endif
 
 /**
- * @brief     md5 init wrapper
+ * @brief     MD5 initialize wrapper
  *
- * @param[out]  ctx  md5 struct pointer
+ * @param[out]  ctx: MD5 struct pointer
  */
 void media_lib_md5_init(media_lib_md5_handle_t *ctx);
 
 /**
- * @brief     md5 deint wrapper
+ * @brief     MD5 resource free wrapper
  *
- * @param  ctx  md5 instance
+ * @param     ctx: MD5 instance
  */
 void media_lib_md5_free(media_lib_md5_handle_t ctx);
 
 /**
- * @brief     md5 start wrapper
+ * @brief     MD5 start wrapper
  *
- * @param  ctx  md5 instance
+ * @param     ctx: MD5 instance
  * 
  * @return      
- *              - 0: on success
- *              - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
- *              - Others: md5 init fail
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: MD5 init fail
  */
 int media_lib_md5_start(media_lib_md5_handle_t ctx);
 
 /**
- * @brief      md5 add input data
+ * @brief      MD5 add input data
  * 
- * @param      ctx     md5 instance
- * @param      input   input data
- * @param      len     input length
+ * @param      ctx: MD5 instance
+ * @param      input: Input data
+ * @param      len: Input data length
  * 
  * @return      
- *              - 0: on success
- *              - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
- *              - Others: md5 update fail
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: MD5 update fail
  */
 int media_lib_md5_update(media_lib_md5_handle_t ctx, const unsigned char *input, size_t len);
 
 /**
- * @brief      get md5 output
+ * @brief      Get MD5 output
  * 
- * @param      ctx     md5 instance
- * @param      output  md5 value of input
+ * @param      ctx: MD5 instance
+ * @param      output: MD5 output
  * 
  * @return      
- *              - 0: on success
- *              - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
  *              - Others: md5 finish fail
  */
 int media_lib_md5_finish(media_lib_md5_handle_t ctx, unsigned char output[16]);
 
 /**
- * @brief     sha256 init wrapper
+ * @brief     SHA256 initialize wrapper
  *
- * @param[out]  ctx  sha256 struct pointer
+ * @param[out]  ctx: SHA256 instance pointer
  */
 void media_lib_sha256_init(media_lib_sha256_handle_t *ctx);
 
 /**
- * @brief     sha256 deint wrapper
+ * @brief     SHA256 resource free wrapper
  *
- * @param  ctx  sha256 instance
+ * @param     ctx: SHA256 instance
  */
 void media_lib_sha256_free(media_lib_sha256_handle_t ctx);
 
 /**
- * @brief     sha256 start wrapper
+ * @brief     SHA256 start wrapper
  *
- * @param  ctx  sha256 instance
+ * @param     ctx: SHA256 instance
  * 
  * @return      
- *              - 0: on success
- *              - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
- *              - Others: sha256 start fail
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: SHA256 start fail
  */
 int media_lib_sha256_start(media_lib_sha256_handle_t ctx);
 
 /**
- * @brief      sha256 add input data
+ * @brief      SHA256 add input data
  * 
- * @param      ctx     sha256 instance
- * @param      input   input data
- * @param      len     input length
+ * @param      ctx: SHA256 instance
+ * @param      input: Input data
+ * @param      len: Input data length
  * 
  * @return      
- *              - 0: on success
- *              - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
- *              - Others: sha256 update fail
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: SHA256 update fail
  */
 int media_lib_sha256_update(media_lib_sha256_handle_t ctx, const unsigned char *input, size_t len);
 
 /**
- * @brief      get sha256 output
+ * @brief      Get SHA256 output
  * 
- * @param      ctx     sha256 instance
- * @param      output  sha256 value of input
+ * @param      ctx     SHA256 instance
+ * @param      output  SHA256 value of input
  * 
  * @return      
- *              - 0: on success
- *              - ESP_ERR_NOT_SUPPORTED: wrapper function not registered
- *              - Others: sha256 finish fail
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: SHA256 finish fail
  */
 int media_lib_sha256_finish(media_lib_sha256_handle_t ctx, unsigned char output[32]);
+
+/**
+ * @brief      AES initialize
+ *
+ * @param[out]  ctx: AES instance pointer
+ */
+void media_lib_aes_init(media_lib_aes_handle_t *ctx);
+
+/**
+ * @brief     AES resource free
+ *
+ * @param     ctx: AES instance
+ */
+void media_lib_aes_free(media_lib_aes_handle_t ctx);
+
+/**
+ * @brief     AES set key
+ *
+ * @param     ctx: AES instance
+ * @param     key: AES key
+ * @param     key_bits: Bitlength of key
+ * 
+ *  @return
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: AES set key fail
+ * 
+ */
+int media_lib_aes_set_key(media_lib_aes_handle_t ctx, uint8_t *key, uint8_t key_bits);
+
+/**
+ * @brief     AES-CBC encryption/decryption
+ *
+ * @note      
+ * @param     ctx: AES instance
+ * @param     decrypt_mode: Set `true` for decryption, `false` for encryption
+ * @param     iv: AES iv information (iv will be updated after each call it must be writable)
+ * @param     input: Input data to decrypt/encrypt
+ * @param     size: Data size
+ * @param     output: Output data
+ * 
+ *  @return      
+ *              - 0: On success
+ *              - ESP_ERR_NOT_SUPPORTED: Wrapper function not registered
+ *              - Others: Encrypt/decrypt fail
+ * 
+ */
+int media_lib_aes_crypt_cbc(media_lib_aes_handle_t ctx, bool decrypt_mode, uint8_t iv[16], uint8_t *input, size_t size, uint8_t *output);
 
 #ifdef __cplusplus
 }

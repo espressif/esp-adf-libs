@@ -50,6 +50,7 @@ int media_lib_get_mem_lib(media_lib_mem_t* mem_lib)
     }
     mem_lib->malloc = media_os_lib.malloc;
     mem_lib->free = media_os_lib.free;
+    mem_lib->caps_malloc_align = media_os_lib.caps_malloc_align;
     mem_lib->calloc = media_os_lib.calloc;
     mem_lib->realloc = media_os_lib.realloc;
     mem_lib->strdup = media_os_lib.strdup;
@@ -64,6 +65,7 @@ int media_lib_set_mem_lib(media_lib_mem_t* mem_lib)
     }
     media_os_lib.malloc = mem_lib->malloc;
     media_os_lib.free = mem_lib->free;
+    media_os_lib.caps_malloc_align = mem_lib->caps_malloc_align;
     media_os_lib.calloc = mem_lib->calloc;
     media_os_lib.realloc = mem_lib->realloc;
     media_os_lib.strdup = mem_lib->strdup;
@@ -83,6 +85,14 @@ void media_lib_free(void *buf)
     if (media_os_lib.free) {
         media_os_lib.free(buf);
     }
+}
+
+void *media_lib_caps_malloc_align(size_t align, size_t size, int caps)
+{
+    if (media_os_lib.caps_malloc_align) {
+        return media_os_lib.caps_malloc_align(align, size, caps);
+    }
+    return NULL;
 }
 
 void *media_lib_calloc(size_t num, size_t size)

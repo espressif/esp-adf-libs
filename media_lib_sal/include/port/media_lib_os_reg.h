@@ -39,6 +39,7 @@ typedef void (*__media_lib_os_free)(void* buf);
 typedef void* (*__media_lib_os_calloc)(size_t num, size_t size);
 typedef void* (*__media_lib_os_realloc)(void* buf, size_t size);
 typedef char* (*__media_lib_os_strdup)(const char* str);
+typedef void* (*__media_lib_os_caps_malloc_align)(size_t align, size_t size, int caps);
 typedef int (*__media_lib_os_stack_frame)(void** addr, int n);
 
 typedef void *media_lib_thread_handle_t;
@@ -79,6 +80,7 @@ typedef struct {
     __media_lib_os_calloc                  calloc;              /*!< calloc wrapper */
     __media_lib_os_realloc                 realloc;             /*!< realloc wrapper */
     __media_lib_os_strdup                  strdup;              /*!< strdup wrapper */
+    __media_lib_os_caps_malloc_align       caps_malloc_align;   /*!< malloc align by capabilities */
     __media_lib_os_stack_frame             get_stack_frame;     /*!< stack frame */
 
     __media_lib_os_thread_create           thread_create;       /*!< thread create wrapper */

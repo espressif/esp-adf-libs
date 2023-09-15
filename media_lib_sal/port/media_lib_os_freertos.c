@@ -36,7 +36,7 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "media_lib_adapter.h"
-#include "media_lib_os_reg.h"
+#include "media_lib_os.h"
 #include "esp_idf_version.h"
 
 #if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
@@ -70,6 +70,7 @@
 #define RISC_V_RET_CODE     (0x8082)
 
 #if CONFIG_SPIRAM_BOOT_INIT
+
 static void *_malloc_in_heap(size_t size)
 {
     return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -77,7 +78,7 @@ static void *_malloc_in_heap(size_t size)
 
 static void _free_in_heap(void *buf)
 { 
-    free(buf);
+    heap_caps_free(buf);
 }
 
 static void *_calloc_in_heap(size_t elm, size_t size)
@@ -108,6 +109,24 @@ static char *_strdup_in_heap(const char *str)
     return NULL;
 }
 #endif
+
+static void *_caps_malloc_align(size_t align, size_t size, int caps)
+{
+    uint32_t heap_caps = MALLOC_CAP_8BIT;
+    if (caps & MEDIA_LIB_MALLOC_CAP_IRAM) {
+        heap_caps |= MALLOC_CAP_INTERNAL;
+    }
+    if (caps &MEDIA_LIB_MALLOC_CAP_PSRAM) {
+        heap_caps |= MALLOC_CAP_SPIRAM;
+    }
+    if (caps & MEDIA_LIB_MALLOC_CAP_DMA) {
+        heap_caps |= MALLOC_CAP_DMA;
+    }
+    if (align <= 1) {
+        return heap_caps_malloc(size, heap_caps);
+    }
+    return heap_caps_aligned_alloc(align, size, heap_caps);
+}
 
 #if defined(CONFIG_SPIRAM_BOOT_INIT) &&                                        \
     (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY)
@@ -449,6 +468,7 @@ esp_err_t media_lib_add_default_os_adapter(void)
         .realloc = realloc,
         .strdup = strdup,
 #endif
+        .caps_malloc_align = _caps_malloc_align,
         .get_stack_frame = _get_stack_frame,
 
         .thread_create = _thread_create,
