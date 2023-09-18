@@ -25,6 +25,8 @@
 #ifndef __RECORDER_ENGINE_H__
 #define __RECORDER_ENGINE_H__
 
+#warning "This component has been deprecated, please refer to `audio_recorder` instead."
+
 #define REC_ONE_BLOCK_SIZE 2880     // 90ms[16k,16bit,1channel]
 
 #ifdef __cplusplus
