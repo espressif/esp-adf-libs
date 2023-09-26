@@ -33,6 +33,7 @@
  *
  */
 
+#include <math.h>
 #include <string.h>
 #include "esp_log.h"
 #include "esp_err.h"
@@ -845,8 +846,8 @@ esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, int *gain, i
         ESP_LOGE(TAG, "The gain is out (%d, %d) range", GAIN_MIN, GAIN_MAX);
         return ESP_ERR_INVALID_ARG;
     }
-    if ((int)(abs((gain[0] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5 //100 and 5 is to determine if two double numbers are equal.
-        && (int)(abs((gain[1] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5) {
+    if ((int)(fabs((gain[0] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5 //100 and 5 is to determine if two double numbers are equal.
+        && (int)(fabs((gain[1] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5) {
         return ESP_OK;
     }
     audio_forge->reflag |= ADUIO_FORGE_DM_RESTART;
@@ -984,7 +985,7 @@ esp_err_t audio_forge_sonic_set_speed(audio_element_handle_t self, float sonic_s
     if (!(audio_forge->component_select & AUDIO_FORGE_SELECT_SONIC)) {
         return ESP_OK;
     }
-    if ((int)(abs((sonic_speed - audio_forge->sonic_speed) * 100)) <= 5) {
+    if ((int)(fabs((sonic_speed - audio_forge->sonic_speed) * 100)) <= 5) {
         return ESP_OK;
     }
     audio_forge->reflag |= ADUIO_FORGE_SONIC_RESTART;
@@ -1009,7 +1010,7 @@ esp_err_t audio_forge_sonic_set_pitch(audio_element_handle_t self, float sonic_p
     if (!(audio_forge->component_select & AUDIO_FORGE_SELECT_SONIC)) {
         return ESP_OK;
     }
-    if ((int)(abs((sonic_pitch - audio_forge->sonic_pitch) * 100)) <= 5) {
+    if ((int)(fabs((sonic_pitch - audio_forge->sonic_pitch) * 100)) <= 5) {
         //100 and 5 is to determine if two double numbers are equal.
         return ESP_OK;
     }
