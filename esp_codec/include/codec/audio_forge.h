@@ -209,7 +209,7 @@ esp_err_t audio_forge_downmix_set_transit_time(audio_element_handle_t self, int 
 *             ESP_OK
 *             ESP_FAIL
 */
-esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, int *gain, int index);
+esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, float *gain, int index);
 
 /**
  * @brief     Setup volume of stream by the ALC
