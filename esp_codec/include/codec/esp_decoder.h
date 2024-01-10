@@ -21,6 +21,7 @@
 #include "auto_opus_dec.h"
 #include "auto_pcm_dec.h"
 #include "audio_type_def.h"
+#include "esp_id3_parse.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -61,6 +62,7 @@ typedef struct{
     int task_prio;                                                  /*!< Task priority (based on freeRTOS priority) */
     bool stack_in_ext;                                              /*!< Try to allocate stack in external memory */
     bool plus_enable;                                               /*!< Dynamically enable HE-AAC (v1 v2) decoding */
+    bool id3_parse_enable;                                          /*!< True: parse ID3. False: Don't parse ID3 */
 } esp_decoder_cfg_t;
 
 #define DEFAULT_ESP_WAV_DECODER_CONFIG()          \
@@ -141,7 +143,7 @@ typedef struct{
         .decoder_process = flac_decoder_process,   \
         .decoder_close = flac_decoder_close,       \
         .decoder_seek = flac_decoder_get_pos,      \
-        .decoder_type = ESP_CODEC_TYPE_FLAC,    \
+        .decoder_type = ESP_CODEC_TYPE_FLAC,       \
     }
 
 #define DEFAULT_ESP_PCM_DECODER_CONFIG()           \
@@ -161,6 +163,7 @@ typedef struct{
         .task_prio = ESP_DECODER_TASK_PRIO,         \
         .stack_in_ext = true,                       \
         .plus_enable = false,                       \
+        .id3_parse_enable = false,                  \
     }
 
 /**
@@ -175,6 +178,16 @@ typedef struct{
 * @return     The audio element handle
 */
 audio_element_handle_t esp_decoder_init(esp_decoder_cfg_t *config, audio_decoder_t *audio_decoder_list, int list_size);
+
+/**
+ * @brief      Get ID3 information
+ *
+ * @param      self         The audio element handle
+ * 
+ * @return     esp_id3_info_t: success
+ *             NULL: ID3 is not exist or memory aloocation failed.
+ */
+const esp_id3_info_t* esp_decoder_get_id3_info(audio_element_handle_t self);
 
 #ifdef __cplusplus
 }
