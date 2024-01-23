@@ -34,6 +34,7 @@
  */
 
 #include <string.h>
+#include <math.h>
 #include "esp_log.h"
 #include "esp_err.h"
 #include "audio_mem.h"
@@ -831,7 +832,7 @@ esp_err_t audio_forge_alc_get_volume(audio_element_handle_t self, int *volume)
     }
 }
 
-esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, int *gain, int index)
+esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, float *gain, int index)
 {
     audio_forge_t *audio_forge = (audio_forge_t *)audio_element_getdata(self);
     if (!(audio_forge->component_select & AUDIO_FORGE_SELECT_DOWNMIX)) {
@@ -845,13 +846,13 @@ esp_err_t audio_forge_downmix_set_gain(audio_element_handle_t self, int *gain, i
         ESP_LOGE(TAG, "The gain is out (%d, %d) range", GAIN_MIN, GAIN_MAX);
         return ESP_ERR_INVALID_ARG;
     }
-    if ((int)(abs((gain[0] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5 //100 and 5 is to determine if two double numbers are equal.
-        && (int)(abs((gain[1] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5) {
+    if ((int)(fabs((gain[0] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5 //100 and 5 is to determine if two double numbers are equal.
+        && (int)(fabs((gain[1] - audio_forge->downmix.source_info[index].gain[0]) * 100)) <= 5) {
         return ESP_OK;
     }
     audio_forge->reflag |= ADUIO_FORGE_DM_RESTART;
-    audio_forge->downmix.source_info[index].gain[0] = (float)gain[0];
-    audio_forge->downmix.source_info[index].gain[1] = (float)gain[1];
+    audio_forge->downmix.source_info[index].gain[0] = gain[0];
+    audio_forge->downmix.source_info[index].gain[1] = gain[1];
     return ESP_OK;
 }
 
