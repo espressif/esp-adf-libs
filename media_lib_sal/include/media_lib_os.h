@@ -32,8 +32,10 @@
 extern "C" {
 #endif
 
-#define MEDIA_LIB_MAX_LOCK_TIME (0xFFFFFFFF)
-
+#define MEDIA_LIB_MAX_LOCK_TIME       (0xFFFFFFFF)
+#define MEDIA_LIB_MALLOC_CAP_IRAM     (1 << 0)
+#define MEDIA_LIB_MALLOC_CAP_DMA      (1 << 1)
+#define MEDIA_LIB_MALLOC_CAP_PSRAM    (1 << 2)
 /**
  * @brief      Configuration for thread schedule
  */
@@ -69,6 +71,11 @@ void *media_lib_malloc(size_t size);
 void media_lib_free(void *buf);
 
 /**
+ * @brief      Wrapper for malloc alignment with capability
+ */
+void *media_lib_caps_malloc_align(size_t align, size_t size, int caps);
+
+/**
  * @brief      Wrapper for calloc
  */
 void *media_lib_calloc(size_t num, size_t size);
@@ -92,6 +99,11 @@ int media_lib_asprintf(char **str, const char *fmt, ...);
  * @brief      Module malloc
  */
 void *media_lib_module_malloc(const char* module, size_t size);
+
+/**
+ * @brief      Module malloc align with capability
+ */
+void *media_lib_module_caps_malloc_align(const char* module, size_t align, size_t size, int caps);
 
 /**
  * @brief      Module calloc

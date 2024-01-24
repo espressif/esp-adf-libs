@@ -15,6 +15,7 @@ my %address;
 my $load_spiffs = 0;
 my @spiffs_partition;
 my $app_name;
+my $addr2line_toolchain = "addr2line";
 
 my @os_file = (
     "media_lib_*.c",
@@ -26,6 +27,7 @@ my @os_file = (
 );
 
 get_args();
+guess_toolchain();
 check_spiffs();
 covert_os_file();
 parse_file();
@@ -93,6 +95,17 @@ sub get_args {
     }
 }
 
+sub guess_toolchain {
+    open(my $H, "build/CMakeCache.txt") || return;
+    while (<$H>) {
+        if (/CMAKE_ADDR2LINE:FILEPATH=(.*addr2line)/) {
+            $addr2line_toolchain = $1;
+            last;
+        }
+    }
+    close $H;
+}
+
 sub covert_os_file {
     map{s/\./\\./} @os_file;
     map{s/\*/.*?/} @os_file;
@@ -112,7 +125,7 @@ sub is_os_file {
 sub add_symbol {
     my $addr = shift;
     return if (exists $symbol{$addr});
-    my $func = `addr2line -e $elf $addr`;
+    my $func = `$addr2line_toolchain -e $elf $addr`;
     if ($func =~/\//) {
         $func = short_path($func);
     }
@@ -120,13 +133,14 @@ sub add_symbol {
         print "Find $addr mapped to func $func\n";
         $search_addr = $addr;                     
     }
-    if (!is_os_file($func) && 
-       ($func =~/esp-adf[-\w]+\/(.*?):(\d+)/ || 
+    if (($func =~/esp-adf[-\w]+\/(.*?):(\d+)/ || 
         $func =~/esp-idf\/(.*?):(\d+)/ ||
         $func =~/esp-adf-libs-source\/(.*?):(\d+)/)) {
         $symbol{$addr} = ["root/$1", $2];
     }
-    else {
+    elsif (/(\w+.*):(\d+)/){
+        $symbol{$addr} = ["root/$1", $2];
+    } else {
         $symbol{$addr} = [];
     }
 }
@@ -135,6 +149,7 @@ sub parse_all_pc {
     my @stack = @_;
     my $search_in_stack = 0;
     my $sel_symbol;
+    
     for my $addr(@stack) {
         add_symbol($addr);
         #get parent call
@@ -148,8 +163,12 @@ sub parse_all_pc {
             next unless ($search_in_stack);
         }
         if ($#{$symbol{$addr}} > 0) {
-            $sel_symbol = $symbol{$addr};
-            last;
+            # not os file or last stack
+            if ($addr eq $stack[$#stack] ||
+                !is_os_file($symbol{$addr}->[0])) {
+                $sel_symbol = $symbol{$addr};
+                last;
+            }
         }
     }
     unless ($sel_symbol) {

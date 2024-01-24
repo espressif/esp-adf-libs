@@ -255,7 +255,7 @@ static void remove_trace_item(mem_trace_item_t *item)
     if (mem_trace->trace_item_num) {
         mem_trace->trace_item_num--;
         mem_trace_item_t *tail = (mem_trace_item_t *) (trace_arr + mem_trace->trace_item_num * item_size);
-        *item = *tail;
+        memcpy(item, tail, item_size);
         memset(tail, 0, sizeof(mem_trace_item_t));
     }
 }
@@ -300,6 +300,15 @@ static __attribute__((always_inline)) inline void remove_trace(void *ptr)
 static void *_malloc(size_t size)
 {
     void *ptr = mem_trace->kept.malloc(size);
+    if (ptr) {
+        add_trace(NULL, ptr, size, 0);
+    }
+    return ptr;
+}
+
+static void *_malloc_align(size_t align, size_t size, int caps)
+{
+    void *ptr = mem_trace->kept.caps_malloc_align(align, size, caps);
     if (ptr) {
         add_trace(NULL, ptr, size, 0);
     }
@@ -351,6 +360,18 @@ void *media_lib_module_malloc(const char *module, size_t size)
         return media_lib_malloc(size);
     }
     void *ptr = mem_trace->kept.malloc(size);
+    if (ptr) {
+        add_trace(module, ptr, size, 0);
+    }
+    return ptr;
+}
+
+void *media_lib_module_caps_malloc_align(const char* module, size_t align, size_t size, int caps)
+{
+    if (trace_cfg.trace_type == MEDIA_LIB_MEM_TRACE_NONE) {
+        return media_lib_caps_malloc_align(align, size, caps);
+    }
+    void *ptr = mem_trace->kept.caps_malloc_align(align, size, caps);
     if (ptr) {
         add_trace(module, ptr, size, 0);
     }
@@ -453,6 +474,7 @@ int media_lib_start_mem_trace(media_lib_mem_trace_cfg_t *cfg)
         trace_cfg.record_num = n;
         mem_lib.malloc = _malloc;
         mem_lib.free = _free;
+        mem_lib.caps_malloc_align = _malloc_align,
         mem_lib.calloc = _calloc;
         mem_lib.realloc = _realloc;
         mem_lib.strdup = _strdup;
