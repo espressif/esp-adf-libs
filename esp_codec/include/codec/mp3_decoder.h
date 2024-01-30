@@ -7,6 +7,7 @@
 #include "esp_err.h"
 #include "audio_element.h"
 #include "audio_common.h"
+#include "esp_id3_parse.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,17 +24,19 @@ extern "C" {
     .task_core          = MP3_DECODER_TASK_CORE,        \
     .task_prio          = MP3_DECODER_TASK_PRIO,        \
     .stack_in_ext       = true,                         \
+    .id3_parse_enable   = false,                        \
 }
 
 /**
  * @brief      Mp3 Decoder configuration
  */
 typedef struct {
-    int                     out_rb_size;    /*!< Size of output ringbuffer */
-    int                     task_stack;     /*!< Task stack size */
-    int                     task_core;      /*!< CPU core number (0 or 1) where decoder task in running */
-    int                     task_prio;      /*!< Task priority (based on freeRTOS priority) */
-    bool                    stack_in_ext;   /*!< Try to allocate stack in external memory */
+    int                     out_rb_size;       /*!< Size of output ringbuffer */
+    int                     task_stack;        /*!< Task stack size */
+    int                     task_core;         /*!< CPU core number (0 or 1) where decoder task in running */
+    int                     task_prio;         /*!< Task priority (based on freeRTOS priority) */
+    bool                    stack_in_ext;      /*!< Try to allocate stack in external memory */
+    bool                    id3_parse_enable;  /*!< True: parse ID3. False: Don't parse ID3 */
 } mp3_decoder_cfg_t;
 
 /**
@@ -44,6 +47,16 @@ typedef struct {
  * @return     The audio element handle
  */
 audio_element_handle_t mp3_decoder_init(mp3_decoder_cfg_t *config);
+
+/**
+ * @brief      Get ID3 information
+ *
+ * @param      self         The audio element handle
+ * 
+ * @return     esp_id3_info_t: success
+ *             NULL: ID3 is not exist or memory aloocation failed.
+ */
+const esp_id3_info_t* mp3_decoder_get_id3_info(audio_element_handle_t self);
 
 #ifdef __cplusplus
 }
