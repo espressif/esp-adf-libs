@@ -39,11 +39,12 @@ typedef struct {
 } wav_muxer_config_t;
 
 /**
- * @brief         Register muxer for WAV container
+ * @brief Register muxer for WAV container
  *
- * @return        -ESP_MUXER_ERR_OK: Register ok
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
- *                -ESP_MUXER_ERR_NO_MEM: Memory not enough
+ * @return
+ *      - ESP_MUXER_ERR_OK: Register ok
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
+ *      - ESP_MUXER_ERR_NO_MEM: Memory not enough
  */
 esp_muxer_err_t wav_muxer_register(void);
 

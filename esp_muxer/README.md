@@ -18,18 +18,20 @@ It is suitable for applications such as personal video recorder, HLS media segme
 
 ## Supported Containers and Codecs
 
-|           | MP4  | TS   | FLV  | WAV  |
-| :-------- | :--- | :--- | :--- | :--- |
-| PCM       | Y    | N    | Y    | Y    |
-| AAC       | Y    | Y    | Y    | Y    |
-| MP3       | Y    | Y    | Y    | Y    |
-| ADPCM     | N    | N    | N    | Y    |
-| G711 Alaw | N    | N    | N    | Y    |
-| G711 Ulaw | N    | N    | N    | Y    |
-| AMR-NB    | N    | N    | N    | Y    |
-| AMR-WB    | N    | N    | N    | Y    |
-| H264      | Y    | Y    | Y    | N    |
-| MJPEG     | Y    | Y    | Y    | N    |
+|           | MP4  | TS   | FLV  | WAV  | CAF  | OGG  |
+| :-------- | :--- | :--- | :--- | :--- | :--- | :--- |
+| PCM       | Y    | N    | Y    | Y    | Y    | N    |
+| AAC       | Y    | Y    | Y    | Y    | Y    | N    |
+| MP3       | Y    | Y    | Y    | Y    | N    | N    |
+| ADPCM     | N    | N    | N    | Y    | Y    | N    |
+| G711 Alaw | N    | N    | N    | Y    | Y    | N    |
+| G711 Ulaw | N    | N    | N    | Y    | Y    | N    |
+| AMR-NB    | N    | N    | N    | Y    | N    | N    |
+| AMR-WB    | N    | N    | N    | Y    | N    | N    |
+| OPUS      | N    | N    | N    | N    | N    | Y    |
+| ALAC      | N    | N    | N    | N    | Y    | N    |
+| H264      | Y    | Y    | Y    | N    | N    | N    |
+| MJPEG     | Y    | Y    | Y    | N    | N    | N    |
 
 Notes:
     Since TS and FLV do not officially support MJPEG, MJPEG support for TS and FLV is added using the following methods:
@@ -230,9 +232,73 @@ int simple_muxer_test()
 }
 ```
 
-## Change Log
+The following example demonstrates how to do write speed test using `esp_muxer`.
+```c
+#include "esp_muxer.h"
+#include "mp4_muxer.h"
+#include "esp_timer.h"
 
+static int file_pattern_cb(char *file_name, int len, int slice_idx)
+{
+    snprintf(file_name, len, "/sdcard/st.mp4");
+    return 0;
+}
 
-### Version 1.0.0
+static int muxer_speed_test(int cache_size, int duration)
+{
+    mp4_muxer_config_t cfg = {0};
+    esp_muxer_config_t *base_cfg = &cfg.base_config;
+    base_cfg->muxer_type = ESP_MUXER_TYPE_MP4;
+    base_cfg->url_pattern = file_pattern_cb;
+    base_cfg->slice_duration = duration + 1000;
+    base_cfg->ram_cache_size = cache_size;
+    cfg.display_in_order = true;
+    cfg.moov_before_mdat = true;
+    mp4_muxer_register();
+    esp_muxer_handle_t muxer = esp_muxer_open(base_cfg, sizeof(mp4_muxer_config_t));
+    esp_muxer_audio_stream_info_t audio_stream = {
+        .min_packet_duration = 15,
+        .bits_per_sample = 16,
+        .sample_rate = 44100,
+        .channel = 2,
+        .codec = ESP_MUXER_ADEC_PCM,
+    };
+    int stream_idx = 0;
+    int ret = esp_muxer_add_audio_stream(muxer, &audio_stream, &stream_idx);
+    int write_size = 100 * 1024;
+    uint8_t *pcm_data = (uint8_t *) malloc(100 * 1024);
+    int start_time = (int) (esp_timer_get_time() / 1000);
+    int end_time = start_time;
+    int total_write_size = 0;
+    while (end_time < start_time + duration) {
+        esp_muxer_audio_packet_t audio_packet = {
+            .data = pcm_data,
+            .len = write_size,
+        };
+        audio_packet.pts = end_time - start_time;
+        total_write_size += write_size;
+        int ret = esp_muxer_add_audio_packet(muxer, stream_idx, &audio_packet);
+        end_time = (int) (esp_timer_get_time() / 1000);
+        if (ret != 0) {
+            break;
+        }
+    }
+    int elapse = end_time - start_time;
+    printf("Cache %d write %d/%d = %d\n", cache_size, total_write_size, elapse,
+           (int) ((uint64_t) total_write_size * 1000 / elapse));
+    free(pcm_data);
+    esp_muxer_close(muxer);
+    return 0;
+}
 
-- Added the support for MP4, TS, FLV, and WAV containers
+static void speed_test(void)
+{
+    muxer_speed_test(0, 30000);
+    muxer_speed_test(1024, 30000);
+    muxer_speed_test(4096, 30000);
+    muxer_speed_test(8192, 30000);
+    muxer_speed_test(16 * 1024, 30000);
+    muxer_speed_test(32 * 1024, 30000);
+    muxer_speed_test(64 * 1024, 30000);
+}
+```
