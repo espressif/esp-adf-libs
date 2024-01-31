@@ -45,6 +45,8 @@ typedef enum {
     ESP_MUXER_TYPE_MP4, /*!< Muxer to MP4 */
     ESP_MUXER_TYPE_FLV, /*!< Muxer to FLV */
     ESP_MUXER_TYPE_WAV, /*!< Muxer to WAV */
+    ESP_MUXER_TYPE_CAF, /*!< Muxer to CAF */
+    ESP_MUXER_TYPE_OGG, /*!< Muxer to OGG */
     ESP_MUXER_TYPE_MAX,
 } esp_muxer_type_t;
 
@@ -77,11 +79,15 @@ typedef int (*muxer_data_callback)(esp_muxer_data_info_t* data, void* ctx);
 typedef struct {
     esp_muxer_type_t    muxer_type;     /*!< Muxer container type */
     uint32_t            slice_duration; /*!< Muxer file segment duration, unit millisecond */
-    muxer_url_pattern   url_pattern;    /*!< Muxer file path pattern callback */
+    muxer_url_pattern   url_pattern;    /*!< Muxer file path pattern callback for each segment */
     muxer_data_callback data_cb;        /*!< Muxer output callback can be coexist with url pattern.
                                              It is suitable for living stream scenario.
                                              When use MP4 muxer, please do not set. */
     void*               ctx;            /*!< Muxer output callback context */
+    uint32_t            ram_cache_size; /*!< The file system has better performance when writing with aligned internal RAM.
+                                             Whereas typically provided stream data can't meet this requirement, so extra RAM cache is imported
+                                             Optimized cache size setting differs with different card, recommend to use 16K or above.
+                                             To finetune it, user can do speed test firstly (take `README.md` for reference) */
 } esp_muxer_config_t;
 
 /**
@@ -115,6 +121,8 @@ typedef enum {
     ESP_MUXER_ADEC_G711_U, /*!< G711 ulaw audio type */
     ESP_MUXER_ADEC_AMR_NB, /*!< AMR-NB audio type */
     ESP_MUXER_ADEC_AMR_WB, /*!< AMR-WB audio type */
+    ESP_MUXER_ADEC_ALAC,   /*!< ALAC audio type */
+    ESP_MUXER_ADEC_OPUS,   /*!< OPUS audio type */
 } esp_muxer_audio_codec_t;
 
 /**
@@ -194,23 +202,24 @@ typedef struct {
 } esp_muxer_reg_info_t;
 
 /**
- * @brief         Register muxer for certain container type
+ * @brief Register muxer for certain container type
  *
  * @param         type: Muxer type
  * @param         reg_info: Register function table
- * @return        -ESP_MUXER_ERR_OK: Register ok or already registered
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
- *                -ESP_MUXER_ERR_NO_MEM: Memory not enough
+ * @return
+ *      - ESP_MUXER_ERR_OK: Register ok or already registered
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input argument
+ *      - ESP_MUXER_ERR_NO_MEM: Memory not enough
  */
 esp_muxer_err_t esp_muxer_reg(esp_muxer_type_t type, esp_muxer_reg_info_t* reg_info);
 
 /**
- * @brief         Unregister for all container type
+ * @brief Unregister for all container type
  */
 void esp_muxer_unreg_all(void);
 
 /**
- * @brief         Open muxer
+ * @brief Open muxer
  *
  * @param         cfg: Muxer configuration
  * @param         size: Sizeof configuration, need set according size of related muxer type
@@ -219,74 +228,80 @@ void esp_muxer_unreg_all(void);
 esp_muxer_handle_t esp_muxer_open(esp_muxer_config_t* cfg, uint32_t size);
 
 /**
- * @brief         Set file writer for muxer to storage output data
- *                This function is specially used for customizing write file behavior.
- *                When not provided, it will use default function internally.
+ * @brief Set file writer for muxer to storage output data
+ * This function is specially used for customizing write file behavior.
+ * When not provided, it will use default function internally.
  *
  * @param         muxer: Muxer handle
  * @param         writer: File writer function table
- * @return        -ESP_MUXER_ERR_OK: On success
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid writer settings
+ * @return
+ *      - ESP_MUXER_ERR_OK: On success
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid writer settings
  */
 esp_muxer_err_t esp_muxer_set_file_writer(esp_muxer_handle_t muxer, esp_muxer_file_writer_t* writer);
 
 /**
- * @brief         Add video stream to muxer
+ * @brief Add video stream to muxer
  *
  * @param         muxer: Muxer handle
  * @param         video_info: Video stream information to add
  * @param[out]    stream_index: Output stream index used to identify which video stream, used later for adding video packet
- * @return        -ESP_MUXER_ERR_OK: On success
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid settings
- *                - Others: Fail to add video stream
+ * @return
+ *      - ESP_MUXER_ERR_OK: On success
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid settings
+ *      - Others: Fail to add video stream
  */
 esp_muxer_err_t esp_muxer_add_video_stream(esp_muxer_handle_t muxer, esp_muxer_video_stream_info_t* video_info, int* stream_index);
 
 /**
- * @brief         Add audio stream to muxer
+ * @brief Add audio stream to muxer
  *
  * @param         muxer: Muxer handle
  * @param         audio_info: Audio stream information to add
  * @param[out]    stream_index: Output stream index used to identify which audio stream, used later for adding audio packet
- * @return        -ESP_MUXER_ERR_OK: On success
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid settings
- *                - Others: Fail to add audio stream
+ * @return
+ *      - ESP_MUXER_ERR_OK: On success
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid settings
+ *      - Others: Fail to add audio stream
  */
 esp_muxer_err_t esp_muxer_add_audio_stream(esp_muxer_handle_t muxer, esp_muxer_audio_stream_info_t* audio_info, int* stream_index);
 
 /**
- * @brief         Add video packet data to muxer
+ * @brief Add video packet data to muxer
  *
  * @param         muxer: Muxer handle
  * @param         stream_index: Stream index to distinguish which video stream
  * @param         packet: Video packet to be muxed
- * @return        -ESP_MUXER_ERR_OK: Success to add video packet
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
- *                - Others: Fail to add video packet
+ * @return
+ *      - ESP_MUXER_ERR_OK: Success to add video packet
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
+ *      - Others: Fail to add video packet
  */
 esp_muxer_err_t esp_muxer_add_video_packet(esp_muxer_handle_t muxer, int stream_index,
                                            esp_muxer_video_packet_t* packet);
 
 /**
- * @brief         Add audio packet data to muxer
+ * @brief Add audio packet data to muxer
  *
  * @param         muxer: Muxer handle
  * @param         stream_index: Stream index to distinguish which audio stream
  * @param         packet: Audio packet to be muxed
- * @return        -ESP_MUXER_ERR_OK: Success to add audio packet
- *                -ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
- *                - Others: Fail to add audio packet
+ * @return
+ *      - ESP_MUXER_ERR_OK: Success to add audio packet
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
+ *      - Others: Fail to add audio packet
  */
 esp_muxer_err_t esp_muxer_add_audio_packet(esp_muxer_handle_t muxer, int stream_index,
                                            esp_muxer_audio_packet_t* packet);
 
 /**
- * @brief         Close muxer
+ * @brief Close muxer
  *
  * @param         muxer: Muxer handle
- * @return        -ESP_MUXER_ERR_OK: On success
-  *               -ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
- *                - Others: Fail to close
+ * @return
+ *      - ESP_MUXER_ERR_OK: On success
+ *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
+ *      - Others: Fail to close
  */
 esp_muxer_err_t esp_muxer_close(esp_muxer_handle_t muxer);
 
