@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#define ESP_MUXER_VERSION "1.1.0"
+#define ESP_MUXER_VERSION "1.1.1"
 
 /**
  *  Features:
@@ -49,6 +49,12 @@ extern "C" {
  *     - Add CAF, OGG container support
  *     - Add ALAC and OPUS new audio codec support
  *     - Support write to storage use aligned RAM cache to increase write speed through `ram_cache_size`
+ * 
+ *     v1.1.1:
+ *     - Add key frame parser for H264 (in case that `key_frame` flag not set correctly)
+ *       User can disable it by set `no_key_frame_verify`
+ *     - Always write file slice on key frame boundary (for H264) to avoid lost data during decoding
+ * 
  */
 const char *esp_muxer_get_version(void);
 

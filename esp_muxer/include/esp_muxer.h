@@ -77,17 +77,19 @@ typedef int (*muxer_data_callback)(esp_muxer_data_info_t* data, void* ctx);
  *        Ex: when use MP4 muxer should use `mp4_muxer_config_t` instead
  */
 typedef struct {
-    esp_muxer_type_t    muxer_type;     /*!< Muxer container type */
-    uint32_t            slice_duration; /*!< Muxer file segment duration, unit millisecond */
-    muxer_url_pattern   url_pattern;    /*!< Muxer file path pattern callback for each segment */
-    muxer_data_callback data_cb;        /*!< Muxer output callback can be coexist with url pattern.
-                                             It is suitable for living stream scenario.
-                                             When use MP4 muxer, please do not set. */
-    void*               ctx;            /*!< Muxer output callback context */
-    uint32_t            ram_cache_size; /*!< The file system has better performance when writing with aligned internal RAM.
-                                             Whereas typically provided stream data can't meet this requirement, so extra RAM cache is imported
-                                             Optimized cache size setting differs with different card, recommend to use 16K or above.
-                                             To finetune it, user can do speed test firstly (take `README.md` for reference) */
+    esp_muxer_type_t    muxer_type;          /*!< Muxer container type */
+    uint32_t            slice_duration;      /*!< Muxer file segment duration, unit millisecond */
+    muxer_url_pattern   url_pattern;         /*!< Muxer file path pattern callback for each segment */
+    muxer_data_callback data_cb;             /*!< Muxer output callback can be coexist with url pattern.
+                                                  It is suitable for living stream scenario.
+                                                  When use MP4 muxer, please do not set. */
+    void*               ctx;                 /*!< Muxer output callback context */
+    uint32_t            ram_cache_size;      /*!< The file system has better performance when writing with aligned internal RAM.
+                                                  Whereas typically provided stream data can't meet this requirement, so extra RAM cache is imported
+                                                  Optimized cache size setting differs with different card, recommend to use 16K or above.
+                                                  To finetune it, user can do speed test firstly (take `README.md` for reference) */
+    bool                no_key_frame_verify; /*!< Whether disable internal logic to verify video packet is key frame or not
+                                                  Internal parse logic is used to correct the `key_frame` flag when not set by user */                                          
 } esp_muxer_config_t;
 
 /**
