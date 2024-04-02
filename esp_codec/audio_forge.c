@@ -395,6 +395,13 @@ esp_err_t audio_forge_destroy(audio_element_handle_t self)
         audio_free(audio_forge->equalizer_gain);
         audio_forge->equalizer_gain = NULL;
     }
+    if (audio_forge->lock) {
+        // wait for lock
+        mutex_lock(audio_forge->lock);
+        mutex_unlock(audio_forge->lock);
+        mutex_destroy(audio_forge->lock);
+        audio_forge->lock = NULL;
+    }
     audio_free(audio_forge);
     AUDIO_MEM_SHOW(TAG);
     audio_forge = NULL;
@@ -450,10 +457,6 @@ esp_err_t audio_forge_close(audio_element_handle_t self)
         fclose(out_file);
     }
 #endif
-    if (audio_forge->lock) {
-        mutex_destroy(audio_forge->lock);
-        audio_forge->lock = NULL;
-    } 
     if (audio_forge->outbuf != NULL) {
         audio_free(audio_forge->outbuf);
         audio_forge->outbuf = NULL;
