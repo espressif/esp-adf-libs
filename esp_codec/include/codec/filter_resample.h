@@ -43,25 +43,26 @@ typedef struct {
 #define RSP_FILTER_TASK_PRIO                (5)
 #define RSP_FILTER_RINGBUFFER_SIZE          (2 * 1024)
 
-#define DEFAULT_RESAMPLE_FILTER_CONFIG() {          \
-        .src_rate = 44100,                          \
-        .src_ch = 2,                                \
-        .src_bits = 16,                             \
-        .dest_rate = 48000,                         \
-        .dest_ch = 2,                               \
-        .dest_bits = 16,                            \
-        .mode = RESAMPLE_DECODE_MODE,               \
-        .max_indata_bytes = RSP_FILTER_BUFFER_BYTE, \
-        .out_len_bytes = RSP_FILTER_BUFFER_BYTE,    \
-        .type = ESP_RESAMPLE_TYPE_AUTO,             \
-        .complexity = 2,                            \
-        .down_ch_idx = 0,                           \
-        .prefer_flag = ESP_RSP_PREFER_TYPE_SPEED,   \
-        .out_rb_size = RSP_FILTER_RINGBUFFER_SIZE,  \
-        .task_stack = RSP_FILTER_TASK_STACK,        \
-        .task_core = RSP_FILTER_TASK_CORE,          \
-        .task_prio = RSP_FILTER_TASK_PRIO,          \
-        .stack_in_ext = true,                       \
+#define DEFAULT_RESAMPLE_FILTER_CONFIG()          \
+    {                                             \
+      .src_rate = 44100,                          \
+      .src_ch = 2,                                \
+      .dest_rate = 48000,                         \
+      .dest_bits = 16,                            \
+      .dest_ch = 2,                               \
+      .src_bits = 16,                             \
+      .mode = RESAMPLE_DECODE_MODE,               \
+      .max_indata_bytes = RSP_FILTER_BUFFER_BYTE, \
+      .out_len_bytes = RSP_FILTER_BUFFER_BYTE,    \
+      .type = ESP_RESAMPLE_TYPE_AUTO,             \
+      .complexity = 2,                            \
+      .down_ch_idx = 0,                           \
+      .prefer_flag = ESP_RSP_PREFER_TYPE_SPEED,   \
+      .out_rb_size = RSP_FILTER_RINGBUFFER_SIZE,  \
+      .task_stack = RSP_FILTER_TASK_STACK,        \
+      .task_core = RSP_FILTER_TASK_CORE,          \
+      .task_prio = RSP_FILTER_TASK_PRIO,          \
+      .stack_in_ext = true,                       \
     }
 
 /**
