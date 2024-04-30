@@ -1,7 +1,7 @@
-/*
+/**
  * ESPRESSIF MIT License
  *
- * Copyright (c) 2023-2026 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
  *
  * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
  * it is free of charge, to any person obtaining a copy of this software and associated
@@ -22,37 +22,41 @@
  *
  */
 
-#ifndef ESP_AUDIO_VERSION_H
-#define ESP_AUDIO_VERSION_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- *  Features:
- *     - Support encoder: AAC-LC, AMR-NB, AMR-WB, ADPCM, G711a, G711u, OPUS, PCM
- *     - Support encoding bit per sample: 16 bit
- *     - Support register encoder for certain audio type
- *     - Support create multiple encoder handles to encode multi-stream
- * 
- *  To be implemented:
- *     - To support decoder process
- * 
+ *  Encoder Features:
+ *       - Support encoder: AAC-LC, AMR-NB, AMR-WB, ADPCM, G711a, G711u, OPUS, PCM, ALAC
+ *       - Support encoding bit per sample: 16 bit
+ *       - Support register encoder for certain audio type
+ *       - Support create multiple encoder handles to encode multi-stream
+ *
+ *  Decoder features:
+ *       - Support decoder: AAC, ADPCM, ALAC, AMR-NB, AMR-WB, G711a, G711u, MP3, OPUS, VORBIRS
+ *       - Support register customized decoder
+ *       - Support frame decoder only, user need guarantee input data is one or multiple whole frames
+ *
  *  Release Notes:
  *     v1.0.0:
- *     - Add AAC-LC, AMR-NB, AMR-WB, ADPCM, G711a, G711u, OPUS, PCM encoding support
- *     - Add a common encoder interface to register encoder for certain audio type
- *     - Support create multiple encoder handles to encode multi-stream
+ *       - Add AAC-LC, AMR-NB, AMR-WB, ADPCM, G711a, G711u, OPUS, PCM encoding support
+ *       - Add a common encoder interface to register encoder for certain audio type
+ *       - Support create multiple encoder handles to encode multi-stream
+ *
+ *     v2.0.0:
+ *       - Add decoder support
+ *       - Add common decoder interface to operate registered decoder
+ *       - Add ALAC encoder support
  */
 
 /**
- * @brief         Get audio codec version string
+ * @brief  Get audio codec version string
  */
-const char *esp_audio_codec_get_version();
+const char *esp_audio_codec_get_version(void);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
