@@ -29,6 +29,8 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+
 typedef struct _esp_rtc_handle *esp_rtc_handle_t;
 
 /**
