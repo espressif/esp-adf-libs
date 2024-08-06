@@ -38,10 +38,17 @@ extern "C" {
  *     - Support md5 digest authentication
  *     - Support Freeswitch and FreePBX, etc
  *
- *  To be implemented:
- *     - To support AAC
+ *  Release Notes:
+ *     v1.2.0:
+ *     - Rename `esp_rtc_init` to `esp_rtc_service_init` to avoid conflict with IDF `esp_system`
+ *     - Rename `esp_rtc_deinit` to `esp_rtc_service_deinit`
+ *     - Add `__esp_rtc_receive_dtmf` callback to receive raw DTMF out band data
+ *     - Extent API `esp_rtc_send_dtmf` to customized send DTMF duration and volume
+ *     - Fix SIP invite response not contain SDP, if invite received multiple times
+ *     - Dynamic allocate buffer to hold and parse UPNP XML data (support big XML)
+ * 
  */
-#define ESP_RTC_VERSION "1.1.0"
+#define ESP_RTC_VERSION "1.2.0"
 
 #ifdef __cplusplus
 }
