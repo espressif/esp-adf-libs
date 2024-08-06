@@ -103,8 +103,10 @@ typedef struct {
  * UPnP Service configurations
  */
 typedef struct {
-    void            *user_ctx;  /*!< User context, it will be passed to the action & attribute callback */
-    httpd_handle_t  httpd;      /*!< HTTPD handle need to be register the service */
+    void            *user_ctx;        /*!< User context, it will be passed to the action & attribute callback */
+    httpd_handle_t  httpd;            /*!< HTTPD handle need to be register the service */
+    uint32_t        max_tx_buf_size;  /*!< Maximum transmit fifo size (default 16k if set to 0) */
+    uint32_t        max_rx_buf_size;  /*!< Maximum receive fifo size (default 16k if set to 0) */
 } upnp_service_config_t;
 
 /**

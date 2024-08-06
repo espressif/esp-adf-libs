@@ -25,6 +25,8 @@
 #ifndef _ESP_RTC_H_
 #define _ESP_RTC_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -72,6 +74,7 @@ typedef int (*__esp_rtc_send_audio)(unsigned char *data, int len, void *ctx);
 typedef int (*__esp_rtc_receive_audio)(unsigned char *data, int len, void *ctx);
 typedef int (*__esp_rtc_send_video)(unsigned char *data, unsigned int *len, void *ctx);
 typedef int (*__esp_rtc_receive_video)(unsigned char *data, int len, void *ctx);
+typedef int (*__esp_rtc_receive_dtmf)(unsigned char *data, int len, void *ctx);
 
 /**
  * @brief RTC session data callback
@@ -83,6 +86,7 @@ typedef struct {
     __esp_rtc_receive_audio     receive_audio;
     __esp_rtc_send_video        send_video;
     __esp_rtc_receive_video     receive_video;
+    __esp_rtc_receive_dtmf      receive_dtmf;
 } esp_rtc_data_cb_t;
 
 /**
@@ -127,7 +131,7 @@ typedef struct {
  *
  * @return     The rtc handle if successfully created, NULL on error
  */
-esp_rtc_handle_t esp_rtc_init(esp_rtc_config_t *config);
+esp_rtc_handle_t esp_rtc_service_init(esp_rtc_config_t *config);
 
 /**
  * @brief      Start a rtc session
@@ -185,19 +189,21 @@ int esp_rtc_bye(esp_rtc_handle_t esp_rtc);
  *     - ESP_OK on success
  *     - ESP_ERR_INVALID_ARG on wrong handle
  */
-int esp_rtc_deinit(esp_rtc_handle_t esp_rtc);
+int esp_rtc_service_deinit(esp_rtc_handle_t esp_rtc);
 
 /**
  * @brief      Send DTMF event ( Only support out band method (RFC2833) )
  *
  * @param[in]  esp_rtc      The rtc handle
  * @param[in]  dtmf_event   DTMF event ID (0-15)
- *s
+ * @param[in]  volume       Tone volume
+ * @param[in]  duration     Tone last duration (unit ms)
+ * 
  * @return
  *     - ESP_OK on success
  *     - ESP_ERR_INVALID_ARG on wrong handle
  */
-int esp_rtc_send_dtmf(esp_rtc_handle_t esp_rtc, uint8_t dtmf_event);
+int esp_rtc_send_dtmf(esp_rtc_handle_t esp_rtc, uint8_t dtmf_event, uint8_t volume, uint16_t duration);
 
 /**
  * @brief      Set private header
