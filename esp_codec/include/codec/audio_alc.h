@@ -27,72 +27,77 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  /* __cplusplus */
 
 /**
- * @brief      ALC Configuration
+ * @brief  ALC Configuration
  */
 typedef struct {
-    int volume;                         /*!< The volume to be set to; The default is 0. 0 means the original valume of input stream. If the value is -64, the volume of input stream is silent. */
-    int channel;                        /*!< The number of channels for input stream */
-    int out_rb_size;                    /*!< Size of output ringbuffer */
-    int task_stack;                     /*!< Task stack size */
-    int task_core;                      /*!< Task running in core (0 or 1) */
-    int task_prio;                      /*!< Task priority (based on freeRTOS priority) */
-    bool stack_in_ext;                  /*!< Try to allocate stack in external memory */
+    int  volume;        /*!< The volume to be set to; The default is 0. 0 means the original valume of input stream.
+                             If the value is -64, the volume of input stream is silent */
+    int  channel;       /*!< The number of channels for input stream. Only support mono and stereo */
+    int  out_rb_size;   /*!< Size of output ringbuffer */
+    int  task_stack;    /*!< Task stack size */
+    int  task_core;     /*!< Task running in core (0 or 1) */
+    int  task_prio;     /*!< Task priority (based on freeRTOS priority) */
+    bool stack_in_ext;  /*!< Try to allocate stack in external memory */
 } alc_volume_setup_cfg_t;
 
-#define ALC_VOLUME_SET_TASK_STACK       (4 * 1024)
-#define ALC_VOLUME_SET_TASK_CORE        (0)
-#define ALC_VOLUME_SET_TASK_PRIO        (5)
-#define ALC_VOLUME_SET_RINGBUFFER_SIZE  (8 * 1024)
+#define ALC_VOLUME_SET_TASK_STACK      (4 * 1024)
+#define ALC_VOLUME_SET_TASK_CORE       (0)
+#define ALC_VOLUME_SET_TASK_PRIO       (5)
+#define ALC_VOLUME_SET_RINGBUFFER_SIZE (8 * 1024)
 
-#define DEFAULT_ALC_VOLUME_SETUP_CONFIG() {                                         \
-        .volume = 0,                                                                \
-        .channel = 1,                                                               \
-        .out_rb_size = ALC_VOLUME_SET_RINGBUFFER_SIZE,                              \
-        .task_stack = ALC_VOLUME_SET_TASK_STACK,                                    \
-        .task_core = ALC_VOLUME_SET_TASK_CORE,                                      \
-        .task_prio = ALC_VOLUME_SET_TASK_PRIO,                                      \
-        .stack_in_ext = true,                                                       \
-    }
+#define DEFAULT_ALC_VOLUME_SETUP_CONFIG() {          \
+    .volume       = 0,                               \
+    .channel      = 1,                               \
+    .out_rb_size  = ALC_VOLUME_SET_RINGBUFFER_SIZE,  \
+    .task_stack   = ALC_VOLUME_SET_TASK_STACK,       \
+    .task_core    = ALC_VOLUME_SET_TASK_CORE,        \
+    .task_prio    = ALC_VOLUME_SET_TASK_PRIO,        \
+    .stack_in_ext = true,                            \
+}
 
 /**
- * @brief      Set the number of channels of input audio stream
+ * @brief  Set the channel number of input audio stream
  *
- * @param      self       Audio element handle
- * @param      channels   the number of channels for input stream
+ * @param  self      Audio element handle
+ * @param  channels  Channel number for input stream
  */
 void alc_volume_setup_set_channel(audio_element_handle_t self, int channel);
 
 /**
- * @brief      Set the volume of input audio stream with ALC
+ * @brief  Set the volume of input audio stream with ALC.
+ *         Positive value indicates an increase in volume,
+ *         negative value indicates a decrease in volume,
+ *         0 indicates the volume level remains unchanged.
  *
- * @param      self       Audio element handle
- * @param      volume     the set volume of input audio stream
+ * @param  self    Audio element handle
+ * @param  volume  The gain of input audio stream:
+ *                 - Supported range [-64, 63], unit: dB
  */
 void alc_volume_setup_set_volume(audio_element_handle_t self, int volume);
 
 /**
- * @brief      Get the volume of input audio stream
+ * @brief  Get the volume of input audio stream
  *
- * @param      self       Audio element handle
+ * @param  self  Audio element handle
  *
- * @return     the volume of input audio stream
+ * @return The volume of input audio stream
  */
 int alc_volume_setup_get_volume(audio_element_handle_t self);
 
 /**
- * @brief      Create an Audio Element handle to set volume of input audio stream with ALC
+ * @brief  Create an Audio Element handle to set volume of input audio stream with ALC
  *
- * @param      config     the configuration
- * @return     the audio element handler
+ * @param  config  The configuration
+ *
+ * @return The audio element handler
  */
 audio_element_handle_t alc_volume_setup_init(alc_volume_setup_cfg_t *config);
 
 #ifdef __cplusplus
 }
-#endif
+#endif  /* __cplusplus */
 
-#endif
-
+#endif  /* _AUDIO_ALC_H_ */

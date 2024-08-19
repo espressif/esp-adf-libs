@@ -99,6 +99,8 @@ typedef struct
 
 /**
  * @brief          Parse ID3 version 2
+ * 
+ * @note  If `*id3_info != NULL`, please free the `id3_info` by call `esp_id3_free` whatever the return value 
  *
  * @param[in]       cfg      ID3 configuration
  * @param[out]      id3_info ID3 information
