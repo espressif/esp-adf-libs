@@ -12,6 +12,7 @@ ENDIF ()
 list(APPEND COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_codec/include/codec
                             ./esp_codec/include/processing
+                            ./esp_new_jpeg/include
                             ./media_lib_sal/include
                             ./media_lib_sal/include/port
                             ./esp_muxer/include)
@@ -50,7 +51,8 @@ register_component()
 message(STATUS "Chip is ${CONFIG_IDF_TARGET}, ${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(TARGET_LIB_PATH "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_audio/lib/${CONFIG_IDF_TARGET}"
-                    "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${CONFIG_IDF_TARGET}")
+                    "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${CONFIG_IDF_TARGET}"
+                    "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_new_jpeg/lib/${CONFIG_IDF_TARGET}")
 
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
     list(APPEND TARGET_LIB_PATH  "-L ${CMAKE_CURRENT_SOURCE_DIR}/esp_media_protocols/lib/${CONFIG_IDF_TARGET}")
@@ -69,13 +71,15 @@ IF (IDF_VERSION_MAJOR GREATER 3)
                  PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_processing "${CMAKE_CURRENT_SOURCE_DIR}/esp_codec/lib/${CONFIG_IDF_TARGET}/libesp_processing.a"
                  PRIV_REQUIRES esp-adf-libs)
+    add_prebuilt_library(esp_new_jpeg "${CMAKE_CURRENT_SOURCE_DIR}/esp_new_jpeg/lib/${CONFIG_IDF_TARGET}/libesp_new_jpeg.a"
+                 PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_h264 "${CMAKE_CURRENT_SOURCE_DIR}/${esp_h264_name}/lib/${CONFIG_IDF_TARGET}/lib${esp_h264_name}.a"
                  PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_muxer "${CMAKE_CURRENT_SOURCE_DIR}/esp_muxer/lib/${CONFIG_IDF_TARGET}/libesp_muxer.a"
                  PRIV_REQUIRES esp-adf-libs)
 ENDIF (IDF_VERSION_MAJOR GREATER 3)
 
-set(TARGET_LIB_NAME esp_processing esp_audio esp_codec esp_muxer ${esp_h264_name})
+set(TARGET_LIB_NAME esp_processing esp_audio esp_codec esp_new_jpeg esp_muxer ${esp_h264_name})
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
     list(APPEND TARGET_LIB_NAME esp_media_protocols)
 endif()
