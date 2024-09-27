@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.0.1
+
+### Features
+
+- Support esp32c2 and esp32c5 board
+
+### Bug Fixes
+
+- Decrease memory usage when decode AAC-Plus
+- Clear search position when simple decoder find valid frame to avoid accumulate and generate decoder error
+
+
 ## v2.0.0
 
 ### Features
