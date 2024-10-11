@@ -1,0 +1,6 @@
+description: Audio Effects Test
+
+dependencies:
+  esp_audio_effects:
+    version: ">=1.0"
+    override_path: "../../../"

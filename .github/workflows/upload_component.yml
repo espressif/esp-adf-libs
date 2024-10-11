@@ -20,5 +20,6 @@ jobs:
             esp_audio_codec;
             esp_muxer;
             esp_new_jpeg;
+            esp_audio_effects;
           namespace: "espressif"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
