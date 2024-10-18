@@ -113,7 +113,7 @@ static int sonic_interleave_16_bit_test(int mode, char *mode_name)
                                    out_samples.out_num * sizeof(short) * channel, outfile);
 #endif /* CMP_MODE */
                         }
-                        in = inbuf + in_samples.consume_num;
+                        in = inbuf + in_samples.consume_num * channel;
                         remain_num -= in_samples.consume_num;
                         in_samples.num = remain_num;
                         in_samples.samples = in;
@@ -226,7 +226,7 @@ static int sonic_interleave_24_bit_test(int mode, char *mode_name)
                             fwrite(outbuf, 1, out_samples.out_num * (16 >> 3) * channel, outfile);
 #endif /* CMP_MODE */
                         }
-                        in = inbuf + in_samples.consume_num;
+                        in = inbuf + in_samples.consume_num * channel * (config.bits_per_sample >> 3);
                         remain_num -= in_samples.consume_num;
                         in_samples.num = remain_num;
                         in_samples.samples = in;
@@ -336,7 +336,7 @@ static int sonic_interleave_32_bit_test(int mode, char *mode_name)
                             fwrite(outbuf, 1, out_samples.out_num * (16 >> 3) * channel, outfile);
 #endif /* CMP_MODE */
                         }
-                        in = inbuf + in_samples.consume_num;
+                        in = inbuf + in_samples.consume_num * channel * (config.bits_per_sample >> 3);
                         remain_num -= in_samples.consume_num;
                         in_samples.num = remain_num;
                         in_samples.samples = in;

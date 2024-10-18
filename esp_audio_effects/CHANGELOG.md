@@ -6,3 +6,10 @@
 
 - Initial version of `esp-audio-effects`
 - Add audio effects module for `ALC`, `BIT_CVT`, `CH_CVT`, `RATE_CVT`, `EQ`, `FADE`, `DATA_WEAVER`, `MIXER`, `SONIC`
+
+## v1.0.1
+
+### Bug Fixes
+
+- Fix `test_sonic` test code error
+- Remove `sdkconfig.default` have some configuration strings that cannot be detected by the latest IDF
