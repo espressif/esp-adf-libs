@@ -139,10 +139,10 @@ typedef struct {
         .source_num       = 2,                            \
         .stop_mode        = AUDIO_FORGE_STOP_MODE_AUTO,   \
     },                                                    \
-    .task_prio = AUDIO_FORGE_TASK_PRIO,                   \
-    .task_core = AUDIO_FORGE_TASK_CORE,                   \
-    .task_stack = AUDIO_FORGE_TASK_STACK,                 \
     .out_rb_size = AUDIO_FORGE_RINGBUFFER_SIZE,           \
+    .task_stack = AUDIO_FORGE_TASK_STACK,                 \
+    .task_core = AUDIO_FORGE_TASK_CORE,                   \
+    .task_prio = AUDIO_FORGE_TASK_PRIO,                   \
     .stack_in_ext = true,                                 \
 }
 
