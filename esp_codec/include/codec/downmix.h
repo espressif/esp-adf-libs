@@ -33,10 +33,10 @@ typedef struct {
 
 #define DEFAULT_DOWNMIX_CONFIG() {                            \
     .downmix_info = {                                         \
+        .source_num  = SOURCE_NUM_MAX,                        \
         .out_ctx     = ESP_DOWNMIX_OUT_CTX_LEFT_RIGHT,        \
         .mode        = ESP_DOWNMIX_WORK_MODE_BYPASS,          \
         .output_type = ESP_DOWNMIX_OUTPUT_TYPE_ONE_CHANNEL,   \
-        .source_num  = SOURCE_NUM_MAX,                        \
     },                                                        \
     .max_sample      = DM_BUF_SIZE,                           \
     .out_rb_size     = DOWNMIX_RINGBUFFER_SIZE,               \
