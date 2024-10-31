@@ -1,0 +1,10 @@
+trigger_adf_libs_ut_ci_pipeline:
+  extends:
+    - .rules:build:only-open-merge-request
+  stage: trigger
+  variables:
+    ESP_ADF_MODULES: "{\"esp-adf-libs\":\"$CI_COMMIT_SHA\"}"
+  trigger:
+    project: "adf/adf-libs-ut"
+    branch: "master"
+    strategy: depend
