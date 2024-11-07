@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.0.2
+
+### Features
+
+- Support MP2 and MP1 decode
+
+### Bug Fixes
+
+- Fix FLAC mono channel decode noise
+
+
 ## v2.0.1
 
 ### Features
