@@ -1,0 +1,138 @@
+.patterns-build_components: &patterns-build_components
+  - "CMakeList.txt"
+  - "project.mk"
+  - ".gitmodules"
+  - "tools/**/*"
+  - "idf_patches/**/*"
+  - "components/**/*"
+
+.patterns-example_test: &patterns-example_test
+  - "CMakeList.txt"
+  - "project.mk"
+  - ".gitmodules"
+  - "tools/**/*"
+  - "idf_patches/**/*"
+  - "examples/**/*"
+
+##############
+# if anchors #
+##############
+.if-web: &if-web
+  if: '$CI_PIPELINE_SOURCE == "web"'
+
+.if-ref-master: &if-ref-master
+  if: '$CI_COMMIT_REF_NAME == "master"'
+
+.if-schedule: &if-schedule
+  if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+.if-merge_request_event: &if-merge_request_event
+  if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+.if-open-merge-request-push: &if-open-merge-request-push
+  if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && ($CI_PIPELINE_SOURCE == "push")'
+
+.if-dev-push: &if-dev-push
+  if: '$CI_COMMIT_REF_NAME != "master" && $CI_COMMIT_BRANCH !~ /^release\/v/ && $CI_COMMIT_TAG !~ /^v\d+\.\d+(\.\d+)?($|-)/ && ($CI_PIPELINE_SOURCE == "push")'
+
+.if-protected: &if-protected
+  if: '($CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_BRANCH =~ /^release\/v/ || $CI_COMMIT_TAG =~ /^v\d+\.\d+(\.\d+)?($|-)/)'
+
+.if-label-unit_test: &if-label-unit_test
+  if: '$BOT_LABEL_UNIT_TEST || $CI_MERGE_REQUEST_LABELS =~ /^(?:[^,\n\r]+,)*unit_test(?:,[^,\n\r]+)*$/i'
+
+.if-label-example_test: &if-label-example_test
+  if: '$BOT_LABEL_EXAMPLE_TEST || $CI_MERGE_REQUEST_LABELS =~ /^(?:[^,\n\r]+,)*example_test(?:,[^,\n\r]+)*$/i'
+
+.if-label-example: &if-label-example
+  if: '$BOT_LABEL_EXAMPLE_TEST || $CI_MERGE_REQUEST_LABELS =~ /^(?:[^,\n\r]+,)*example(?:,[^,\n\r]+)*$/i'
+
+.if-idf-version-tag-v5-0: &if-idf-version-tag-v5-0
+  if: '($IDF_VERSION_TAG == "v5.0.4" || $IDF_VERSION_TAG == "v5.0")'
+  variables:
+    IMAGE: "$ADF_DOCKER_REGISTRY/env_v5.0:4"
+    IDF_PATCH: idf_v5.0_freertos.patch
+
+.if-idf-version-tag-v5-1: &if-idf-version-tag-v5-1
+  if: '$IDF_VERSION_TAG == "v5.1"'
+  variables:
+      IMAGE: "$CI_DOCKER_REGISTRY/esp-env-v5.1:1"
+      IDF_PATCH: idf_v5.1_freertos.patch
+
+.if-idf-version-tag-v5-2: &if-idf-version-tag-v5-2
+  if: '$IDF_VERSION_TAG == "v5.2"'
+  variables:
+      IMAGE: "$CI_DOCKER_REGISTRY/esp-env-v5.2:2"
+      IDF_PATCH: idf_v5.2_freertos.patch
+
+.if-idf-version-tag-v5-3: &if-idf-version-tag-v5-3
+  if: '$IDF_VERSION_TAG == "v5.3"'
+  variables:
+      IMAGE: "$CI_DOCKER_REGISTRY/esp-env-v5.3:1"
+      IDF_PATCH: idf_v5.3_freertos.patch
+
+.rules:build:enable-adf-example-test:
+  rules:
+    - <<: *if-open-merge-request-push
+      when: never
+    - <<: *if-label-example
+    - <<: *if-label-example_test
+
+.rules:build:adf-idfs-example-test:
+  rules:
+    - <<: *if-protected
+    - <<: *if-merge_request_event
+    - <<: *if-open-merge-request-push
+      when: never
+
+.rules:build:unit-test:
+  rules:
+    - <<: *if-protected
+    - <<: *if-label-unit_test
+
+.rules:ref:master-schedule:
+  rules:
+    - <<: *if-ref-master
+    - <<: *if-schedule
+
+.rules:ref:check-label:
+  rules:
+    - <<: *if-protected
+      when: never
+    - <<: *if-merge_request_event
+    - <<: *if-open-merge-request-push
+      when: never
+
+.rules:build:regular-board-idf-ver-tag:
+  rules:
+    - <<: *if-dev-push
+      when: never
+    - <<: *if-schedule
+      when: never
+    - <<: *if-idf-version-tag-v5-0
+    - <<: *if-idf-version-tag-v5-1
+    - <<: *if-idf-version-tag-v5-2
+    - <<: *if-idf-version-tag-v5-3
+
+.rules:build:non-regular-board-idf-ver-tag:
+  rules:
+    - <<: *if-dev-push
+      when: never
+    - <<: *if-merge_request_event
+      when: never
+    - <<: *if-idf-version-tag-v5-0
+    - <<: *if-idf-version-tag-v5-1
+    - <<: *if-idf-version-tag-v5-2
+    - <<: *if-idf-version-tag-v5-3
+
+.rules:build:only-open-merge-request:
+  rules:
+    - <<: *if-protected
+      when: never
+    - <<: *if-dev-push
+      when: never
+    - <<: *if-schedule
+      when: never
+    - <<: *if-merge_request_event
+    - <<: *if-open-merge-request-push
+      when: never
