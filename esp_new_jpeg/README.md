@@ -173,11 +173,22 @@ Please refer to the `test_app` folder for more details on API usage.
 
    The issue typically occurs when a few columns of the image on the far left or right side appear on the opposite side. If you are using the ESP32-S3, a possible cause is that the output buffer is not 16-byte aligned. Please use the `jpeg_calloc_align` function to allocate output buffer.
 
+3. How can I use a simpler method to check if the encoder's output is correct?
+
+   You can use the following code to directly print the output JPEG data. Copy the output data, paste it into a hex editor, and save it as a .jpg file.
+
+    ```c
+    for (int i = 0; i < out_len; i++) {
+        printf("%02x", outbuf[i]);
+    }
+    printf("\n");
+    ```
+
 ## Supported chip
 
 The following table shows the support of ESP_NEW_JPEG for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported.
 
-| Chip     | 0.5.0    |
+| Chip     | v0.5.1   |
 |----------|----------|
 | ESP32    | &#10004; |
 | ESP32-S2 | &#10004; |
