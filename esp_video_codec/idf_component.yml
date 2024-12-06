@@ -9,5 +9,5 @@ repository: https://github.com/espressif/esp-adf-libs.git
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_video_codec
 version: 0.5.0
 tags:
-  - video codec
+  - video_codec
   - multimedia
