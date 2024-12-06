@@ -1,0 +1,6 @@
+description: Video Codec Test
+
+dependencies:
+  esp_video_codec:
+    version: "*"
+    override_path: "../../../"
