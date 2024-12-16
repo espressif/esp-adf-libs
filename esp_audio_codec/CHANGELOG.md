@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.3
+
+### Features
+
+- Fix opus decode error
+
+
 ## v2.0.2
 
 ### Features
