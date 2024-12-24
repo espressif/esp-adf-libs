@@ -1,0 +1,10 @@
+dependencies:
+  espressif/esp_midi:
+    version: "*"
+    override_path: "../../.."
+  espressif/button: ^4.1.0
+  espressif/keyboard_button: ^1.0.0
+  espressif/knob: '*'
+  espressif/usb_host_hid: ^1.0.1
+  espressif/esp_audio_effects: '*'
+  espressif/esp_board_manager: '*'

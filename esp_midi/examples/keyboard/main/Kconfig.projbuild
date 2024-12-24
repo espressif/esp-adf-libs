@@ -1,0 +1,15 @@
+menu "Keyboard Example Configuration"
+
+    choice INPUR_KEY
+        prompt "Input Key Selection"
+        default INPUT_KEY_MATRIX_KEYBOARD
+        help
+            Select the input key type for the example.
+
+        config INPUT_KEY_USB_KEYBOARD
+            bool "USB Keyboard"
+        config INPUT_KEY_MATRIX_KEYBOARD
+            bool "Matrix Keyboard"
+    endchoice
+
+endmenu
