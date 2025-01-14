@@ -3,6 +3,7 @@ menu "Video Codec Configuration"
         config VIDEO_DECODER_SW_H264_SUPPORT
             bool "Support SW H264 Decoder"
             default y
+            depends on IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32P4
             help
                 Enable this option to register software H264 decoder
 
@@ -31,6 +32,7 @@ menu "Video Codec Configuration"
         config VIDEO_ENCODER_SW_H264_SUPPORT
             bool "Support SW H264 Encoder"
             default y
+            depends on IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32P4
             help
                 Enable this option to register software H264 encoder
 

@@ -22,8 +22,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/inc/hw_caps/${IDF_TARGET}")
     list(APPEND COMPONENT_PRIV_INCLUDE  "./inc/hw_caps/${IDF_TARGET}")
 endif()
 
+list(APPEND COMPONENT_REQUIRES esp_mm)
+
 if(${IDF_TARGET} STREQUAL "esp32p4")
-    list(APPEND COMPONENT_REQUIRES esp_mm esp_driver_jpeg)
+    list(APPEND COMPONENT_REQUIRES esp_driver_jpeg)
 endif()
 
 if(CONFIG_VIDEO_DECODER_HW_MJPEG_SUPPORT)

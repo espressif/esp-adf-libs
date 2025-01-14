@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.1
+
+### Features
+
+- Fix build issue for board not support `esp_h264`
+
 ## v0.5.0
 
 ### Features
