@@ -1,0 +1,7 @@
+description: Espressif wrapper for libSRTP
+issues: https://github.com/espressif/esp-adf/issues
+repository: https://github.com/espressif/esp-adf-libs.git
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_libsrtp
+version: 1.0.0
+tags:
+- srtp
