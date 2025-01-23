@@ -58,6 +58,8 @@ jpeg_error_t jpeg_enc_open(jpeg_enc_config_t *info, jpeg_enc_handle_t *jpeg_enc)
 /**
  * @brief  Encode one image
  *
+ * @note  For ESP32-S3, please use `jpeg_calloc_align` to allocate a 16-byte aligned input buffer.
+ *
  * @param[in]   jpeg_enc     The JPEG encoder handle. It gained from `jpeg_enc_open`
  * @param[in]   in_buf       The input buffer, It needs a completed image. The buffer must be aligned 16 byte.
  * @param[in]   inbuf_size   The size of `in_buf`. The value must be size of a completed image.

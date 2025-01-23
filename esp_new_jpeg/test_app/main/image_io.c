@@ -8,16 +8,24 @@
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 #include "image_io.h"
+#if SOC_SDMMC_IO_POWER_EXTERNAL
+#include "sd_pwr_ctrl_by_on_chip_ldo.h"
+#endif  /* SOC_SDMMC_IO_POWER_EXTERNAL */
 
-#define MOUNT_POINT  "/sdcard"
-#define PIN_NUM_MISO 38
-#define PIN_NUM_MOSI 39
-#define PIN_NUM_CLK  40
-#define PIN_NUM_CS   41
+#define SD_PWR_CTRL_LDO_INTERNAL_ENABLE 0
+#define SD_PWR_CTRL_LDO_IO_ID           4
+#define MOUNT_POINT                     "/sdcard"
+#define PIN_NUM_MISO                    39
+#define PIN_NUM_MOSI                    44
+#define PIN_NUM_CLK                     43
+#define PIN_NUM_CS                      42
 
 static sdmmc_host_t  host = SDSPI_HOST_DEFAULT();
 static sdmmc_card_t *card;
 static const char    mount_point[] = MOUNT_POINT;
+#if SD_PWR_CTRL_LDO_INTERNAL_ENABLE
+static sd_pwr_ctrl_handle_t pwr_ctrl_handle = NULL;
+#endif  /* SD_PWR_CTRL_LDO_INTERNAL_ENABLE */
 
 void mount_sd(void)
 {
@@ -38,6 +46,18 @@ void mount_sd(void)
     // Please check its source code and implement error recovery when developing
     // production applications.
     printf("Using SPI peripheral\n");
+#if SD_PWR_CTRL_LDO_INTERNAL_ENABLE
+    sd_pwr_ctrl_ldo_config_t ldo_config = {
+        .ldo_chan_id = SD_PWR_CTRL_LDO_IO_ID,
+    };
+
+    ret = sd_pwr_ctrl_new_on_chip_ldo(&ldo_config, &pwr_ctrl_handle);
+    if (ret != ESP_OK) {
+        printf("Failed to create a new on-chip LDO power control driver\n");
+        return;
+    }
+    host.pwr_ctrl_handle = pwr_ctrl_handle;
+#endif  /* SD_PWR_CTRL_LDO_INTERNAL_ENABLE */
 
     // sdmmc_host_t host = SDSPI_HOST_DEFAULT();
     // host.slot = SPI3_HOST;
@@ -66,8 +86,7 @@ void mount_sd(void)
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
-            printf("Failed to mount filesystem. "
-                   "If you want the card to be formatted, set the CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.\n");
+            printf("Failed to mount filesystem.\n");
         } else {
             printf("Failed to initialize the card (%s). "
                      "Make sure SD card lines have pull-up resistors in place.\n", esp_err_to_name(ret));
@@ -133,10 +152,21 @@ void mount_sd(void)
 
 void unmount_sd(void)
 {
+    esp_err_t ret;
+
     // All done, unmount partition and disable SPI peripheral
     esp_vfs_fat_sdcard_unmount(mount_point, card);
     printf("Card unmounted\n");
 
     // deinitialize the bus after all devices are removed
     spi_bus_free(host.slot);
+
+    // Deinitialize the power control driver if it was used
+#if SD_PWR_CTRL_LDO_INTERNAL_ENABLE
+    ret = sd_pwr_ctrl_del_on_chip_ldo(pwr_ctrl_handle);
+    if (ret != ESP_OK) {
+        printf("Failed to delete the on-chip LDO power control driver");
+        return;
+    }
+#endif  /* SD_PWR_CTRL_LDO_INTERNAL_ENABLE */
 }

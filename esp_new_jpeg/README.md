@@ -169,9 +169,9 @@ Please refer to the `test_app` folder for more details on API usage.
     >>> Image.open("file_name.jpg").info.get('progressive', 0)
     ```
 
-2. Why does the decoded output image appear misaligned?
+2. Why does the output image appear misaligned?
 
-   The issue typically occurs when a few columns of the image on the far left or right side appear on the opposite side. If you are using the ESP32-S3, a possible cause is that the output buffer is not 16-byte aligned. Please use the `jpeg_calloc_align` function to allocate output buffer.
+   The issue typically occurs when a few columns of the image on the far left or right side appear on the opposite side. If you are using the ESP32-S3, a possible cause is that the output buffer of decoder or the input buffer of encoder is not 16-byte aligned. Please use the `jpeg_calloc_align` function to allocate buffer.
 
 3. How can I use a simpler method to check if the encoder's output is correct?
 
@@ -188,7 +188,7 @@ Please refer to the `test_app` folder for more details on API usage.
 
 The following table shows the support of ESP_NEW_JPEG for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported.
 
-| Chip     | v0.5.1   |
+| Chip     | v0.6.0   |
 |----------|----------|
 | ESP32    | &#10004; |
 | ESP32-S2 | &#10004; |

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.6.0
+
+### Features
+
+- Support IDF5.4
+- Support SD power supply comes from internal LDO IO in test_app
+- Add 16-byte alignment check for encoder input buffer when using ESP32-S3
+- Add 16-byte alignment check for decoder output buffer when using ESP32-S3
+
+### Bug Fixes
+
+- Fix inaccurate `inbuf_remain` member in `jpeg_dec_io_t` structure after decoding is finished
+- Fix spelling errors in test_app
+
 ## v0.5.1
 
 ### Bug Fixes

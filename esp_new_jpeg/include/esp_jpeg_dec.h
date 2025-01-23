@@ -137,6 +137,8 @@ jpeg_error_t jpeg_dec_get_process_count(jpeg_dec_handle_t jpeg_dec, int *process
 /**
  * @brief  Decode JPEG picture
  *
+ * @note  For ESP32-S3, please use `jpeg_calloc_align` to allocate a 16-byte aligned output buffer.
+ *
  * @param[in]  jpeg_dec  JPEG decoder handle
  * @param[in]  io        Pointer to io control struct
  *
