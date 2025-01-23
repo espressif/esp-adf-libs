@@ -32,15 +32,44 @@ extern "C" {
 #endif
 
 /**
+ * @brief  Enum of OPUS Decoder frame duration choose.
+ */
+typedef enum {
+    ESP_OPUS_DEC_FRAME_DURATION_INVALID = -1, /*!< Invalid mode */
+    ESP_OPUS_DEC_FRAME_DURATION_2_5_MS  = 0,  /*!< Use 2.5 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_5_MS    = 1,  /*!< Use 5 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_10_MS   = 2,  /*!< Use 10 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_20_MS   = 3,  /*!< Use 20 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_40_MS   = 4,  /*!< Use 40 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_60_MS   = 5,  /*!< Use 60 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_80_MS   = 6,  /*!< Use 80 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_100_MS  = 7,  /*!< Use 100 ms frames */
+    ESP_OPUS_DEC_FRAME_DURATION_120_MS  = 8,  /*!< Use 120 ms frames */
+} esp_opus_dec_frame_duration_t;
+
+/**
  * @brief  Configuration for OPUS audio decoder (required)
  */
 typedef struct {
-    uint32_t sample_rate;    /*!< Audio sample rate */
-    uint8_t  channel;        /*!< Audio channel */
-    bool     self_delimited; /*!< Whether use self delimited packet:
-                                  Self delimited packet need an extra 1 or 2 bytes for packet size,
-                                  Set to `false` if encapsulated in OGG. */
+    uint32_t                      sample_rate;    /*!< Audio sample rate */
+    uint8_t                       channel;        /*!< Audio channel */
+    esp_opus_dec_frame_duration_t frame_duration; /*!< OPUS frame duration.
+                                                       If frame duration set to `ESP_OPUS_DEC_FRAME_DURATION_INVALID`,
+                                                       the out pcm size is counted as 60 ms frame */
+    bool                          self_delimited; /*!< Whether use self delimited packet:
+                                                       Self delimited packet need an extra 1 or 2 bytes for packet size,
+                                                       Set to `false` if encapsulated in OGG. */
 } esp_opus_dec_cfg_t;
+
+/**
+ * @brief  Default decoder configuration for OPUS
+ */
+#define ESP_OPUS_DEC_CONFIG_DEFAULT() {                       \
+    .sample_rate       = ESP_AUDIO_SAMPLE_RATE_8K,            \
+    .channel           = ESP_AUDIO_DUAL,                      \
+    .frame_duration    = ESP_OPUS_DEC_FRAME_DURATION_INVALID, \
+    .self_delimited    = false,                               \
+}
 
 /**
  * @brief  Default decoder operations for OPUS

@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.1.0
+
+### Features
+
+- Support raw opus decoder in audio simple decoder
+- Add a breaking change for the Opus encoder to support VBR
+- Add a breaking change to the Opus decoder to support a specific frame duration
+
+### Bug Fixes
+
+- Fix a bug that opus decoder not check out buffer length
+- Add error log when decoder failed to decode frame
+- Fix a bug that out_buf size is larger than in_buf size in audio encoder
+
 ## v2.0.3
 
 ### Features

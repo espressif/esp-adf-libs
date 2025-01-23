@@ -86,7 +86,7 @@ esp_audio_err_t esp_amrnb_dec_open(void *cfg, uint32_t cfg_sz, void **dec_handle
  *       - ESP_AUDIO_ERR_FAIL               Fail to decode data
  */
 esp_audio_err_t esp_amrnb_dec_decode(void *dec_handle, esp_audio_dec_in_raw_t *raw, esp_audio_dec_out_frame_t *frame,
-                                      esp_audio_dec_info_t *dec_info);
+                                     esp_audio_dec_info_t *dec_info);
 
 /**
  * @brief  Close AMR-NB decoder

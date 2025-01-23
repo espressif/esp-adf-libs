@@ -152,7 +152,7 @@ esp_audio_err_t esp_audio_dec_open(esp_audio_dec_cfg_t *config, esp_audio_dec_ha
  *       - ESP_AUDIO_ERR_BUFF_NOT_ENOUGH    Output memory not enough for output frame
  *                                          Need re-allocated output memory according reported `needed_size` and retry
  */
-esp_audio_err_t esp_audio_dec_process(esp_audio_dec_handle_t *decoder, esp_audio_dec_in_raw_t *raw,
+esp_audio_err_t esp_audio_dec_process(esp_audio_dec_handle_t decoder, esp_audio_dec_in_raw_t *raw,
                                       esp_audio_dec_out_frame_t *frame);
 
 /**

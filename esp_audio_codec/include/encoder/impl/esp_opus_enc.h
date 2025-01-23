@@ -42,6 +42,9 @@ typedef enum {
     ESP_OPUS_ENC_FRAME_DURATION_20_MS  = 3,     /*!< Use 20 ms frames */
     ESP_OPUS_ENC_FRAME_DURATION_40_MS  = 4,     /*!< Use 40 ms frames */
     ESP_OPUS_ENC_FRAME_DURATION_60_MS  = 5,     /*!< Use 60 ms frames */
+    ESP_OPUS_ENC_FRAME_DURATION_80_MS  = 6,     /*!< Use 80 ms frames */
+    ESP_OPUS_ENC_FRAME_DURATION_100_MS = 7,     /*!< Use 100 ms frames */
+    ESP_OPUS_ENC_FRAME_DURATION_120_MS = 8,     /*!< Use 120 ms frames */
 } esp_opus_enc_frame_duration_t;
 
 /**
@@ -78,11 +81,12 @@ typedef struct {
                                                            Note : 1) This table shows the bitrate range corresponding to each samplerate and frame duration.
                                                                   2) The bitrate range of dual stream is the same that of mono. */
     esp_opus_enc_frame_duration_t frame_duration;     /*!< The duration of one frame.
-                                                           This must be 2.5, 5, 10, 20, 40 or 60 ms. */
+                                                           This must be 2.5, 5, 10, 20, 40, 60, 80, 100, 120 ms. */
     esp_opus_enc_application_t    application_mode;   /*!< The application mode. */
     int                           complexity;         /*!< Indicates the complexity of OPUS encoding. 0 is lowest. 10 is higest.*/
     bool                          enable_fec;         /*!< Configures the encoder's use of inband forward error correction (FEC) */
     bool                          enable_dtx;         /*!< Configures the encoder's use of discontinuous transmission (DTX) */
+    bool                          enable_vbr;         /*!< Configures to enable or disable variable bitrate mode */
 } esp_opus_enc_config_t;
 
 #define ESP_OPUS_ENC_CONFIG_DEFAULT() {                      \
@@ -95,6 +99,7 @@ typedef struct {
     .complexity         = 0,                                 \
     .enable_fec         = false,                             \
     .enable_dtx         = false,                             \
+    .enable_vbr         = false,                             \
 }
 
 /**
