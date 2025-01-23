@@ -82,7 +82,7 @@ static esp_audio_simple_dec_type_t get_simple_decoder_type(char *file)
 
 static void get_simple_decoder_config(esp_audio_simple_dec_cfg_t *cfg)
 {
-    simp_dec_all_t *all_cfg = (simp_dec_all_t *)&cfg->dec_cfg;
+    simp_dec_all_t *all_cfg = (simp_dec_all_t *)cfg->dec_cfg;
     switch (cfg->dec_type) {
         case ESP_AUDIO_SIMPLE_DEC_TYPE_AAC: {
             esp_aac_dec_cfg_t *aac_cfg = &all_cfg->aac_cfg;

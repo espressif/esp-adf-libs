@@ -77,11 +77,12 @@ Details for the supported encoders are as follow:
 - Encoding channel num: mono, dual    
 - Encoding bits per sample: 16 bits    
 - Constant bitrate encoding from 20Kbps to 510Kbps      
-- Encoding frame duration (ms): 2.5, 5, 10, 20, 40, 60       
+- Encoding frame duration (ms): 2.5, 5, 10, 20, 40, 60, 80, 100, 120       
 - Application mode for VoIP and music       
 - Encoding complexity adjustment, from 0 to 10      
 - Inband forward error correction (FEC)     
 - Discontinuous transmission (DTX)
+- Variable Bit Rate (VBR)
 
 **ALAC**    
 - Encoding sample rates (Hz): 8000, 12000, 16000, 24000, 48000    

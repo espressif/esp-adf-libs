@@ -44,9 +44,9 @@ typedef struct {
  * @brief  Default decoder operations for G711-Alaw
  */
 #define ESP_G711A_DEC_DEFAULT_OPS() { \
-    .open = esp_g711_dec_open,       \
+    .open = esp_g711_dec_open,        \
     .decode = esp_g711a_dec_decode,   \
-    .close = esp_g711_dec_close,     \
+    .close = esp_g711_dec_close,      \
 }
 
 /**

@@ -47,16 +47,17 @@ typedef void *esp_audio_simple_dec_handle_t;
  * @brief  Audio simple decoder type
  */
 typedef enum {
-    ESP_AUDIO_SIMPLE_DEC_TYPE_NONE   = 0,    /*!< Invalid simple decoder type */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AAC    = 1,    /*!< Simple decoder for AAC */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_MP3    = 2,    /*!< Simple decoder for MP3 */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB  = 3,    /*!< Simple decoder for AMR-NB */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB  = 4,    /*!< Simple decoder for AMR-WB */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC   = 5,    /*!< Simple decoder for FLAC */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_WAV    = 6,    /*!< Simple decoder for WAV */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_M4A    = 7,    /*!< Simple decoder for M4A */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_TS     = 8,    /*!< Simple decoder for TS */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM = 0x10, /*!< Customized simple decoder type start */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_NONE     = 0,    /*!< Invalid simple decoder type */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AAC      = 1,    /*!< Simple decoder for AAC */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_MP3      = 2,    /*!< Simple decoder for MP3 */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB    = 3,    /*!< Simple decoder for AMR-NB */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB    = 4,    /*!< Simple decoder for AMR-WB */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC     = 5,    /*!< Simple decoder for FLAC */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_WAV      = 6,    /*!< Simple decoder for WAV */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_M4A      = 7,    /*!< Simple decoder for M4A */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_TS       = 8,    /*!< Simple decoder for TS */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS = 9,    /*!< Simple decoder for OPUS (raw data with no extra header) */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM   = 0x10, /*!< Customized simple decoder type start */
 } esp_audio_simple_dec_type_t;
 
 /**
