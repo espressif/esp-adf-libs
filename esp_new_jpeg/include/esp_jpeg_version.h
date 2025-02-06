@@ -7,7 +7,7 @@
 extern "C" {
 #endif  /* __cplusplus */
 
-#define ESP_JPEG_VERION "0.5.1"
+#define ESP_JPEG_VERION "0.6.0"
 
 /**
  * @version 0.5.0:
