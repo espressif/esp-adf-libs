@@ -58,6 +58,11 @@ menu "Audio Codec Configuration"
             default y
             help
                 Enable this option to register ALAC decoder
+        config AUDIO_DECODER_PCM_SUPPORT
+            bool "Support PCM Decoder"
+            default y
+            help
+                Enable this option to register PCM decoder
     endmenu
 
     menu "Audio Simple Decoder Configuration"

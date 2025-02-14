@@ -57,6 +57,10 @@ typedef enum {
     ESP_AUDIO_SIMPLE_DEC_TYPE_M4A      = 7,    /*!< Simple decoder for M4A */
     ESP_AUDIO_SIMPLE_DEC_TYPE_TS       = 8,    /*!< Simple decoder for TS */
     ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS = 9,    /*!< Simple decoder for OPUS (raw data with no extra header) */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G711A    = 10,   /*!< Simple decoder for G711A */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G711U    = 11,   /*!< Simple decoder for G711U */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_PCM      = 12,   /*!< Simple decoder for PCM */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_ADPCM    = 13,   /*!< Simple decoder for IMA-ADPCM */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM   = 0x10, /*!< Customized simple decoder type start */
 } esp_audio_simple_dec_type_t;
 
