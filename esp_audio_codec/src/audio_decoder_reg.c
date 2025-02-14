@@ -68,6 +68,10 @@ esp_audio_err_t esp_audio_dec_register_default(void)
 #ifdef CONFIG_AUDIO_DECODER_ALAC_SUPPORT
     ret |= esp_alac_dec_register();
 #endif
+
+#ifdef CONFIG_AUDIO_DECODER_PCM_SUPPORT
+    ret |= esp_pcm_dec_register();
+#endif
     return ret;
 }
 
@@ -112,5 +116,9 @@ void esp_audio_dec_unregister_default(void)
 
 #ifdef CONFIG_AUDIO_DECODER_ALAC_SUPPORT
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_ALAC);
+#endif
+
+#ifdef CONFIG_AUDIO_DECODER_PCM_SUPPORT
+    esp_audio_dec_unregister(ESP_AUDIO_TYPE_PCM);
 #endif
 }

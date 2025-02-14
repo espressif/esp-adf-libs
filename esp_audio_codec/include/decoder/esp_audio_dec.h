@@ -56,8 +56,8 @@ extern "C" {
  */
 typedef struct {
     uint8_t *buffer;   /*!< Input encoded data buffer */
-    uint32_t len;      /*!< Input encoded data size */
-    uint32_t consumed; /*!< Input data consumed size */
+    uint32_t len;      /*!< Input data size to be decoded */
+    uint32_t consumed; /*!< Consumed input data size (output) */
 } esp_audio_dec_in_raw_t;
 
 /**

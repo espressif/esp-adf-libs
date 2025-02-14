@@ -35,6 +35,7 @@
 #include "esp_mp3_dec.h"
 #include "esp_opus_dec.h"
 #include "esp_vorbis_dec.h"
+#include "esp_pcm_dec.h"
 
 #ifdef __cplusplus
 extern "C" {

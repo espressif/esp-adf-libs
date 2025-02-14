@@ -71,13 +71,13 @@ typedef struct {
     int                           bits_per_sample;    /*!< The bits per sample of OPUS audio.
                                                            This must be 16 */
     int                           bitrate;            /*!< Suggest bitrate(Kbps) range on mono stream :
-                                                           | frame_duration(ms)|    2.5    |     5     |    10    |    20    |    40    |    60    | 
-                                                           |   samplerate(Hz)  |           |           |          |          |          |          |
-                                                           |       8000        | 50 - 128  | 40 - 128  | 20 - 128 | 20 - 128 | 20 - 128 | 20 - 128 |
-                                                           |       12000       | 60 - 192  | 50 - 192  | 30 - 192 | 20 - 192 | 20 - 192 | 20 - 192 |
-                                                           |       16000       | 70 - 256  | 60 - 256  | 50 - 256 | 20 - 256 | 20 - 256 | 20 - 256 |
-                                                           |       24000       | 70 - 384  | 60 - 384  | 60 - 384 | 60 - 384 | 50 - 384 | 60 - 384 |
-                                                           |       48000       | 80 - 510  | 80 - 510  | 80 - 510 | 70 - 510 | 70 - 510 | 70 - 510 |
+                                                           | frame_duration(ms)|    2.5    |     5     |    10    |    20    |    40    |    60    |    80    |   100    |   120    | 
+                                                           |   samplerate(Hz)  |           |           |          |          |          |          |          |          |          |
+                                                           |       8000        | 30 - 128  | 20 - 128  |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |
+                                                           |       12000       | 30 - 192  | 20 - 192  |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |
+                                                           |       16000       | 30 - 256  | 20 - 256  |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |
+                                                           |       24000       | 50 - 384  | 40 - 384  | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 |
+                                                           |       48000       | 40 - 510  | 30 - 510  | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 |
                                                            Note : 1) This table shows the bitrate range corresponding to each samplerate and frame duration.
                                                                   2) The bitrate range of dual stream is the same that of mono. */
     esp_opus_enc_frame_duration_t frame_duration;     /*!< The duration of one frame.
@@ -85,7 +85,10 @@ typedef struct {
     esp_opus_enc_application_t    application_mode;   /*!< The application mode. */
     int                           complexity;         /*!< Indicates the complexity of OPUS encoding. 0 is lowest. 10 is higest.*/
     bool                          enable_fec;         /*!< Configures the encoder's use of inband forward error correction (FEC) */
-    bool                          enable_dtx;         /*!< Configures the encoder's use of discontinuous transmission (DTX) */
+    bool                          enable_dtx;         /*!< Configures the encoder's use of discontinuous transmission (DTX).
+                                                           DTX activation condition: 1) The sample_rate must be 8000, 12000 or 16000Hz
+                                                                                     2) The application_mode must set to `ESP_OPUS_ENC_APPLICATION_VOIP`
+                                                                                     3) The frame_duration must gather than 5ms */
     bool                          enable_vbr;         /*!< Configures to enable or disable variable bitrate mode */
 } esp_opus_enc_config_t;
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.2.0
+
+### Features
+
+- Support g711a, g711u, pcm, adpcm decoder in audio simple decoder
+- Add pcm decoder in esp_audio_codec
+
+### Bug Fixes
+
+- Fix a bug that dtx is not effect in opus encoder
+- Complete error log in esp_audio_codec
+
 ## v2.1.0
 
 ### Features
