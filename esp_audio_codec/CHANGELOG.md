@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.1
+
+### Bug Fixes
+
+- Compile libraries with optimial compilation option
+
 ## v2.2.0
 
 ### Features

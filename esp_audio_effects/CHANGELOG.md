@@ -13,3 +13,9 @@
 
 - Fix `test_sonic` test code error
 - Remove `sdkconfig.default` have some configuration strings that cannot be detected by the latest IDF
+
+## v1.0.2
+
+### Bug Fixes
+
+- Compile libraries using the -o2 compilation option

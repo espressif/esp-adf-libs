@@ -5,3 +5,5 @@ idf_component_register( SRCS "test_alc.c"  "test_bit_cvt.c" "test_ch_cvt.c" "tes
                         PRIV_INCLUDE_DIRS "."
                         PRIV_REQUIRES test_utils esp_audio_effects unity esp_timer sdmmc fatfs heap
                         WHOLE_ARCHIVE)
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-error=incompatible-pointer-types)
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-error=int-conversion)
