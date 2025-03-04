@@ -35,17 +35,16 @@ extern "C" {
  * @brief  Enum of AMRWB Encoder bitrate choose
  */
 typedef enum {
-    ESP_AMRWB_ENC_BITRATE_MDNONE  = -1, /*!< Invalid mode */
-    ESP_AMRWB_ENC_BITRATE_MD66    = 0,  /*!< 6.60 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD885   = 1,  /*!< 8.85 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD1265  = 2,  /*!< 12.65 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD1425  = 3,  /*!< 14.25 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD1585  = 4,  /*!< 15.85 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD1825  = 5,  /*!< 18.25 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD1985  = 6,  /*!< 19.85 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD2305  = 7,  /*!< 23.05 Kbps */
-    ESP_AMRWB_ENC_BITRATE_MD2385  = 8,  /*!< 23.85 Kbps */
-    ESP_AMRWB_ENC_BITRATE_N_MODES = 9,  /*!< Invalid mode */
+    ESP_AMRWB_ENC_BITRATE_MDNONE  = -1,    /*!< Invalid mode */
+    ESP_AMRWB_ENC_BITRATE_MD66    = 6600,  /*!< 6.60 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD885   = 8850,  /*!< 8.85 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD1265  = 12650, /*!< 12.65 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD1425  = 14250, /*!< 14.25 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD1585  = 15850, /*!< 15.85 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD1825  = 18250, /*!< 18.25 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD1985  = 19850, /*!< 19.85 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD2305  = 23050, /*!< 23.05 Kbps */
+    ESP_AMRWB_ENC_BITRATE_MD2385  = 23850, /*!< 23.85 Kbps */
 } esp_amrwb_enc_bitrate_t;
 
 /**
@@ -85,6 +84,37 @@ typedef struct {
 esp_audio_err_t esp_amrwb_enc_register(void);
 
 /**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   cfg         AMRWB encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_amrwb_enc_get_frame_info_by_cfg(void *cfg, esp_audio_enc_frame_info_t *frame_info);
+
+/**
+ * @brief  Set AMRWB encoder bitrate
+ *
+ * @note  1. The current set function and processing function do not have lock protection, so when performing
+ *           asynchronous processing, special attention in needed to ensure data consistency and thread safety,
+ *           avoiding race conditions and resource conflicts.
+ *        2. The bitrate value can be get by `esp_amrwb_enc_get_info`
+ *        3. The value of bitrate must be the value in `esp_amrwb_enc_bitrate_t`
+ *
+ * @param[in]  enc_hd   The AMRWB encoder handle
+ * @param[in]  bitrate  The bitrate of AMRWB
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to set bitrate
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_amrwb_enc_set_bitrate(void *enc_hd, int bitrate);
+
+/**
  * @brief  Create AMRWB encoder handle through encoder configuration
  *
  * @param[in]   cfg     AMRWB encoder configuration
@@ -122,6 +152,7 @@ esp_audio_err_t esp_amrwb_enc_get_frame_size(void *enc_hd, int *in_size, int *ou
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
  *       - ESP_AUDIO_ERR_FAIL               Encode error
+ *       - ESP_AUDIO_ERR_DATA_LACK          Not enough input data to encode one or several frames
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_amrwb_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_frame,

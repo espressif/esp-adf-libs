@@ -2,5 +2,4 @@ description: Audio Codec Test
 
 dependencies:
   esp_audio_codec:
-    version: ">=2.0"
-    override_path: "../../../"
+    path: ../../../../esp_audio_codec

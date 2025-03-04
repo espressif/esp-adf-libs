@@ -316,3 +316,165 @@ TEST_CASE("AAC Encoder use Encoder API directly", CODEC_TEST_MODULE_NAME)
     free(raw_data);
     TEST_ASSERT_EQUAL_INT(heap_size, (int)esp_get_free_heap_size());
 }
+
+TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
+{
+    esp_audio_enc_register_default();
+    // test common
+    enc_all_cfg_t all_cfg = { 0 };
+    esp_audio_type_t type = ESP_AUDIO_TYPE_AAC;
+    esp_audio_enc_config_t enc_cfg = {
+        .type = type,
+        .cfg = &all_cfg,
+    };
+    audio_info_t info = {
+        .sample_rate = 44100,
+        .channel = 2,
+        .bits_per_sample = 16,
+    };
+    get_encoder_config(type, &enc_cfg, &info);
+    void *enc_hd = NULL;
+    int in_size = 0;
+    int out_size = 0;
+    esp_audio_enc_frame_info_t frame_info = {0};
+    esp_audio_enc_get_frame_info_by_cfg(&enc_cfg, &frame_info);
+    esp_audio_enc_open(&enc_cfg, &enc_hd);
+    esp_audio_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_audio_enc_close(enc_hd);
+
+    // test aac
+    esp_aac_enc_config_t aac_cfg = ESP_AAC_ENC_CONFIG_DEFAULT();
+    esp_aac_enc_get_frame_info_by_cfg(&aac_cfg, &frame_info);
+    esp_aac_enc_open(&aac_cfg, sizeof(esp_aac_enc_config_t), &enc_hd);
+    esp_aac_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_aac_enc_close(enc_hd);
+
+    // test adpcm
+    esp_adpcm_enc_config_t adpcm_cfg = ESP_ADPCM_ENC_CONFIG_DEFAULT();
+    esp_adpcm_enc_get_frame_info_by_cfg(&adpcm_cfg, &frame_info);
+    esp_adpcm_enc_open(&adpcm_cfg, sizeof(esp_adpcm_enc_config_t), &enc_hd);
+    esp_adpcm_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_adpcm_enc_close(enc_hd);
+
+    // test amrnb
+    esp_amrnb_enc_config_t amrnb_cfg = ESP_AMRNB_ENC_CONFIG_DEFAULT();
+    esp_amrnb_enc_get_frame_info_by_cfg(&amrnb_cfg, &frame_info);
+    esp_amrnb_enc_open(&amrnb_cfg, sizeof(esp_amrnb_enc_config_t), &enc_hd);
+    esp_amrnb_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_amrnb_enc_close(enc_hd);
+
+    // test amrwb
+    esp_amrwb_enc_config_t amrwb_cfg = ESP_AMRWB_ENC_CONFIG_DEFAULT();
+    esp_amrwb_enc_get_frame_info_by_cfg(&amrwb_cfg, &frame_info);
+    esp_amrwb_enc_open(&amrwb_cfg, sizeof(esp_amrwb_enc_config_t), &enc_hd);
+    esp_amrwb_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_amrwb_enc_close(enc_hd);
+
+    // test g711
+    esp_g711_enc_config_t g711_cfg = ESP_G711_ENC_CONFIG_DEFAULT();
+    esp_g711_enc_get_frame_info_by_cfg(&g711_cfg, &frame_info);
+    esp_g711a_enc_open(&g711_cfg, sizeof(esp_g711_enc_config_t), &enc_hd);
+    esp_g711_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_g711_enc_close(enc_hd);
+
+    // test opus
+    esp_opus_enc_config_t opus_cfg = ESP_OPUS_ENC_CONFIG_DEFAULT();
+    esp_opus_enc_get_frame_info_by_cfg(&opus_cfg, &frame_info);
+    esp_opus_enc_open(&opus_cfg, sizeof(esp_opus_enc_config_t), &enc_hd);
+    esp_opus_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_opus_enc_close(enc_hd);
+
+    // test pcm
+    esp_pcm_enc_config_t pcm_cfg = ESP_PCM_ENC_CONFIG_DEFAULT();
+    esp_pcm_enc_get_frame_info_by_cfg(&pcm_cfg, &frame_info);
+    esp_pcm_enc_open(&pcm_cfg, sizeof(esp_pcm_enc_config_t), &enc_hd);
+    esp_pcm_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_pcm_enc_close(enc_hd);
+
+    esp_audio_enc_unregister_default();
+}
+
+TEST_CASE("Encoder bitrate test", CODEC_TEST_MODULE_NAME)
+{
+    esp_audio_enc_register_default();
+    // test common
+    enc_all_cfg_t all_cfg = { 0 };
+    esp_audio_type_t type = ESP_AUDIO_TYPE_AAC;
+    esp_audio_enc_config_t enc_cfg = {
+        .type = type,
+        .cfg = &all_cfg,
+    };
+    audio_info_t info = {
+        .sample_rate = 44100,
+        .channel = 2,
+        .bits_per_sample = 16,
+    };
+    get_encoder_config(type, &enc_cfg, &info);
+    esp_audio_enc_info_t enc_info = {0};
+    esp_audio_enc_handle_t enc_hd = NULL;
+    esp_audio_enc_open(&enc_cfg, &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_audio_enc_set_bitrate(enc_hd, 40000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_audio_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 40000);
+    esp_audio_enc_close(enc_hd);
+
+    // test aac
+    esp_aac_enc_config_t aac_cfg = ESP_AAC_ENC_CONFIG_DEFAULT();
+    esp_aac_enc_open(&aac_cfg, sizeof(esp_aac_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_aac_enc_set_bitrate(enc_hd, 40000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_aac_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 40000);
+    esp_aac_enc_close(enc_hd);
+
+    esp_amrnb_enc_config_t amrnb_cfg = ESP_AMRNB_ENC_CONFIG_DEFAULT();
+    esp_amrnb_enc_open(&amrnb_cfg, sizeof(esp_amrnb_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_amrnb_enc_set_bitrate(enc_hd, 4750), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_amrnb_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 4750);
+    esp_amrnb_enc_close(enc_hd);
+
+    esp_amrwb_enc_config_t amrwb_cfg = ESP_AMRWB_ENC_CONFIG_DEFAULT();
+    esp_amrwb_enc_open(&amrwb_cfg, sizeof(esp_amrwb_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_amrwb_enc_set_bitrate(enc_hd, 6600), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_amrwb_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 6600);
+    esp_amrwb_enc_close(enc_hd);
+
+    esp_opus_enc_config_t opus_cfg = ESP_OPUS_ENC_CONFIG_DEFAULT();
+    esp_opus_enc_open(&opus_cfg, sizeof(esp_opus_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_opus_enc_set_bitrate(enc_hd, 50000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_opus_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 50000);
+    esp_opus_enc_close(enc_hd);
+
+    esp_audio_enc_unregister_default();
+}
+
+TEST_CASE("Encoder query type", CODEC_TEST_MODULE_NAME)
+{
+    TEST_ASSERT_EQUAL(esp_audio_enc_check_audio_type(ESP_AUDIO_TYPE_AMRNB), ESP_AUDIO_ERR_NOT_SUPPORT);
+    esp_audio_enc_register_default();
+    TEST_ASSERT_EQUAL(esp_audio_enc_check_audio_type(ESP_AUDIO_TYPE_AMRNB), ESP_AUDIO_ERR_OK);
+    esp_audio_enc_unregister_default();
+}

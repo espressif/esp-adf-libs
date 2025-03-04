@@ -62,6 +62,18 @@ typedef struct {
 esp_audio_err_t esp_adpcm_enc_register(void);
 
 /**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   cfg         ADPCM encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_adpcm_enc_get_frame_info_by_cfg(void *cfg, esp_audio_enc_frame_info_t *frame_info);
+
+/**
  * @brief  Create ADPCM encoder handle through encoder configuration
  *
  * @param[in]   cfg     ADPCM encoder configuration
@@ -99,6 +111,7 @@ esp_audio_err_t esp_adpcm_enc_get_frame_size(void *enc_hd, int *in_size, int *ou
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
  *       - ESP_AUDIO_ERR_FAIL               Encode error
+ *       - ESP_AUDIO_ERR_DATA_LACK          Not enough input data to encode one or several frames
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_adpcm_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_frame,

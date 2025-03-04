@@ -342,3 +342,11 @@ TEST_CASE("AAC decoder use Decoder API directly", CODEC_TEST_MODULE_NAME)
     // Verify no leakage happen
     TEST_ASSERT_EQUAL_INT(heap_size, (int)esp_get_free_heap_size());
 }
+
+TEST_CASE("Decoder query type", CODEC_TEST_MODULE_NAME)
+{
+    TEST_ASSERT_EQUAL(esp_audio_dec_check_audio_type(ESP_AUDIO_TYPE_AMRNB), ESP_AUDIO_ERR_NOT_SUPPORT);
+    esp_audio_dec_register_default();
+    TEST_ASSERT_EQUAL(esp_audio_dec_check_audio_type(ESP_AUDIO_TYPE_AMRNB), ESP_AUDIO_ERR_OK);
+    esp_audio_dec_unregister_default();
+}

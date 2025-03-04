@@ -123,6 +123,17 @@ typedef struct {
 typedef void *esp_audio_dec_handle_t;
 
 /**
+ * @brief  Query whether the audio type is supported in decoder
+ *
+ * @param[in]  type  Audio decoder type
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK           On success
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT  Not support the audio type
+ */
+esp_audio_err_t esp_audio_dec_check_audio_type(esp_audio_type_t type);
+
+/**
  * @brief  Open audio decoder
  *
  * @param[in]   config   Audio decoder configuration
