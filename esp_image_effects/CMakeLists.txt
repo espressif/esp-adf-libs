@@ -1,0 +1,8 @@
+idf_component_register(INCLUDE_DIRS "include")
+if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER "5.3")
+ if (${IDF_TARGET} STREQUAL "esp32p4")
+    message(FATAL_ERROR "If use esp32p4, please use idf v5.3.")
+ endif()
+endif()
+target_link_libraries(${COMPONENT_LIB}  INTERFACE "-L ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CONFIG_IDF_TARGET}")
+target_link_libraries(${COMPONENT_LIB}  INTERFACE esp_image_effects)
