@@ -84,7 +84,7 @@ jpeg_error_t esp_jpeg_encode_one_picture_block(void)
     jpeg_enc_cfg.hfm_task_core = 1;
 
     jpeg_error_t ret = JPEG_ERR_OK;
-    uint8_t *inbuf = test_rgb888_data;
+    uint8_t *inbuf = NULL;
     int image_size = jpeg_enc_cfg.width * jpeg_enc_cfg.height * 3;
     int block_size = 0;
     int num_times = 0;

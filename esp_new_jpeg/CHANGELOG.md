@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.6.1
+
+### Features
+
+- Optimize error handling logic of the decoder
+- Improve example of encoder block mode in test_app
+
+### Bug Fixes
+
+- Fix decoding error for some images containing restart markers
+
 ## v0.6.0
 
 ### Features
