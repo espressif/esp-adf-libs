@@ -188,7 +188,7 @@ Please refer to the `test_app` folder for more details on API usage.
 
 The following table shows the support of ESP_NEW_JPEG for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported.
 
-| Chip     | v0.6.0   |
+| Chip     | v0.6.1   |
 |----------|----------|
 | ESP32    | &#10004; |
 | ESP32-S2 | &#10004; |
