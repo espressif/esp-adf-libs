@@ -109,7 +109,7 @@ int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test
  *       - 0       On Success
  *       - Others  Fail to do simple decoder test
  */
-int audio_simple_decoder_test_file(char* file_name, codec_write_cb writer, audio_info_t *info);
+int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *info);
 
 #ifdef __cplusplus
 }

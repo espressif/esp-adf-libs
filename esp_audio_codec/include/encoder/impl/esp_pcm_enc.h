@@ -37,12 +37,14 @@ typedef struct {
     int sample_rate;     /*!< The sample rate of audio */
     int channel;         /*!< The channel num of audio */
     int bits_per_sample; /*!< The bits per sample of audio */
+    int frame_duration;  /*!< The frame duration of audio, unit: ms */
 } esp_pcm_enc_config_t;
 
 #define ESP_PCM_ENC_CONFIG_DEFAULT() {              \
     .sample_rate       = ESP_AUDIO_SAMPLE_RATE_44K, \
     .channel           = ESP_AUDIO_DUAL,            \
     .bits_per_sample   = ESP_AUDIO_BIT16,           \
+    .frame_duration    = 10,                        \
 }
 
 /**
@@ -62,6 +64,18 @@ typedef struct {
  *       - ESP_AUDIO_ERR_MEM_LACK  Fail to allocate memory
  */
 esp_audio_err_t esp_pcm_enc_register(void);
+
+/**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   cfg         PCM encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_pcm_enc_get_frame_info_by_cfg(void *cfg, esp_audio_enc_frame_info_t *frame_info);
 
 /**
  * @brief  Create PCM encoder handle through encoder configuration

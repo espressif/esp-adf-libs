@@ -83,6 +83,18 @@ typedef struct {
 esp_audio_err_t esp_aac_enc_register(void);
 
 /**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   cfg         AAC encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_aac_enc_get_frame_info_by_cfg(void *cfg, esp_audio_enc_frame_info_t *frame_info);
+
+/**
  * @brief  Create AAC encoder handle through encoder configuration
  *
  * @param[in]   cfg     AAC encoder configuration
@@ -96,6 +108,24 @@ esp_audio_err_t esp_aac_enc_register(void);
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_aac_enc_open(void *cfg, uint32_t cfg_sz, void **enc_hd);
+
+/**
+ * @brief  Set AAC encoder bitrate
+ *
+ * @note  1. The current set function and processing function do not have lock protection, so when performing
+ *           asynchronous processing, special attention in needed to ensure data consistency and thread safety,
+ *           avoiding race conditions and resource conflicts.
+ *        2. The bitrate value can be get by `esp_aac_enc_get_info`
+ * 
+ * @param[in]  enc_hd   The AAC encoder handle
+ * @param[in]  bitrate  The bitrate of AAC
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to set bitrate
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_aac_enc_set_bitrate(void *enc_hd, int bitrate);
 
 /**
  * @brief  Get the input PCM data length and recommended output buffer length needed by encoding one frame
@@ -120,6 +150,7 @@ esp_audio_err_t esp_aac_enc_get_frame_size(void *enc_hd, int *in_size, int *out_
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
  *       - ESP_AUDIO_ERR_FAIL               Encode error
+ *       - ESP_AUDIO_ERR_DATA_LACK          Not enough input data to encode one or several frames
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_aac_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_frame, esp_audio_enc_out_frame_t *out_frame);

@@ -35,15 +35,15 @@ extern "C" {
  * @brief  Enum of AMRNB Encoder bitrate choose
  */
 typedef enum {
-    ESP_AMRNB_ENC_BITRATE_UNKNOW = -1,  /*!< Invalid mode */
-    ESP_AMRNB_ENC_BITRATE_MR475  = 0,   /*!< 4.75 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR515  = 1,   /*!< 5.15 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR59   = 2,   /*!< 5.90 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR67   = 3,   /*!< 6.70 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR74   = 4,   /*!< 7.40 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR795  = 5,   /*!< 7.95 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR102  = 6,   /*!< 10.2 Kbps */
-    ESP_AMRNB_ENC_BITRATE_MR122  = 7,   /*!< 12.2 Kbps */
+    ESP_AMRNB_ENC_BITRATE_UNKNOW = -1,    /*!< Invalid mode */
+    ESP_AMRNB_ENC_BITRATE_MR475  = 4750,  /*!< 4.75 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR515  = 5150,  /*!< 5.15 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR59   = 5900,  /*!< 5.90 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR67   = 6700,  /*!< 6.70 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR74   = 7400,  /*!< 7.40 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR795  = 7950,  /*!< 7.95 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR102  = 10200, /*!< 10.2 Kbps */
+    ESP_AMRNB_ENC_BITRATE_MR122  = 12200, /*!< 12.2 Kbps */
 } esp_amrnb_enc_bitrate_t;
 
 /**
@@ -83,6 +83,18 @@ typedef struct {
 esp_audio_err_t esp_amrnb_enc_register(void);
 
 /**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   cfg         AMRNB encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_amrnb_enc_get_frame_info_by_cfg(void *cfg, esp_audio_enc_frame_info_t *frame_info);
+
+/**
  * @brief  Create AMRNB encoder handle through encoder configuration
  *
  * @param[in]   cfg     AMRNB encoder configuration
@@ -96,6 +108,25 @@ esp_audio_err_t esp_amrnb_enc_register(void);
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_amrnb_enc_open(void *cfg, uint32_t cfg_sz, void **enc_hd);
+
+/**
+ * @brief  Set AMRNB encoder bitrate
+ *
+ * @note  1. The current set function and processing function do not have lock protection, so when performing
+ *           asynchronous processing, special attention in needed to ensure data consistency and thread safety,
+ *           avoiding race conditions and resource conflicts.
+ *        2. The bitrate value can be get by `esp_amrnb_enc_get_info`
+ *        3. The value of bitrate must be the value in `esp_amrnb_enc_bitrate_t`
+ *
+ * @param[in]  enc_hd   The AMRNB encoder handle
+ * @param[in]  bitrate  The bitrate of AMRNB
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to set bitrate
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_amrnb_enc_set_bitrate(void *enc_hd, int bitrate);
 
 /**
  * @brief  Get the input PCM data length and recommended output buffer length needed by encoding one frame
@@ -120,6 +151,7 @@ esp_audio_err_t esp_amrnb_enc_get_frame_size(void *enc_hd, int *in_size, int *ou
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
  *       - ESP_AUDIO_ERR_FAIL               Encode error
+ *       - ESP_AUDIO_ERR_DATA_LACK          Not enough input data to encode one or several frames
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_amrnb_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_frame,

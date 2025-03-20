@@ -47,21 +47,22 @@ typedef void *esp_audio_simple_dec_handle_t;
  * @brief  Audio simple decoder type
  */
 typedef enum {
-    ESP_AUDIO_SIMPLE_DEC_TYPE_NONE     = 0,    /*!< Invalid simple decoder type */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AAC      = 1,    /*!< Simple decoder for AAC */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_MP3      = 2,    /*!< Simple decoder for MP3 */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB    = 3,    /*!< Simple decoder for AMR-NB */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB    = 4,    /*!< Simple decoder for AMR-WB */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC     = 5,    /*!< Simple decoder for FLAC */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_WAV      = 6,    /*!< Simple decoder for WAV */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_M4A      = 7,    /*!< Simple decoder for M4A */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_TS       = 8,    /*!< Simple decoder for TS */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS = 9,    /*!< Simple decoder for OPUS (raw data with no extra header) */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_G711A    = 10,   /*!< Simple decoder for G711A */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_G711U    = 11,   /*!< Simple decoder for G711U */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_PCM      = 12,   /*!< Simple decoder for PCM */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_ADPCM    = 13,   /*!< Simple decoder for IMA-ADPCM */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM   = 0x10, /*!< Customized simple decoder type start */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_NONE       = 0,                                           /*!< Invalid simple decoder type */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AAC        = ESP_AUDIO_TYPE_AAC,                          /*!< Simple decoder for AAC */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_MP3        = ESP_AUDIO_TYPE_MP3,                          /*!< Simple decoder for MP3 */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB      = ESP_AUDIO_TYPE_AMRNB,                        /*!< Simple decoder for AMR-NB */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB      = ESP_AUDIO_TYPE_AMRWB,                        /*!< Simple decoder for AMR-WB */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC       = ESP_AUDIO_TYPE_FLAC,                         /*!< Simple decoder for FLAC */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_WAV        = ESP_AUDIO_FOURCC_TO_INT('W', 'A', 'V', ' '), /*!< Simple decoder for WAV */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_M4A        = ESP_AUDIO_FOURCC_TO_INT('M', '4', 'A', 'A'), /*!< Simple decoder for M4A */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_TS         = ESP_AUDIO_FOURCC_TO_INT('M', '2', 'T', 'S'), /*!< Simple decoder for TS */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS   = ESP_AUDIO_TYPE_OPUS,                         /*!< Simple decoder for OPUS (raw data with no extra header) */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G711A      = ESP_AUDIO_TYPE_G711A,                        /*!< Simple decoder for G711A */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G711U      = ESP_AUDIO_TYPE_G711U,                        /*!< Simple decoder for G711U */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_PCM        = ESP_AUDIO_TYPE_PCM,                          /*!< Simple decoder for PCM */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_ADPCM      = ESP_AUDIO_TYPE_ADPCM,                        /*!< Simple decoder for IMA-ADPCM */                                       /*!< Customized simple decoder type start */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM     = 0x1,                                         /*!< Customized simple decoder type start */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM_MAX = 0x10,                                        /*!< Customized simple decoder type end */
 } esp_audio_simple_dec_type_t;
 
 /**
@@ -108,6 +109,17 @@ typedef struct {
 } esp_audio_simple_dec_info_t;
 
 /**
+ * @brief  Query whether the simple decoder type is supported
+ *
+ * @param[in]  dec_type  Simple decoder type
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK           On success
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT  Not support the audio type
+ */
+esp_audio_err_t esp_audio_simple_check_audio_type(esp_audio_simple_dec_type_t dec_type);
+
+/**
  * @brief  Open audio simple decoder
  *
  * @param[in]   cfg         Decoder configuration
@@ -129,7 +141,7 @@ esp_audio_err_t esp_audio_simple_dec_open(esp_audio_simple_dec_cfg_t *cfg, esp_a
  * @param[in,out]  frame       Decoded PCM frame
  *
  * @return
- *       - ESP_AUDIO_ERR_OK                 Open decoder success
+ *       - ESP_AUDIO_ERR_OK                 Decode success or data feed into cached buffer
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid input argument
  *       - ESP_AUDIO_ERR_BUFF_NOT_ENOUGH    Output frame buffer not enough need reallocated and try again
  *       - ESP_AUDIO_ERR_NOT_SUPPORT        Decoder not supported

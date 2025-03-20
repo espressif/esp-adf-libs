@@ -37,12 +37,14 @@ typedef struct {
     int sample_rate;      /*!< The sample rate of audio */
     int channel;          /*!< The channel num of audio */
     int bits_per_sample;  /*!< Supported bits per sample: 16 bit */
+    int frame_duration;   /*!< The frame duration of audio, unit: ms */
 } esp_g711_enc_config_t;
 
 #define ESP_G711_ENC_CONFIG_DEFAULT() {            \
     .sample_rate       = ESP_AUDIO_SAMPLE_RATE_8K, \
     .channel           = ESP_AUDIO_MONO,           \
     .bits_per_sample   = ESP_AUDIO_BIT16,          \
+    .frame_duration    = 10,                       \
 }
 
 /**
@@ -72,6 +74,18 @@ esp_audio_err_t esp_g711a_enc_register(void);
  *       - ESP_AUDIO_ERR_MEM_LACK  Fail to allocate memory
  */
 esp_audio_err_t esp_g711u_enc_register(void);
+
+/**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   cfg         G711 encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_g711_enc_get_frame_info_by_cfg(void *cfg, esp_audio_enc_frame_info_t *frame_info);
 
 /**
  * @brief  Create G711 a-LAW encoder handle through encoder configuration
@@ -128,6 +142,7 @@ esp_audio_err_t esp_g711_enc_get_frame_size(void *enc_hd, int *in_size, int *out
  *
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_DATA_LACK          Not enough input data to encode one or several frames
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_g711_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_frame,

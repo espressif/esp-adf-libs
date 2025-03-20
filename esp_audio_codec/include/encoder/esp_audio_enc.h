@@ -65,21 +65,55 @@ typedef struct {
 } esp_audio_enc_out_frame_t;
 
 /**
+ * @brief  Audio encoder frame information structure
+ */
+typedef struct {
+    int     in_frame_size;   /*!< One input frame size */
+    uint8_t in_frame_align;  /*!< The required alignment number for the input buffer */
+    int     out_frame_size;  /*!< The recommended out buffer size to store one encoded frame */
+    uint8_t out_frame_align; /*!< The required alignment number for the output buffer */
+} esp_audio_enc_frame_info_t;
+
+/**
  * @brief  Encoder configuration
  */
 typedef struct {
     esp_audio_type_t type;   /*!< Audio encoder type which from 'esp_audio_type_t'. */
     void            *cfg;    /*!< Audio encoder configuration. For example, if choose AAC encoder,
-                               user need to config 'esp_aac_enc_config_t' and set the pointer
-                               of this configuration to 'cfg'. */
+                                  user need to config 'esp_aac_enc_config_t' and set the pointer
+                                  of this configuration to 'cfg'. */
     uint32_t         cfg_sz; /*!< Size of "cfg". For example, if choose AAC encoder, the 'cfg_sz'
-                               is sizeof 'esp_aac_enc_config_t'*/
+                                  is sizeof 'esp_aac_enc_config_t'*/
 } esp_audio_enc_config_t;
 
 /**
  * @brief  Handle for audio encoder instance
  */
 typedef void *esp_audio_enc_handle_t;
+
+/**
+ * @brief  Query frame information with encoder configuration
+ *
+ * @param[in]   config      Audio encoder configuration
+ * @param[out]  frame_info  The structure of frame information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT        Not support the audio type
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_audio_enc_get_frame_info_by_cfg(esp_audio_enc_config_t *config, esp_audio_enc_frame_info_t *frame_info);
+
+/**
+ * @brief  Query whether the audio type is supported
+ *
+ * @param[in]  type  Audio encoder type
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK           On success
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT  Not support the audio type
+ */
+esp_audio_err_t esp_audio_enc_check_audio_type(esp_audio_type_t type);
 
 /**
  * @brief  Create encoder handle through encoder configuration
@@ -91,21 +125,29 @@ typedef void *esp_audio_enc_handle_t;
  *       - ESP_AUDIO_ERR_OK                 On success
  *       - ESP_AUDIO_ERR_FAIL               Encoder initialize failed
  *       - ESP_AUDIO_ERR_MEM_LACK           Fail to allocate memory
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT        Encoder not register yet
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_audio_enc_open(esp_audio_enc_config_t *config, esp_audio_enc_handle_t *enc_hd);
 
 /**
- * @brief  Get audio encoder information from encoder handle
+ * @brief  Set audio encoder bitrate
  *
- * @param[in]  enc_hd    The encoder handle
- * @param[in]  enc_info  The encoder information
+ * @note  1. The current set function and processing function do not have lock protection, so when performing
+ *        asynchronous processing, special attention in needed to ensure data consistency and thread safety,
+ *        avoiding race conditions and resource conflicts.
+ *        2. The bitrate value can be get by `esp_audio_enc_get_info`
+ *
+ * @param[in]  enc_hd   The audio encoder handle
+ * @param[in]  bitrate  The bitrate of audio
  *
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to set bitrate
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT        Not support to set bitrate function
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
-esp_audio_err_t esp_audio_enc_get_info(esp_audio_enc_handle_t enc_hd, esp_audio_enc_info_t *enc_info);
+esp_audio_err_t esp_audio_enc_set_bitrate(void *enc_hd, int bitrate);
 
 /**
  * @brief  Get the input PCM data length and recommended output buffer length needed by encoding one frame
@@ -118,6 +160,7 @@ esp_audio_err_t esp_audio_enc_get_info(esp_audio_enc_handle_t enc_hd, esp_audio_
  *
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT        Encoder not register yet
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_audio_enc_get_frame_size(esp_audio_enc_handle_t enc_hd, int *in_size, int *out_size);
@@ -132,10 +175,24 @@ esp_audio_err_t esp_audio_enc_get_frame_size(esp_audio_enc_handle_t enc_hd, int 
  * @return
  *       - ESP_AUDIO_ERR_OK                 On success
  *       - ESP_AUDIO_ERR_FAIL               Encode error
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT        Encoder not register yet
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_audio_enc_process(esp_audio_enc_handle_t enc_hd, esp_audio_enc_in_frame_t *in_frame,
                                       esp_audio_enc_out_frame_t *out_frame);
+
+/**
+ * @brief  Get audio encoder information from encoder handle
+ *
+ * @param[in]  enc_hd    The encoder handle
+ * @param[in]  enc_info  The encoder information
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_NOT_SUPPORT        Encoder not register yet
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_audio_enc_get_info(esp_audio_enc_handle_t enc_hd, esp_audio_enc_info_t *enc_info);
 
 /**
  * @brief  Close an encoder handle
