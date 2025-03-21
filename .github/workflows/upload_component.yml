@@ -23,5 +23,6 @@ jobs:
             esp_audio_effects;
             esp_video_codec;
             esp_libsrtp;
+            esp_image_effects;
           namespace: "espressif"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
