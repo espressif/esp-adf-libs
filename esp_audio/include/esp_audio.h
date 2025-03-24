@@ -31,6 +31,7 @@ typedef void *esp_audio_handle_t;
     .vol_get = NULL,\
     .task_prio = 6,\
     .task_stack = 4 * 1024,\
+    .resample_ch = 0,\
 }
 
 /**
@@ -61,6 +62,7 @@ typedef struct {
     audio_volume_get            vol_get;                    /*!< Get volume callback*/
     int                         task_prio;                  /*!< esp_audio task priority*/
     int                         task_stack;                 /*!< Size of esp_audio task stack */
+    int                         resample_ch;                /*!< The dest channel of resample */
 } esp_audio_cfg_t;
 
 /**
