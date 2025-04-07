@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.2
+
+### Features
+
+- Align video codec and pixel format with `esp-gmf`
+
 ## v0.5.1
 
 ### Features
