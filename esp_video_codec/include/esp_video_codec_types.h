@@ -58,25 +58,27 @@ typedef enum {
  * @brief  Video codec type
  */
 typedef enum {
-    ESP_VIDEO_CODEC_TYPE_NONE  = 0, /*!< Invalid codec type */
-    ESP_VIDEO_CODEC_TYPE_H264  = 1, /*!< H264 codec type */
-    ESP_VIDEO_CODEC_TYPE_MJPEG = 2, /*!< MJPEG codec type */
+    ESP_VIDEO_CODEC_TYPE_NONE  = 0,                                          /*!< Invalid codec type */
+    ESP_VIDEO_CODEC_TYPE_H264  = ESP_VIDEO_CODEC_FOURCC('H', '2', '6', '4'), /*!< H264 codec type */
+    ESP_VIDEO_CODEC_TYPE_MJPEG = ESP_VIDEO_CODEC_FOURCC('M', 'J', 'P', 'G'), /*!< MJPEG codec type */
 } esp_video_codec_type_t;
 
 /**
  * @brief  Video codec pixel format
+ *
+ * @note  For detailed information refer to `https://github.com/espressif/esp-gmf/blob/main/gmf_core/helpers/include/esp_fourcc.h`
  */
 typedef enum {
-    ESP_VIDEO_CODEC_PIXEL_FMT_NONE        = 0, /*!< Invalid pixel format */
-    ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_LE   = 1, /*!< RGB565 little endian pixel format */
-    ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_BE   = 2, /*!< RGB565 big endian pixel format */
-    ESP_VIDEO_CODEC_PIXEL_FMT_RGB888      = 3, /*!< RGB888 pixel format */
-    ESP_VIDEO_CODEC_PIXEL_FMT_BGR888      = 4, /*!< BGR888 pixel format */
-    ESP_VIDEO_CODEC_PIXEL_FMT_YUV420P     = 5, /*!< YUV420P pixel format (YY.. x n, U.. x n/2, V.. x n/2) */
-    ESP_VIDEO_CODEC_PIXEL_FMT_YUV422P     = 6, /*!< YUV422P pixel format (YY.. x n, U.. x n, V.. x n) */
-    ESP_VIDEO_CODEC_PIXEL_FMT_YUV422      = 7, /*!< YUV422 pixel format (YUYV.. x n) */
-    ESP_VIDEO_CODEC_PIXEL_FMT_UYVY422     = 8, /*!< UYVY422 pixel format (UYVY.. x n)*/
-    ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY = 9, /*!< Odd line is UYY.. and even line is VYY.. */
+    ESP_VIDEO_CODEC_PIXEL_FMT_NONE        = 0,                                          /*!< Invalid pixel format */
+    ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_LE   = ESP_VIDEO_CODEC_FOURCC('R', 'G', 'B', 'L'), /*!< RGB565 little endian pixel format */
+    ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_BE   = ESP_VIDEO_CODEC_FOURCC('R', 'G', 'B', 'B'), /*!< RGB565 big endian pixel format */
+    ESP_VIDEO_CODEC_PIXEL_FMT_RGB888      = ESP_VIDEO_CODEC_FOURCC('R', 'G', 'B', '3'), /*!< RGB888 pixel format */
+    ESP_VIDEO_CODEC_PIXEL_FMT_BGR888      = ESP_VIDEO_CODEC_FOURCC('B', 'G', 'R', '3'), /*!< BGR888 pixel format */
+    ESP_VIDEO_CODEC_PIXEL_FMT_YUV420P     = ESP_VIDEO_CODEC_FOURCC('Y', 'U', '1', '2'), /*!< YUV420P pixel format (YY.. x n, U.. x n/2, V.. x n/2) */
+    ESP_VIDEO_CODEC_PIXEL_FMT_YUV422P     = ESP_VIDEO_CODEC_FOURCC('4', '2', '2', 'P'), /*!< YUV422P pixel format (YY.. x n, U.. x n, V.. x n) */
+    ESP_VIDEO_CODEC_PIXEL_FMT_YUV422      = ESP_VIDEO_CODEC_FOURCC('Y', 'U', 'Y', 'V'), /*!< YUV422 pixel format (YUYV.. x n) */
+    ESP_VIDEO_CODEC_PIXEL_FMT_UYVY422     = ESP_VIDEO_CODEC_FOURCC('U', 'Y', 'V', 'Y'), /*!< UYVY422 pixel format (UYVY.. x n)*/
+    ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY = ESP_VIDEO_CODEC_FOURCC('O', 'U', 'E', 'V'), /*!< Odd line is UYY.. and even line is VYY.. */
 } esp_video_codec_pixel_fmt_t;
 
 /**
