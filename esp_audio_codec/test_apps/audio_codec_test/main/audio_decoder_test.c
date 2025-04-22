@@ -1,7 +1,8 @@
-/**
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
+ * See LICENSE file for details.
  */
 
 #include <stdio.h>
@@ -25,6 +26,8 @@ typedef union {
     esp_alac_dec_cfg_t  alac_cfg;
     esp_aac_dec_cfg_t   aac_cfg;
     esp_g711_dec_cfg_t  g711_cfg;
+    esp_sbc_dec_cfg_t   sbc_cfg;
+    esp_lc3_dec_cfg_t   lc3_cfg;
 } dec_all_cfg_t;
 
 typedef struct {
@@ -83,6 +86,27 @@ static int get_decoder_cfg(esp_audio_dec_cfg_t *dec_cfg, audio_info_t *info)
             dec_cfg->cfg = aac_cfg;
             dec_cfg->cfg_sz = sizeof(esp_aac_dec_cfg_t);
         } break;
+        case ESP_AUDIO_TYPE_SBC: {
+            esp_sbc_dec_cfg_t *sbc_cfg = &cfg->sbc_cfg;
+            sbc_cfg->sbc_mode = ESP_SBC_MODE_STD;
+            sbc_cfg->ch_num = 2;
+            sbc_cfg->enable_plc = false;
+            dec_cfg->cfg = sbc_cfg;
+            dec_cfg->cfg_sz = sizeof(esp_sbc_dec_cfg_t);
+        } break;
+        case ESP_AUDIO_TYPE_LC3: {
+            esp_lc3_dec_cfg_t *lc3_cfg = &cfg->lc3_cfg;
+            lc3_cfg->sample_rate = 48000;
+            lc3_cfg->channel = 2;
+            lc3_cfg->bits_per_sample = 16;
+            lc3_cfg->frame_dms = 100;
+            lc3_cfg->nbyte = 120;
+            lc3_cfg->is_cbr = true;
+            lc3_cfg->len_prefixed = false;
+            lc3_cfg->enable_plc = false;
+            dec_cfg->cfg = lc3_cfg;
+            dec_cfg->cfg_sz = sizeof(esp_lc3_dec_cfg_t);
+        } break;
         default:
             dec_cfg->cfg = NULL;
             dec_cfg->cfg_sz = 0;
@@ -101,7 +125,7 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
     };
     get_decoder_cfg(&dec_cfg, info);
     esp_audio_dec_handle_t decoder = NULL;
-    int max_raw_size = 10*1024;
+    int max_raw_size = 10 * 1024;
     int max_out_size = 4096;
     uint8_t *raw_buf = malloc(max_raw_size);
     uint8_t *out_buf = malloc(max_out_size);
@@ -180,7 +204,7 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
         if (total_decoded) {
             int sample_size = info->channel * info->bits_per_sample >> 3;
             float cpu_usage = (float)decode_time * sample_size * info->sample_rate / total_decoded / 10000;
-            ESP_LOGI(TAG, "Decode for %s cpu: %.2f%% heap usage: %d", esp_audio_codec_get_name(type), cpu_usage, 
+            ESP_LOGI(TAG, "Decode for %s cpu: %.2f%% heap usage: %d", esp_audio_codec_get_name(type), cpu_usage,
                      open_consumed_size + process_max_consume);
         }
     } while (0);
@@ -282,7 +306,7 @@ TEST_CASE("AAC decoder use Common API", CODEC_TEST_MODULE_NAME)
     TEST_ESP_OK(esp_aac_dec_register());
 
     // Configuration for AAC decoder
-    esp_aac_dec_cfg_t aac_cfg = { 0 };
+    esp_aac_dec_cfg_t aac_cfg = {0};
     memset(&write_ctx, 0, sizeof(write_ctx));
     write_ctx.use_common_api = true;
     esp_audio_dec_cfg_t dec_cfg = {
@@ -318,7 +342,7 @@ TEST_CASE("AAC decoder use Decoder API directly", CODEC_TEST_MODULE_NAME)
     int heap_size = esp_get_free_heap_size();
 
     // Configuration for AAC decoder
-    esp_aac_dec_cfg_t aac_cfg = { 0 };
+    esp_aac_dec_cfg_t aac_cfg = {0};
     memset(&write_ctx, 0, sizeof(write_ctx));
 
     // Open AAC encoder

@@ -1,7 +1,8 @@
-/**
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
+ * See LICENSE file for details.
  */
 
 #include <stdio.h>
@@ -30,12 +31,14 @@ typedef union {
     esp_amrwb_enc_config_t amrwb_cfg;
     esp_g711_enc_config_t  g711_cfg;
     esp_opus_enc_config_t  opus_cfg;
+    esp_sbc_enc_config_t   sbc_cfg;
+    esp_lc3_enc_config_t   lc3_cfg;
 } enc_all_cfg_t;
 
-#define ASSIGN_BASIC_CFG(cfg) {                   \
-    cfg->sample_rate    = info->sample_rate;      \
-    cfg->bits_per_sample = info->bits_per_sample; \
-    cfg->channel        = info->channel;          \
+#define ASSIGN_BASIC_CFG(cfg) {                    \
+    cfg->sample_rate     = info->sample_rate;      \
+    cfg->bits_per_sample = info->bits_per_sample;  \
+    cfg->channel         = info->channel;          \
 }
 
 static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc_cfg, audio_info_t *info)
@@ -75,6 +78,7 @@ static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc
         case ESP_AUDIO_TYPE_G711U: {
             esp_g711_enc_config_t *cfg = &all_cfg->g711_cfg;
             enc_cfg->cfg_sz = sizeof(esp_g711_enc_config_t);
+            cfg->frame_duration = 20;
             ASSIGN_BASIC_CFG(cfg);
             break;
         }
@@ -93,6 +97,28 @@ static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc
             enc_cfg->cfg_sz = sizeof(esp_alac_enc_config_t);
             break;
         }
+        case ESP_AUDIO_TYPE_SBC: {
+            esp_sbc_enc_config_t *cfg = &all_cfg->sbc_cfg;
+            cfg->sbc_mode = ESP_SBC_MODE_STD;
+            cfg->allocation_method = ESP_SBC_ALLOC_SNR;
+            cfg->bitpool = 64;
+            cfg->block_length = 16;
+            cfg->sub_bands_num = 8;
+            cfg->ch_mode = info->channel == 1 ? ESP_SBC_CH_MODE_MONO : ESP_SBC_CH_MODE_DUAL;
+            cfg->sample_rate = info->sample_rate;
+            cfg->bits_per_sample = info->bits_per_sample;
+            enc_cfg->cfg_sz = sizeof(esp_sbc_enc_config_t);
+            break;
+        }
+        case ESP_AUDIO_TYPE_LC3: {
+            esp_lc3_enc_config_t *cfg = &all_cfg->lc3_cfg;
+            ASSIGN_BASIC_CFG(cfg);
+            cfg->frame_dms = 100;
+            cfg->nbyte = 120;
+            cfg->len_prefixed = false;
+            enc_cfg->cfg_sz = sizeof(esp_lc3_enc_config_t);
+            break;
+        }
         default:
             ESP_LOGE(TAG, "Not supported encoder type %d", type);
             return -1;
@@ -105,7 +131,7 @@ int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *data_cfg, 
     // Register all encoder
     esp_audio_enc_register_default();
 
-    enc_all_cfg_t all_cfg = { 0 };
+    enc_all_cfg_t all_cfg = {0};
     esp_audio_enc_config_t enc_cfg = {
         .type = type,
         .cfg = &all_cfg,
@@ -134,7 +160,7 @@ int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *data_cfg, 
         if (heap_start_size > cur_heap_size) {
             open_consumed_size = heap_start_size - cur_heap_size;
         }
-        esp_audio_enc_info_t enc_info = { 0 };
+        esp_audio_enc_info_t enc_info = {0};
         esp_audio_enc_get_info(encoder, &enc_info);
         if (enc_info.spec_info_len) {
             info->spec_info_size = enc_info.spec_info_len;
@@ -225,8 +251,7 @@ TEST_CASE("AAC Encoder use Common API", CODEC_TEST_MODULE_NAME)
     esp_audio_enc_config_t enc_cfg = {
         .type = ESP_AUDIO_TYPE_AAC,
         .cfg = &aac_cfg,
-        .cfg_sz = sizeof(aac_cfg)
-    };
+        .cfg_sz = sizeof(aac_cfg)};
     // Open encoder
     esp_audio_enc_handle_t encoder = NULL;
     TEST_ESP_OK(esp_audio_enc_open(&enc_cfg, &encoder));
@@ -321,7 +346,7 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
 {
     esp_audio_enc_register_default();
     // test common
-    enc_all_cfg_t all_cfg = { 0 };
+    enc_all_cfg_t all_cfg = {0};
     esp_audio_type_t type = ESP_AUDIO_TYPE_AAC;
     esp_audio_enc_config_t enc_cfg = {
         .type = type,
@@ -361,6 +386,15 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
     esp_adpcm_enc_close(enc_hd);
+
+    // test alac
+    esp_alac_enc_config_t alac_cfg = ESP_ALAC_ENC_CONFIG_DEFAULT();
+    esp_alac_enc_get_frame_info_by_cfg(&alac_cfg, &frame_info);
+    esp_alac_enc_open(&alac_cfg, sizeof(esp_alac_enc_config_t), &enc_hd);
+    esp_alac_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_alac_enc_close(enc_hd);
 
     // test amrnb
     esp_amrnb_enc_config_t amrnb_cfg = ESP_AMRNB_ENC_CONFIG_DEFAULT();
@@ -407,6 +441,24 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
     esp_pcm_enc_close(enc_hd);
 
+    // test sbc
+    esp_sbc_enc_config_t sbc_cfg = ESP_SBC_STD_ENC_CONFIG_DEFAULT();
+    esp_sbc_enc_get_frame_info_by_cfg(&sbc_cfg, &frame_info);
+    esp_sbc_enc_open(&sbc_cfg, sizeof(esp_sbc_enc_config_t), &enc_hd);
+    esp_sbc_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_sbc_enc_close(enc_hd);
+
+    // test lc3
+    esp_lc3_enc_config_t lc3_cfg = ESP_LC3_ENC_CONFIG_DEFAULT();
+    esp_lc3_enc_get_frame_info_by_cfg(&lc3_cfg, &frame_info);
+    esp_lc3_enc_open(&lc3_cfg, sizeof(esp_lc3_enc_config_t), &enc_hd);
+    esp_lc3_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    esp_lc3_enc_close(enc_hd);
+
     esp_audio_enc_unregister_default();
 }
 
@@ -414,7 +466,7 @@ TEST_CASE("Encoder bitrate test", CODEC_TEST_MODULE_NAME)
 {
     esp_audio_enc_register_default();
     // test common
-    enc_all_cfg_t all_cfg = { 0 };
+    enc_all_cfg_t all_cfg = {0};
     esp_audio_type_t type = ESP_AUDIO_TYPE_AAC;
     esp_audio_enc_config_t enc_cfg = {
         .type = type,
@@ -467,6 +519,22 @@ TEST_CASE("Encoder bitrate test", CODEC_TEST_MODULE_NAME)
     TEST_ASSERT_EQUAL(esp_opus_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
     TEST_ASSERT_EQUAL(enc_info.bitrate, 50000);
     esp_opus_enc_close(enc_hd);
+
+    esp_sbc_enc_config_t sbc_cfg = ESP_SBC_STD_ENC_CONFIG_DEFAULT();
+    esp_sbc_enc_open(&sbc_cfg, sizeof(esp_sbc_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_sbc_enc_set_bitrate(enc_hd, 50000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_sbc_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 50000);
+    esp_sbc_enc_close(enc_hd);
+
+    esp_lc3_enc_config_t lc3_cfg = ESP_LC3_ENC_CONFIG_DEFAULT();
+    esp_lc3_enc_open(&lc3_cfg, sizeof(esp_lc3_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_lc3_enc_set_bitrate(enc_hd, 50000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_lc3_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 50000);
+    esp_lc3_enc_close(enc_hd);
 
     esp_audio_enc_unregister_default();
 }

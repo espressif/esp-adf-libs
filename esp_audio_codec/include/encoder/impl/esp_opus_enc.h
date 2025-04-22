@@ -1,25 +1,26 @@
 /*
- * ESPRESSIF MIT License
+ * Espressif Modified MIT License
  *
- * Copyright (c) 2023 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2025 Espressif Systems (Shanghai) CO., LTD
  *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
+ * Permission is hereby granted for use EXCLUSIVELY with Espressif Systems products.
+ * This includes the right to use, copy, modify, merge, publish, distribute, and sublicense
+ * the Software, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * 1. This Software MUST BE USED IN CONJUNCTION WITH ESPRESSIF SYSTEMS PRODUCTS.
+ * 2. The above copyright notice and this permission notice shall be included in all copies
+ *    or substantial portions of the Software.
+ * 3. Redistribution of the Software in source or binary form FOR USE WITH NON-ESPRESSIF PRODUCTS
+ *    is strictly prohibited.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  */
 
 #pragma once
@@ -70,14 +71,14 @@ typedef struct {
                                                            This must be mono or dual. */
     int                           bits_per_sample;    /*!< The bits per sample of OPUS audio.
                                                            This must be 16 */
-    int                           bitrate;            /*!< Suggest bitrate(Kbps) range on mono stream :
-                                                           | frame_duration(ms)|    2.5    |     5     |    10    |    20    |    40    |    60    |    80    |   100    |   120    | 
-                                                           |   samplerate(Hz)  |           |           |          |          |          |          |          |          |          |
-                                                           |       8000        | 30 - 128  | 20 - 128  |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |  6 - 128 |
-                                                           |       12000       | 30 - 192  | 20 - 192  |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |  6 - 192 |
-                                                           |       16000       | 30 - 256  | 20 - 256  |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |  6 - 256 |
-                                                           |       24000       | 50 - 384  | 40 - 384  | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 | 40 - 384 |
-                                                           |       48000       | 40 - 510  | 30 - 510  | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 | 30 - 510 |
+    int                           bitrate;            /*!< Suggest bitrate(bps) range on mono stream :
+                                                           | frame_duration(ms)|       2.5       |       5         |       10       |       20       |    40    |       60       |       80       |       100      |       120      | 
+                                                           |   samplerate(Hz)  |                 |                 |                |                |          |                |                |                |                |
+                                                           |       8000        | 30000 - 128000  | 20000 - 128000  |  6000 - 128000 |  6000 - 128000 |  6 - 128 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |
+                                                           |       12000       | 30000 - 192000  | 20000 - 192000  |  6000 - 192000 |  6000 - 192000 |  6 - 192 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |
+                                                           |       16000       | 30000 - 256000  | 20000 - 256000  |  6000 - 256000 |  6000 - 256000 |  6 - 256 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |
+                                                           |       24000       | 50000 - 384000  | 40000 - 384000  | 40000 - 384000 | 40000 - 384000 | 40 - 384 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 |
+                                                           |       48000       | 40000 - 510000  | 30000 - 510000  | 30000 - 510000 | 30000 - 510000 | 30 - 510 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 |
                                                            Note : 1) This table shows the bitrate range corresponding to each samplerate and frame duration.
                                                                   2) The bitrate range of dual stream is the same that of mono. */
     esp_opus_enc_frame_duration_t frame_duration;     /*!< The duration of one frame.

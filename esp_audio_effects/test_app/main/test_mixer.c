@@ -339,8 +339,8 @@ TEST_CASE("Mixer 16bit two mix test", "AUDIO_EFFECT")
     TEST_ASSERT_NOT_EQUAL(outfile2, NULL);
 #endif /* CMP_MODE */
     // inter
-    unsigned char *inbuf1 = calloc(sizeof(short), 1024);
-    unsigned char *inbuf2 = calloc(sizeof(short), 1024);
+    unsigned char *inbuf1 = heap_caps_aligned_calloc(16, sizeof(short), 1024, MALLOC_CAP_SPIRAM);
+    unsigned char *inbuf2 = heap_caps_aligned_calloc(16, sizeof(short), 1024, MALLOC_CAP_SPIRAM);
     unsigned char *cmp_buffer = heap_caps_aligned_calloc(16, sizeof(short), 1024,
                                                          MALLOC_CAP_SPIRAM);
     TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
@@ -410,10 +410,10 @@ TEST_CASE("Mixer 16bit two mix test", "AUDIO_EFFECT")
             esp_ae_mixer_set_mode(downmix_handle2, 1, ESP_AE_MIXER_MODE_FADE_DOWNWARD);
         }
 
-        esp_ae_mixer_process(downmix_handle1, sample_num, (void **)in, outbuf);
+        esp_ae_mixer_process(downmix_handle1, sample_num, (void **)in, inbuf1);
 #ifdef CMP_MODE
         fread(cmp_buffer, 1, sample_num * (bit >> 3) * channel, outfile1);
-        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, sample_num * (bit >> 3) * channel), 0);
+        TEST_ASSERT_EQUAL(memcmp(inbuf1, cmp_buffer, sample_num * (bit >> 3) * channel), 0);
 #else
         fwrite(outbuf, 1, sample_num * (bit >> 3) * channel, outfile1);
 #endif /* CMP_MODE */
@@ -707,10 +707,10 @@ TEST_CASE("Mixer 24bit two mix test", "AUDIO_EFFECT")
             esp_ae_mixer_set_mode(downmix_handle1, 1, ESP_AE_MIXER_MODE_FADE_DOWNWARD);
             esp_ae_mixer_set_mode(downmix_handle2, 1, ESP_AE_MIXER_MODE_FADE_DOWNWARD);
         }
-        esp_ae_mixer_process(downmix_handle1, sample_num, (void **)in, outbuf);
+        esp_ae_mixer_process(downmix_handle1, sample_num, (void **)in, inbuf1);
 #ifdef CMP_MODE
         fread(cmp_buffer, 1, sample_num * (bit >> 3) * channel, outfile1);
-        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, sample_num * (bit >> 3) * channel), 0);
+        TEST_ASSERT_EQUAL(memcmp(inbuf1, cmp_buffer, sample_num * (bit >> 3) * channel), 0);
 #else
         fwrite(outbuf, 1, sample_num * (bit >> 3) * channel, outfile1);
 #endif /* CMP_MODE */
@@ -1002,10 +1002,10 @@ TEST_CASE("Mixer 32bit two mix test", "AUDIO_EFFECT")
             esp_ae_mixer_set_mode(downmix_handle1, 1, ESP_AE_MIXER_MODE_FADE_DOWNWARD);
             esp_ae_mixer_set_mode(downmix_handle2, 1, ESP_AE_MIXER_MODE_FADE_DOWNWARD);
         }
-        esp_ae_mixer_process(downmix_handle1, sample_num, (void **)in, outbuf);
+        esp_ae_mixer_process(downmix_handle1, sample_num, (void **)in, inbuf1);
 #ifdef CMP_MODE
         fread(cmp_buffer, 1, sample_num * (bit >> 3) * channel, outfile1);
-        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, sample_num * (bit >> 3) * channel), 0);
+        TEST_ASSERT_EQUAL(memcmp(inbuf1, cmp_buffer, sample_num * (bit >> 3) * channel), 0);
 #else
         fwrite(outbuf, 1, sample_num * (bit >> 3) * channel, outfile1);
 #endif /* CMP_MODE */
