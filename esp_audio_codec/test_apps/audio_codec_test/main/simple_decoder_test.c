@@ -1,7 +1,8 @@
-/**
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * SPDX-License-Identifier: Apache-2.0
+ * See LICENSE file for details.
  */
 
 #include <stdio.h>
@@ -144,7 +145,7 @@ static int write_pcm_to_file(uint8_t *data, int size)
     return ESP_OK;
 #else
     return fwrite(data, 1, size, simp_dec_wr_fp);
-#endif
+#endif /* AUD_COMPARE */
 }
 
 static int encoder_read_pcm(uint8_t *data, int size)
@@ -198,6 +199,26 @@ static int simple_decoder_write_pcm(uint8_t *data, int size)
 {
     write_ctx.decode_size += size;
     return size;
+}
+
+static void sdcard_url_save_cb(void *user_data, char *url)
+{
+    esp_err_t ret = sdcard_list_save(user_data, url);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Fail to save sdcard url to sdcard playlist");
+    }
+}
+
+static void change_extension_to_pcm(const char *input_path, char *output_path, size_t size)
+{
+    strncpy(output_path, input_path, size - 1);
+    char *dot = strrchr(output_path, '.');
+    if (dot != NULL) {
+        strcpy(dot, ".pcm");
+        output_path[(dot - output_path) + strlen(".pcm")] = '\0';
+    } else {
+        strncat(output_path, ".pcm", size - strlen(output_path) - 1);
+    }
 }
 
 int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info)
@@ -337,7 +358,7 @@ int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *
         ESP_LOGE(TAG, "File %s not found", out_file);
         return -1;
     }
-#endif
+#endif /* AUD_COMPARE */
     audio_codec_test_cfg_t dec_cfg = {
         .read = read_raw_from_file,
         .write = write_pcm_to_file,
@@ -353,90 +374,28 @@ int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *
 #ifdef AUD_COMPARE
     free(cmp_buf);
     cmp_buf = NULL;
-#endif
+#endif /* AUD_COMPARE */
     return ret;
 }
-
-char inname[40][100] = {
-    //aac
-    "/sdcard/audio_files/aac/0_44100_2_16_223000_44.aac",
-    "/sdcard/audio_files/aac/1_24000_1_16_46000_143.aac",
-    "/sdcard/audio_files/aac/2_22050_1_16_61000_256.aac",
-    "/sdcard/audio_files/aac/3_22050_2_16_92000_256.aac",
-    "/sdcard/audio_files/aac/4_22050_1_16_57000_272.aac",
-    "/sdcard/audio_files/aac/5_44100_2_16_32000_9.aac",
-    "/sdcard/audio_files/aac/6_8000_1_16_0_1.aac",
-    //amrnb
-    "/sdcard/audio_files/amr/0_8000_1_12800_56.amrnb",
-    //amrwb
-    "/sdcard/audio_files/amr/1_16000_1_24000_56.amrwb",
-    //flac
-    "/sdcard/audio_files/flac/0_44100_2_940662_170.flac",
-    //m4a
-    "/sdcard/audio_files/m4a/0_44100_2_127000_1659.m4a",
-    "/sdcard/audio_files/m4a/2_44100_2_283167_205.m4a",
-    "/sdcard/audio_files/m4a/3_44100_1_192000_3.m4a",
-    //mp3
-    "/sdcard/audio_files/mp3/0_32000_2_16_88000_45.mp3",
-    "/sdcard/audio_files/mp3/1_16000_1_16_17000_1.mp3",
-    "/sdcard/audio_files/mp3/2_44100_2_128007_282.mp3",
-    "/sdcard/audio_files/mp3/3_48000_1_64000_10.mp3",
-    "/sdcard/audio_files/mp3/4_48000_2_224000_20.mp3",
-    "/sdcard/audio_files/mp3/5_32000_2_128000_212.mp3",
-    "/sdcard/audio_files/mp3/6_44100_2_128000_598.mp3",
-    //ts
-    "/sdcard/audio_files/ts/0_44100_2_63000_7.ts",
-    //wav
-    "/sdcard/audio_files/wav/0_44100_2_1411862_77.wav",
-    "/sdcard/audio_files/wav/1_48000_1_192000_17.wav",
-    "/sdcard/audio_files/wav/2_44100_2_705000_77.wav",
-    "/sdcard/audio_files/wav/3_44100_2_705000_77.wav",
-};
-
-char outname[40][100] = {
-    //aac
-    "/sdcard/audio_files/aac/0_44100_2_16_223000_44.pcm",
-    "/sdcard/audio_files/aac/1_24000_1_16_46000_143.pcm",
-    "/sdcard/audio_files/aac/2_22050_1_16_61000_256.pcm",
-    "/sdcard/audio_files/aac/3_22050_2_16_92000_256.pcm",
-    "/sdcard/audio_files/aac/4_22050_1_16_57000_272.pcm",
-    "/sdcard/audio_files/aac/5_44100_2_16_32000_9.pcm",
-    "/sdcard/audio_files/aac/6_8000_1_16_0_1.pcm",
-    //amrnb
-    "/sdcard/audio_files/amr/0_8000_1_12800_56.pcm",
-    //amrwb
-    "/sdcard/audio_files/amr/1_16000_1_24000_56.pcm",
-    //flac
-    "/sdcard/audio_files/flac/0_44100_2_940662_170.pcm",
-    //m4a
-    "/sdcard/audio_files/m4a/0_44100_2_127000_1659.pcm",
-    "/sdcard/audio_files/m4a/2_44100_2_283167_205.pcm",
-    "/sdcard/audio_files/m4a/3_44100_1_192000_3.pcm",
-    //mp3
-    "/sdcard/audio_files/mp3/0_32000_2_16_88000_45.pcm",
-    "/sdcard/audio_files/mp3/1_16000_1_16_17000_1.pcm",
-    "/sdcard/audio_files/mp3/2_44100_2_128007_282.pcm",
-    "/sdcard/audio_files/mp3/3_48000_1_64000_10.pcm",
-    "/sdcard/audio_files/mp3/4_48000_2_224000_20.pcm",
-    "/sdcard/audio_files/mp3/5_32000_2_128000_212.pcm",
-    "/sdcard/audio_files/mp3/6_44100_2_128000_598.pcm",
-    //ts
-    "/sdcard/audio_files/ts/0_44100_2_63000_7.pcm",
-    //wav
-    "/sdcard/audio_files/wav/0_44100_2_1411862_77.pcm",
-    "/sdcard/audio_files/wav/1_48000_1_192000_17.pcm",
-    "/sdcard/audio_files/wav/2_44100_2_705000_77.pcm",
-    "/sdcard/audio_files/wav/3_44100_2_705000_77.pcm",
-};
 
 TEST_CASE("Specific music file test", CODEC_TEST_MODULE_NAME)
 {
     audio_codec_sdcard_init();
+    void *playlist = {0};
+    sdcard_list_create(&playlist);
+    sdcard_scan(sdcard_url_save_cb, "/sdcard/audio_files",
+                1, (const char *[]) {"mp3", "m4a", "flac", "amrnb", "amrwb", "ts", "aac", "wav"}, 8, playlist);
     audio_info_t aud_info = {0};
-    for (int i = 0; i < 25; i++) {
-        printf("%s\n", inname[i]);
-        audio_simple_decoder_test_file(inname[i], outname[i], &aud_info);
+    int file_num = sdcard_list_get_url_num(playlist);
+    char outname[100] = {0};
+    for (int i = 0; i < file_num; i++) {
+        char *inname = NULL;
+        sdcard_list_choose(playlist, i, &inname);
+        memset(outname, 0, sizeof(outname));
+        change_extension_to_pcm(&inname[6], outname, strlen(inname) - 6);
+        audio_simple_decoder_test_file(&inname[6], outname, &aud_info);
     }
+    sdcard_list_destroy(playlist);
     audio_codec_sdcard_deinit();
 }
 
@@ -467,7 +426,7 @@ TEST_CASE("AAC simple decoder test", CODEC_TEST_MODULE_NAME)
     TEST_ESP_OK(get_encode_data(&aud_info));
 
     // Do simple decoder test to read encoded data, gather the decoded pcm data size to `write_ctx.decode_size`
-    audio_info_t dec_info = { 0 };
+    audio_info_t dec_info = {0};
     audio_codec_test_cfg_t dec_cfg = {
         .read = simple_decoder_read_data,
         .write = simple_decoder_write_pcm,

@@ -1,4 +1,4 @@
-menu "Audio Effects Example Configuration"
+menu "Audio Codec Example Configuration"
 
     config EXAMPLE_FORMAT_IF_MOUNT_FAILED
         bool "Format the card if mount failed"
@@ -15,7 +15,7 @@ menu "Audio Effects Example Configuration"
 
     choice EXAMPLE_SDMMC_BUS_WIDTH
         prompt "SD/MMC bus width"
-        default EXAMPLE_SDMMC_BUS_WIDTH_4
+        default EXAMPLE_SDMMC_BUS_WIDTH_1
         help
             Select the bus width of SD or MMC interface.
             Note that even if 1 line mode is used, D3 pin of the SD card must have a pull-up resistor connected.
@@ -32,17 +32,17 @@ menu "Audio Effects Example Configuration"
 
         config EXAMPLE_PIN_CMD
             int "CMD GPIO number"
-            default 35 if IDF_TARGET_ESP32S3
+            default 7 if IDF_TARGET_ESP32S3
             default 44 if IDF_TARGET_ESP32P4
 
         config EXAMPLE_PIN_CLK
             int "CLK GPIO number"
-            default 36 if IDF_TARGET_ESP32S3
+            default 15 if IDF_TARGET_ESP32S3
             default 43 if IDF_TARGET_ESP32P4
 
         config EXAMPLE_PIN_D0
             int "D0 GPIO number"
-            default 37 if IDF_TARGET_ESP32S3
+            default 4 if IDF_TARGET_ESP32S3
             default 39 if IDF_TARGET_ESP32P4
 
         if EXAMPLE_SDMMC_BUS_WIDTH_4

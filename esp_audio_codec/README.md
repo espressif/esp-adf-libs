@@ -38,6 +38,8 @@ The ESP Audio Codec supports the following features:
   - PCM
   - ALAC
   - OPUS
+  - LC3
+  - SBC
 * Supports operate all encoder through common API see [esp_audio_enc.h](include/encoder/esp_audio_enc.h)
 * Supports customized encoder through `esp_audio_enc_register` or overwrite default encoder
 * Supports register all supported encoder through `esp_audio_enc_register_default` and manager it by menuconfig
@@ -88,7 +90,25 @@ Details for the supported encoders are as follow:
 - Encoding sample rates (Hz): 8000, 12000, 16000, 24000, 48000    
 - Encoding channel num: mono, dual    
 - Encoding bits per sample: 16 bits  
-  
+
+**SBC**    
+- Encoding sample rates (Hz): 16000, 32000, 44100, 48000    
+- Encoding channel mode: mono, dual, stereo, joint stereo 
+- Encoding bits per sample: 16 bits  
+- Encoding sbc mode: standard, msbc
+- Encoding block length: 4, 8, 12, 16 
+- Encoding subbands number: 4, 8
+- Encoding allocation method: loudness, SNR
+- Encoding bitpool range: 2 to 250
+
+**LC3**    
+- Encoding sample rates (Hz): 8000, 16000, 24000, 32000, 44100, 48000    
+- Encoding full range of channel
+- Encoding bits per sample: 16, 24, 32 bits  
+- Encoding frame decimilliseconds: 75, 100 dms
+- Encoding nbyte range: 20 to 400
+- Support 2-byte length prefix before each encoded frame
+
 ## Decoder   
 
 * Following decoders are supported:
@@ -154,7 +174,23 @@ Details for the supported decoders are as follow:
 - Decoding bits per sample: 16 bits
 - Supports decode VORBIS frame only, need remove OGG header
 - User need provide common header information firstly
-  
+
+**SBC**    
+- Decoding sample rates (Hz): 16000, 32000, 44100, 48000    
+- Decoding channel: mono, dual 
+- Decoding bits per sample: 16 bits  
+- Decoding sbc mode: standard, msbc
+- Packet Loss Concealment (PLC)
+
+**LC3**    
+- Decoding sample rates (Hz): 8000, 16000, 24000, 32000, 44100, 48000    
+- Decoding full range of channel
+- Decoding bits per sample: 16, 24, 32 bits  
+- Decoding frame decimilliseconds: 75, 100 dms
+- Decoding nbyte range: 20 to 400
+- Support decoding of 2-byte length-prefixed frame data
+- Packet Loss Concealment (PLC)
+
 ## Simple Decoder   
 
 * Supports audio frame finding and decoding
@@ -167,7 +203,7 @@ Details for the supported audio containers are as follow:
 | Audio Container| Notes                                                       |
 |       --       |  --                                                         |
 |       AAC      | Supports AAC-Plus controlled by configuration               |
-|       MP3      | Supports layer 3 only                                       |
+|       MP3      | Supports layer 1, 2, 3                                      |
 |       AMRNB    | Supports files with AMRNB file header only                  |
 |       AMRWB    | Supports files with AMRWB file header only                  |
 |       FLAC     | Supports files with FLAC file header only                   |
@@ -175,6 +211,9 @@ Details for the supported audio containers are as follow:
 |       WAV      | Supports G711A, G711U, PCM, ADPCM                           |
 |       M4A      | Supports MP3, AAC, ALAC <br> Supports MDAT after MOOV only  |
 |       TS       | Supports MP3, AAC                                           |
+|       G711     | Supports G711A, G711U                                       |
+|       SBC      | Supports SBC and MSBC                                       |
+|       LC3      | Supports LC3                                                |
 
 # Performance
 
@@ -197,7 +236,9 @@ To get performance under other sample rate, channel or complexity, please change
 | AMR-WB        | 16000            | 1       | 5.6         | 37.69           |
 | ADPCM         | 48000            | 2       | 0.01        | 2.69            |
 | OPUS          | 48000            | 2       | 29.4        | 24.9            |
-  
+| SBC           | 48000            | 2       | 1.85        | 9.55            |
+| LC3           | 48000            | 2       | 3.67        | 46.57           |
+
 **Notes:**   
 Encoder cpu usage is highly dependent on certain encoding settings (like bitrate or complexity)  
  1) For AAC encoder, tested under bitrate 90kbps
@@ -217,6 +258,8 @@ Encoder cpu usage is highly dependent on certain encoding settings (like bitrate
 | OPUS          | 48000            | 2       | 26.6        | 5.86            |
 | MP3           | 44100            | 2       | 28          | 8.17            |
 | FLAC          | 44100            | 2       | 89.4        | 8.0             |
+| SBC           | 48000            | 2       | 0.21        | 8.14            |
+| LC3           | 48000            | 2       | 1.36        | 17.5            |
 
 **Notes:** 
  1) MP3 and FLAC decoders are tested with real audio data. All other codes are tested with encoded data from sin wav PCM. 
@@ -235,6 +278,8 @@ The following table shows the support of ESP_AUDIO_CODEC for Espressif SoCs. The
 |ESP32-C6     |       &#10004;     |
 |ESP32-S3     |       &#10004;     |
 |ESP32-P4     |       &#10004;     |
+|ESP32-C4     |       &#10004;     |
+|ESP32-H4     |       &#10004;     |
 
 # Usage
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.3.0
+
+### Features
+
+- Added support for SBC codec
+- Added support for LC3 codec
+- Added compatibility with `esp_audio_codec` on `ESP32-H4`
+- Added `esp_xxx_enc_get_frame_info_by_cfg` APIs to get frame information by configuration before creating encoder handle
+- Added `esp_xxx_enc_set_bitrate` APIs to set bitrate for encoder
+- Added `esp_audio_dec_check_audio_type`, `esp_audio_enc_check_audio_type`, `esp_audio_simple_check_audio_type` APIs to check whether the audio type is supported by the codec
+- Use `esp_fourcc.h` to define audio codec type
+- Added CO64 atom parsing support for `M4A` format
+- Standardized bitrate units in `AAC` and `Opus` encoder headers
+- Added `ALAC` decoder to the simple decoder module
+- Added `frame_duration` configuration support to `G711` and `PCM` encoders
+
+### Bug Fixes
+- Fixed crash in `AMR-NB` encoder when DTX is enabled
+- Fixed crash in `AAC` encoder when recommended output buffer size is insufficient
+- Fixed `M4A` parsing error when extra boxes are present under the mdat atom
+
 ## v2.2.1
 
 ### Bug Fixes

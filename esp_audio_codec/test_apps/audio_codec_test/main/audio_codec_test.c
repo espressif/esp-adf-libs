@@ -1,7 +1,8 @@
-/**
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+/*
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * SPDX-License-Identifier: Apache-2.0
+ * See LICENSE file for details.
  */
 
 #include <string.h>
@@ -23,14 +24,13 @@ extern const char test_mp3_end[] asm("_binary_test_mp3_end");
 extern const char test_flac_start[] asm("_binary_test_flac_start");
 extern const char test_flac_end[] asm("_binary_test_flac_end");
 
-#define TAG "CODEC_TEST"
-
+#define TAG            "CODEC_TEST"
 #define MAX_GEN_SIZE   (80 * 1024)
 #define WAVE_AMPLITUDE (16000.0)
 #define WAVE_FREQUECY  (1000)
 #define RING_FIFO_SIZE (32 * 1024)
+#define LEAKS          (400)
 
-#define LEAKS (400)
 typedef enum {
     DECODE_STATE_NONE,
     DECODE_STATE_RUNNING,
@@ -59,7 +59,7 @@ typedef struct {
 } chain_info_t;
 
 static chain_info_t chain;
-static bool chain_testing = false;
+static bool         chain_testing = false;
 
 extern esp_es_parse_func_t esp_es_parse_get_default(esp_es_parse_type_t parse_type);
 
@@ -96,6 +96,9 @@ static bool has_phase_shift(esp_audio_type_t type)
         case ESP_AUDIO_TYPE_OPUS:
         case ESP_AUDIO_TYPE_AMRNB:
         case ESP_AUDIO_TYPE_AMRWB:
+        case ESP_AUDIO_TYPE_SBC:
+        case ESP_AUDIO_TYPE_LC3:
+        case ESP_AUDIO_TYPE_ALAC:
             return true;
         default:
             break;
@@ -186,7 +189,7 @@ static int write_raw(uint8_t *data, int size)
     return 0;
 }
 
-static int get_test_raw_frame(uint8_t** data, int* size)
+static int get_test_raw_frame(uint8_t **data, int *size)
 {
     esp_es_parse_func_t parser = esp_es_parse_get_default(chain.parse_type);
     if (parser == NULL) {
@@ -220,12 +223,12 @@ static bool encoder_use_test_data(esp_audio_type_t type)
     switch (type) {
         case ESP_AUDIO_TYPE_MP3:
             chain.parse_type = ESP_ES_PARSE_TYPE_MP3;
-            chain.test_file_size = (int) (test_mp3_end - test_mp3_start);
+            chain.test_file_size = (int)(test_mp3_end - test_mp3_start);
             chain.test_frames = (uint8_t *)test_mp3_start;
             return true;
         case ESP_AUDIO_TYPE_FLAC:
             chain.parse_type = ESP_ES_PARSE_TYPE_FLAC;
-            chain.test_file_size = (int) (test_flac_end - test_flac_start);
+            chain.test_file_size = (int)(test_flac_end - test_flac_start);
             chain.test_frames = (uint8_t *)test_flac_start;
             return true;
         default:
@@ -262,7 +265,7 @@ static int encoder_to_decoder(esp_audio_type_t type, int sample_rate, uint8_t ch
         } else {
             // Directly read frame data use parser
             while (1) {
-                uint8_t* frame_data = NULL;
+                uint8_t *frame_data = NULL;
                 int frame_size = 0;
                 get_test_raw_frame(&frame_data, &frame_size);
                 if (frame_size == 0) {
@@ -277,7 +280,7 @@ static int encoder_to_decoder(esp_audio_type_t type, int sample_rate, uint8_t ch
     while (chain.dec_state == DECODE_STATE_RUNNING) {
         vTaskDelay(pdMS_TO_TICKS(10));
     }
-    if (chain.use_test_data  == false) {
+    if (chain.use_test_data == false) {
         if (chain.read_pcm_size != chain.write_pcm_size) {
             ESP_LOGE(TAG, "Encoded data size %d not equal to decoded size %d", chain.read_pcm_size, chain.write_pcm_size);
         }
@@ -317,6 +320,8 @@ static void chain_test_thread(void *arg)
         ESP_AUDIO_TYPE_ALAC,
         ESP_AUDIO_TYPE_MP3,
         ESP_AUDIO_TYPE_FLAC,
+        ESP_AUDIO_TYPE_SBC,
+        ESP_AUDIO_TYPE_LC3,
     };
     int sample_rate = 48000;
     uint8_t channel = 2;
@@ -331,6 +336,9 @@ static void chain_test_thread(void *arg)
             new_channel = 1;
         } else if (types[i] == ESP_AUDIO_TYPE_MP3 || types[i] == ESP_AUDIO_TYPE_FLAC) {
             new_sample_rate = 44100;
+            new_channel = 2;
+        } else if (types[i] == ESP_AUDIO_TYPE_SBC || types[i] == ESP_AUDIO_TYPE_LC3) {
+            new_sample_rate = 48000;
             new_channel = 2;
         }
         ESP_LOGI(TAG, "Start to do chain test for %s sample_rate %d channel %d", esp_audio_codec_get_name(types[i]),
@@ -375,7 +383,6 @@ TEST_CASE("Encode to Decode chain test", CODEC_TEST_MODULE_NAME)
     }
     vTaskDelay(pdMS_TO_TICKS(100));
 }
-
 
 void setUp(void)
 {

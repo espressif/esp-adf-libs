@@ -1,25 +1,26 @@
 /*
- * ESPRESSIF MIT License
+ * Espressif Modified MIT License
  *
- * Copyright (c) 2023 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2025 Espressif Systems (Shanghai) CO., LTD
  *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
+ * Permission is hereby granted for use EXCLUSIVELY with Espressif Systems products.
+ * This includes the right to use, copy, modify, merge, publish, distribute, and sublicense
+ * the Software, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * 1. This Software MUST BE USED IN CONJUNCTION WITH ESPRESSIF SYSTEMS PRODUCTS.
+ * 2. The above copyright notice and this permission notice shall be included in all copies
+ *    or substantial portions of the Software.
+ * 3. Redistribution of the Software in source or binary form FOR USE WITH NON-ESPRESSIF PRODUCTS
+ *    is strictly prohibited.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  */
 
 #pragma once
@@ -40,19 +41,19 @@ typedef struct {
     int channel;         /*!< Support channel : mono, dual */
     int bits_per_sample; /*!< Support bits per sample : 16 bit */
     int bitrate;         /*!< Support bitrate(bps) range on mono stream :
-                              |samplerate(Hz)|bitrate range(Kbps)|
-                              |    8000      |    12 - 48        |
-                              |    11025     |    18 - 66        |
-                              |    12000     |    20 - 72        |
-                              |    16000     |    22 - 96        |
-                              |    22050     |    25 - 132       |
-                              |    24000     |    31 - 144       |
-                              |    32000     |    33 - 160       |
-                              |    44100     |    57 - 160       |
-                              |    48000     |    59 - 160       |
-                              |    64000     |    65 - 160       |
-                              |    88200     |    67 - 160       |
-                              |    96000     |    70 - 160       | 
+                              |samplerate(Hz)|bitrate range(bps)|
+                              |    8000      |    12000 - 48000        |
+                              |    11025     |    18000 - 66000        |
+                              |    12000     |    20000 - 72000        |
+                              |    16000     |    22000 - 96000        |
+                              |    22050     |    25000 - 132000       |
+                              |    24000     |    31000 - 144000       |
+                              |    32000     |    33000 - 160000       |
+                              |    44100     |    57000 - 160000       |
+                              |    48000     |    59000 - 160000       |
+                              |    64000     |    65000 - 160000       |
+                              |    88200     |    67000 - 160000       |
+                              |    96000     |    70000 - 160000       | 
                               Note : 1) This table shows the bitrate range corresponding to each samplerate.
                                      2) The bitrate range of dual stream is twice that of mono. */
     bool adts_used;      /*!< Whether write ADTS header: true - add ADTS header, false - raw aac data only */

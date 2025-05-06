@@ -1,25 +1,26 @@
-/**
- * ESPRESSIF MIT License
+/*
+ * Espressif Modified MIT License
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2025 Espressif Systems (Shanghai) CO., LTD
  *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
+ * Permission is hereby granted for use **exclusively** with Espressif Systems products.
+ * This includes the right to use, copy, modify, merge, publish, distribute, and sublicense
+ * the Software, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * 1. This Software **must be used in conjunction with Espressif Systems products**.
+ * 2. The above copyright notice and this permission notice shall be included in all copies
+ *    or substantial portions of the Software.
+ * 3. Redistribution of the Software in source or binary form **for use with non-Espressif products**
+ *    is strictly prohibited.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  */
 
 #pragma once
@@ -37,7 +38,7 @@ extern "C" {
  *         These weight values are multiplied with the corresponding channel's audio data,
  *         and the multiplied data from each channel is then summed to form the final mixed audio signal.
  *         The formula is as follows:
- *         output = w0 * input0 + w1 * input1 + w2 * input2 + ...
+ *         output = w0^2 * input0 + w1^2 * input1 + w2^2 * input2 + ...
  *
  *         In the initialization configuration of Mixer, users need to configure the
  *         audio basic information, source number and source information on each channel
@@ -152,7 +153,7 @@ esp_ae_err_t esp_ae_mixer_process(esp_ae_mixer_handle_t handle, uint32_t sample_
  * @param[in]   in_samples   An array that stores pointers to the input stream buffer pointer arrays.
  *                           Note: `esp_ae_sample_t *in_samples[]` equal to `in_samples[src_num][ch_num]`
  * @param[out]  out_samples  Array for output samples buffer pointer with each channel.
- *                           The output samples buffer must be 16 bytes aligned.
+ *                           The output samples buffer must be 16 bytes aligned when use esp32s3.
  *                           Note: `esp_ae_sample_t out_samples[]` equal to `out_samples[ch_num]`
  *
  * @return

@@ -1,25 +1,8 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) PTE LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
 
 #pragma once
@@ -30,7 +13,21 @@
 #include "esp_log.h"
 
 static sdmmc_card_t *card;
-static const char mount_point[] = "/sdcard";
+
+typedef void (*sdcard_scan_cb_t)(void *user_data, char *url);
+
 void audio_codec_sdcard_init();
 
 void audio_codec_sdcard_deinit();
+
+esp_err_t sdcard_scan(sdcard_scan_cb_t cb, const char *path, int depth, const char *file_extension[], int filter_num, void *user_data);
+
+esp_err_t sdcard_list_create(void **handle);
+
+esp_err_t sdcard_list_save(void *handle, const char *url);
+
+esp_err_t sdcard_list_choose(void *handle, int url_id, char **url_buff);
+
+int sdcard_list_get_url_num(void *handle);
+
+esp_err_t sdcard_list_destroy(void *handle);

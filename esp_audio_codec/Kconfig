@@ -63,6 +63,16 @@ menu "Audio Codec Configuration"
             default y
             help
                 Enable this option to register PCM decoder
+        config AUDIO_DECODER_SBC_SUPPORT
+            bool "Support SBC Decoder"
+            default y
+            help
+                Enable this option to register SBC decoder
+        config AUDIO_DECODER_LC3_SUPPORT
+            bool "Support LC3 Decoder"
+            default y
+            help
+                Enable this option to register LC3 decoder
     endmenu
 
     menu "Audio Simple Decoder Configuration"
@@ -131,6 +141,16 @@ menu "Audio Codec Configuration"
             default y
             help
                 Enable this option to register PCM encoder
+        config AUDIO_ENCODER_SBC_SUPPORT
+            bool "Support SBC Encoder"
+            default y
+            help
+                Enable this option to register SBC encoder
+        config AUDIO_ENCODER_LC3_SUPPORT
+            bool "Support LC3 Encoder"
+            default y
+            help
+                Enable this option to register LC3 encoder
     endmenu
     
  endmenu

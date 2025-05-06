@@ -1,25 +1,26 @@
-/**
- * ESPRESSIF MIT License
+/*
+ * Espressif Modified MIT License
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2025 Espressif Systems (Shanghai) CO., LTD
  *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
+ * Permission is hereby granted for use EXCLUSIVELY with Espressif Systems products.
+ * This includes the right to use, copy, modify, merge, publish, distribute, and sublicense
+ * the Software, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
+ * 1. This Software MUST BE USED IN CONJUNCTION WITH ESPRESSIF SYSTEMS PRODUCTS.
+ * 2. The above copyright notice and this permission notice shall be included in all copies
+ *    or substantial portions of the Software.
+ * 3. Redistribution of the Software in source or binary form FOR USE WITH NON-ESPRESSIF PRODUCTS
+ *    is strictly prohibited.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  */
 
 #pragma once
@@ -44,23 +45,40 @@ extern "C" {
 typedef void *esp_audio_simple_dec_handle_t;
 
 /**
+ * @brief  Recovery strategy for tht current frame
+ */
+typedef enum {
+    ESP_AUDIO_SIMPLE_DEC_RECOVERY_NONE = 0, /*!< The current frame is a normal decoded frame */
+    ESP_AUDIO_SIMPLE_DEC_RECOVERY_PLC  = 1, /*!< The current frame is recovered through the packet loss concealment (PLC) mechanism */
+} esp_audio_simple_dec_recovery_t;
+
+/**
  * @brief  Audio simple decoder type
  */
 typedef enum {
     ESP_AUDIO_SIMPLE_DEC_TYPE_NONE       = 0,                                           /*!< Invalid simple decoder type */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AAC        = ESP_AUDIO_TYPE_AAC,                          /*!< Simple decoder for AAC */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_MP3        = ESP_AUDIO_TYPE_MP3,                          /*!< Simple decoder for MP3 */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB      = ESP_AUDIO_TYPE_AMRNB,                        /*!< Simple decoder for AMR-NB */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB      = ESP_AUDIO_TYPE_AMRWB,                        /*!< Simple decoder for AMR-WB */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC       = ESP_AUDIO_TYPE_FLAC,                         /*!< Simple decoder for FLAC */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_WAV        = ESP_AUDIO_FOURCC_TO_INT('W', 'A', 'V', ' '), /*!< Simple decoder for WAV */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_M4A        = ESP_AUDIO_FOURCC_TO_INT('M', '4', 'A', 'A'), /*!< Simple decoder for M4A */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_TS         = ESP_AUDIO_FOURCC_TO_INT('M', '2', 'T', 'S'), /*!< Simple decoder for TS */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS   = ESP_AUDIO_TYPE_OPUS,                         /*!< Simple decoder for OPUS (raw data with no extra header) */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_G711A      = ESP_AUDIO_TYPE_G711A,                        /*!< Simple decoder for G711A */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_G711U      = ESP_AUDIO_TYPE_G711U,                        /*!< Simple decoder for G711U */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_PCM        = ESP_AUDIO_TYPE_PCM,                          /*!< Simple decoder for PCM */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_ADPCM      = ESP_AUDIO_TYPE_ADPCM,                        /*!< Simple decoder for IMA-ADPCM */                                       /*!< Customized simple decoder type start */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AAC        = ESP_AUDIO_TYPE_AAC,                          /*!< Simple decoder for AAC, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_MP3        = ESP_AUDIO_TYPE_MP3,                          /*!< Simple decoder for MP3, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB      = ESP_AUDIO_TYPE_AMRNB,                        /*!< Simple decoder for AMR-NB, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB      = ESP_AUDIO_TYPE_AMRWB,                        /*!< Simple decoder for AMR-WB, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC       = ESP_AUDIO_TYPE_FLAC,                         /*!< Simple decoder for FLAC, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_WAV        = ESP_AUDIO_FOURCC_TO_INT('W', 'A', 'V', ' '), /*!< Simple decoder for WAV, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_M4A        = ESP_AUDIO_FOURCC_TO_INT('M', '4', 'A', 'A'), /*!< Simple decoder for M4A, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_TS         = ESP_AUDIO_FOURCC_TO_INT('M', '2', 'T', 'S'), /*!< Simple decoder for TS, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS   = ESP_AUDIO_TYPE_OPUS,                         /*!< Simple decoder for OPUS (raw data with no extra header),
+                                                                                             only supports input data with a size of one encoded frame */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G711A      = ESP_AUDIO_TYPE_G711A,                        /*!< Simple decoder for G711A, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G711U      = ESP_AUDIO_TYPE_G711U,                        /*!< Simple decoder for G711U, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_PCM        = ESP_AUDIO_TYPE_PCM,                          /*!< Simple decoder for PCM, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_ADPCM      = ESP_AUDIO_TYPE_ADPCM,                        /*!< Simple decoder for IMA-ADPCM,
+                                                                                             only supports input data with a size of one encoded frame */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_SBC        = ESP_AUDIO_TYPE_SBC,                          /*!< Simple decoder for SBC,
+                                                                                             only supports input data with a size of one or multi encoded frame */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_LC3        = ESP_AUDIO_TYPE_LC3,                          /*!< Simple decoder for LC3,
+                                                                                             in vbr and no len_prefixed case, only supports input data with a size of one encoded frame,
+                                                                                             other cases, support input data with a size of one or multi encoded frame */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_ALAC       = ESP_AUDIO_TYPE_ALAC,                         /*!< Simple decoder for ALAC,
+                                                                                             only supports input data with a size of one encoded frame */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM     = 0x1,                                         /*!< Customized simple decoder type start */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM_MAX = 0x10,                                        /*!< Customized simple decoder type end */
 } esp_audio_simple_dec_type_t;
@@ -81,10 +99,11 @@ typedef struct {
  * @brief  Input data information to be decoded
  */
 typedef struct {
-    uint8_t *buffer;   /*!< Raw data to be decoded */
-    uint32_t len;      /*!< Raw data length */
-    bool     eos;      /*!< Whether end of stream (some parser like FLAC need eos flag to flush cached data) */
-    uint32_t consumed; /*!< Consumed size of input raw data */
+    uint8_t                        *buffer;        /*!< Raw data to be decoded */
+    uint32_t                        len;           /*!< Raw data length */
+    bool                            eos;           /*!< Whether end of stream (some parser like FLAC need eos flag to flush cached data) */
+    uint32_t                        consumed;      /*!< Consumed size of input raw data */
+    esp_audio_simple_dec_recovery_t frame_recover; /*!< Recovery strategy for current frame */
 } esp_audio_simple_dec_raw_t;
 
 /**

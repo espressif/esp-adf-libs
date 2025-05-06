@@ -15,7 +15,7 @@ menu "Audio Codec Example Configuration"
 
     choice EXAMPLE_SDMMC_BUS_WIDTH
         prompt "SD/MMC bus width"
-        default EXAMPLE_SDMMC_BUS_WIDTH_4
+        default EXAMPLE_SDMMC_BUS_WIDTH_1
         help
             Select the bus width of SD or MMC interface.
             Note that even if 1 line mode is used, D3 pin of the SD card must have a pull-up resistor connected.
