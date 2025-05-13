@@ -5,7 +5,7 @@ description: Espressif image effects
 issues: https://github.com/espressif/esp-adf/issues
 repository: https://github.com/espressif/esp-adf-libs.git
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_image_effects
-version: 1.0.0
+version: 1.0.1
 tags:
   - multimedia
   - scale
