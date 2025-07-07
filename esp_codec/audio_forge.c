@@ -203,12 +203,11 @@ static esp_err_t rsp_open(audio_forge_t *audio_forge, int index)
 
     audio_forge->rsp_handle[index] = esp_resample_create((void *)&audio_forge->rsp_info[index], &audio_forge->rsp_in[index], &audio_forge->rsp_out[index]);
     AUDIO_NULL_CHECK(TAG, audio_forge->rsp_handle[index], return ESP_FAIL);
-    if (audio_forge->inbuf[index]) {
-        void *tmp = audio_forge->inbuf[index];
-        audio_forge->inbuf[index] = audio_forge->rsp_out[index];
-        audio_free(tmp);        
+    if ((audio_forge->rsp_info[index].src_ch < audio_forge->channel) && (index == 0)) { 
+        audio_forge->inbuf[index] = audio_realloc(audio_forge->inbuf[index], audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
+        AUDIO_MEM_CHECK(TAG, audio_forge->inbuf[index], return ESP_ERR_NO_MEM);
     } else {
-        audio_forge->inbuf[index] = audio_forge->rsp_out[index];
+        audio_forge->inbuf[index] = (audio_forge->inbuf[index] != NULL) ? audio_forge->inbuf[index] : audio_forge->rsp_out[index];
     }
     if (audio_forge->downmix.source_num == 1) {
         if (audio_forge->rsp_info[index].src_ch != audio_forge->channel) {
@@ -243,12 +242,8 @@ static esp_err_t sonic_open(audio_forge_t *audio_forge)
     esp_sonic_set_pitch(audio_forge->sonic_handle, audio_forge->sonic_pitch);
     audio_forge->sonic_num = (audio_forge->sample_rate << 1) / SONIC_MIN_PITCH;
     audio_forge->sonic_num = audio_forge->sonic_num / audio_forge->max_sample + 1;
-    if (audio_forge->component_select & AUDIO_FORGE_SELECT_RESAMPLE) { 
-        if (audio_forge->inbuf[0] == audio_forge->rsp_out[0]) {
-            audio_forge->inbuf[0] = (unsigned char *)audio_calloc(1, audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
-        }
-    } else {
-        audio_forge->inbuf[0] = (unsigned char *)audio_realloc(audio_forge->inbuf[0], audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
+    if (audio_forge->inbuf[0] == NULL) { 
+        audio_forge->inbuf[0] = (unsigned char *)audio_calloc(1, audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
     }
     AUDIO_MEM_CHECK(TAG, audio_forge->inbuf[0], return ESP_ERR_NO_MEM);
     audio_forge->outbuf = (unsigned char *)audio_realloc(audio_forge->outbuf, audio_forge->max_sample * sizeof(short) * MAX_MEM_PARA);
@@ -669,7 +664,7 @@ static int audio_forge_process(audio_element_handle_t self, char *in_buffer, int
                     mutex_unlock(audio_forge->lock);
                     return ESP_FAIL;
                 }
-                if (ret > 0) {
+                if (ret > 0 && audio_forge->inbuf[i] != audio_forge->rsp_out[i]) {
                     memcpy(audio_forge->inbuf[i], audio_forge->rsp_out[i], audio_forge->rsp_info[i].out_len_bytes);
                 }
             } else {
