@@ -57,8 +57,10 @@ typedef struct {
                                                        If frame duration set to `ESP_OPUS_DEC_FRAME_DURATION_INVALID`,
                                                        the out pcm size is counted as 60 ms frame */
     bool                          self_delimited; /*!< Whether use self delimited packet:
-                                                       Self delimited packet need an extra 1 or 2 bytes for packet size,
-                                                       Set to `false` if encapsulated in OGG. */
+                                                       The decoder self-delimited must same with the encoder.For example the encoder self-delimited
+                                                       is true, then the decoder self-delimited must also be true.
+                                                       Self delimited packet is the record of packet size. It is generally used to distinguish
+                                                       the boundaries of packets in bare stream encoded data */
 } esp_opus_dec_cfg_t;
 
 /**
