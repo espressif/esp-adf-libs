@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.3
+
+### Features
+
+- Added target dependency for `esp_new_jpeg`
+
 ## v0.5.2
 
 ### Features
