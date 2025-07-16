@@ -4,12 +4,14 @@ dependencies:
   espressif/esp_h264:
     rules:
       - if: "target in [esp32p4, esp32s3]"
-  espressif/esp_new_jpeg: "*"
+  espressif/esp_new_jpeg:
+    rules:
+      - if: "target in [esp32, esp32s2, esp32s3, esp32p4, esp32c2, esp32c3, esp32c5, esp32c6]"
 description: Espressif video codec
 issues: https://github.com/espressif/esp-adf/issues
 repository: https://github.com/espressif/esp-adf-libs.git
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_video_codec
-version: 0.5.2
+version: 0.5.3
 tags:
   - video_codec
   - multimedia
