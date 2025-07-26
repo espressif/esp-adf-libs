@@ -7,6 +7,10 @@
 #include "esp_err.h"
 #include "audio_element.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif  /* __cplusplus */
+
 #define OPUS_DECODER_TASK_STACK          (30 * 1024)
 #define OPUS_DECODER_TASK_PRIO           (3)
 #define OPUS_DECODER_TASK_CORE           (0)
@@ -51,3 +55,6 @@ typedef struct {
  * @return     The audio element handle
  */
 audio_element_handle_t raw_opus_decoder_init(raw_opus_dec_cfg_t *config);
+#ifdef __cplusplus
+}
+#endif  /* __cplusplus */
