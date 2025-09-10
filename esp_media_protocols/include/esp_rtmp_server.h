@@ -69,6 +69,11 @@ typedef void *rtmp_server_handle_t;
 typedef int (*rtmp_server_puller_active_cb)(char *stream_name, bool active, void *ctx);
 
 /**
+ * @brief RTMP new connection request callback
+ */
+typedef int (*rtmp_server_new_connect_cb)(void* ctx);
+
+/**
  * @brief         Open RTMP server
  *                For resource on board is limited, please don't connect too many clients.
  *                When `max_clients` is not assigned, default value will set to 2.
@@ -106,6 +111,16 @@ esp_media_err_t esp_rtmp_server_query(rtmp_server_handle_t server);
  *               - ESP_MEDIA_ERR_INVALID_ARG: Wrong server handle
  */
 esp_media_err_t esp_rtmp_server_monitor_puller(rtmp_server_handle_t server, rtmp_server_puller_active_cb cb);
+
+/**
+ * @brief        Monitor connect in request from client
+ *               NOTES: It is specially used for wakeup from standby so that can connect quick
+ * @param        server:  RTMP server handle
+ * @param        cb:  Callback to indicate new connection comes
+ * @return       - ESP_MEDIA_ERR_OK: On success
+ *               - ESP_MEDIA_ERR_INVALID_ARG: Wrong server handle
+ */
+esp_media_err_t esp_rtmp_server_monitor_connect_in(rtmp_server_handle_t server, rtmp_server_new_connect_cb cb);
 
 /**
  * @brief        Close RTMP server
