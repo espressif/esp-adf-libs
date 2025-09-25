@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define ESP_RTMP_VERION "1.3.0"
+#define ESP_RTMP_VERION "1.3.1"
 
 /**
  *  Features:
@@ -63,6 +63,10 @@ extern "C" {
  *     - Add drop data logic when server detects client read data too slow instead of close client directly
  *     - Enhance receive data logic to avoid client with little input data being processed too later
  *
+ *     v1.3.1:
+ *     - Support for standby while keep connection
+ *     - Support quick wakeup from standby by notify new connect request for RTMP server
+ *   
  *  Notes:
  *     - MJPEG video codec is supported in private format (use FLV video codecid 1)
  *       Users can refer to README.md under example folder to check the technical details

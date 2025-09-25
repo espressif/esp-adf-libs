@@ -47,8 +47,26 @@ extern "C" {
  *     - Fix SIP invite response not contain SDP, if invite received multiple times
  *     - Dynamic allocate buffer to hold and parse UPNP XML data (support big XML)
  * 
+ *  Release Notes:
+ *     v1.3.0:
+ *     - Added AAC support for RTSP
+ *     - Added SPS-PPS parsing for H264
+ *     - Added hangup reason for SIP
+ *     - Added P2P SIP support
+ *     - Added customized invite header support
+ *     - Added keep alive support for RTSP client
+ *     - Added call answer flow for SIP
+ *     - Added OPUS support
+ *     - Added fixed port support for SIP (UDP only)
+ *     - Added lock and protect code to avoid timing issues
+ * 
+ *     - Fixed build issues
+ *     - Fixed RTSP server setup not responded
+ *     - Fixed PTS calc not correct
+ *     - Fixed RTP marker conflict
+ *     - Fixed bad option free cause double free
  */
-#define ESP_RTC_VERSION "1.2.0"
+#define ESP_RTC_VERSION "1.3.0"
 
 #ifdef __cplusplus
 }

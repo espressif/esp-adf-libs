@@ -39,6 +39,7 @@ typedef struct _esp_rtsp *esp_rtsp_handle_t;
 typedef enum {
     RTSP_ACODEC_G711A,
     RTSP_ACODEC_G711U,
+    RTSP_ACODEC_AAC,
     RTSP_VCODEC_MJPEG,
     RTSP_VCODEC_H264,
 } rtsp_payload_codec_t;
@@ -67,28 +68,19 @@ typedef enum {
     RTSP_STATE_NONE,
     RTSP_STATE_OPTIONS,
     RTSP_STATE_ANNOUNCE,
-    RTSP_STATE_SETUP,
+    RTSP_STATE_DESCRIBING,
     RTSP_STATE_DESCRIBE,
+    RTSP_STATE_SETUP,
     RTSP_STATE_PLAY,
     RTSP_STATE_RECORD,
     RTSP_STATE_TEARDOWN,
 } esp_rtsp_state_t;
 
-typedef int (*esp_rtsp_state_handler)(esp_rtsp_state_t event, void *ctx);
-typedef int (*__esp_rtsp_send_audio)(unsigned char *data, int len, void *ctx);
-typedef int (*__esp_rtsp_receive_audio)(unsigned char *data, int len, void *ctx);
-typedef int (*__esp_rtsp_send_video)(unsigned char *data, unsigned int *len, void *ctx);
-typedef int (*__esp_rtsp_receive_video)(unsigned char *data, int len, void *ctx);
-
-/**
- * @brief RTSP session data callback
- */
 typedef struct {
-    __esp_rtsp_send_audio        send_audio;
-    __esp_rtsp_receive_audio     receive_audio;
-    __esp_rtsp_send_video        send_video;
-    __esp_rtsp_receive_video     receive_video;
-} esp_rtsp_data_cb_t;
+    rtsp_payload_codec_t aud_codec;
+    uint8_t              channel;
+    uint32_t             sample_rate;
+} esp_rtsp_aud_info_t;
 
 /**
  * @brief ESP RTSP video info
@@ -101,6 +93,24 @@ typedef struct {
     int                     len;        /*!< Video frame maximum length */
 } esp_rtsp_video_info_t;
 
+typedef int (*esp_rtsp_state_handler)(esp_rtsp_state_t event, void *ctx);
+typedef int (*__esp_rtsp_send_audio)(unsigned char *data, int len, uint32_t* pts, void *ctx);
+typedef int (*__esp_rtsp_receive_audio)(unsigned char *data, int len, void *ctx);
+typedef int (*__esp_rtsp_send_video)(unsigned char *data, unsigned int *len, uint32_t *pts, void *ctx);
+typedef int (*__esp_rtsp_receive_video)(unsigned char *data, int len, void *ctx);
+typedef int (*__esp_rtsp_stream_codec)(esp_rtsp_aud_info_t* aud_info, esp_rtsp_video_info_t* vid_info, void *ctx);
+
+/**
+ * @brief RTSP session data callback
+ */
+typedef struct {
+    __esp_rtsp_send_audio        send_audio;
+    __esp_rtsp_receive_audio     receive_audio;
+    __esp_rtsp_send_video        send_video;
+    __esp_rtsp_receive_video     receive_video;
+    __esp_rtsp_stream_codec      stream_codec;
+} esp_rtsp_data_cb_t;
+
 /**
  * @brief ESP RTSP session configurations
  */
@@ -108,12 +118,17 @@ typedef struct {
     void                    *ctx;           /*!< RTSP session user context */
     bool                    video_enable;   /*!< Enable video */
     bool                    audio_enable;   /*!< Enable audio */
+
     const char              *uri;           /*!< Client push/play uri */
     int                     local_port;     /*!< Local server port */
     const char              *local_addr;    /*!< Local address */
     int                     stack_size;     /*!< Task stack size */
     int                     task_prio;      /*!< Task priority */
     rtsp_payload_codec_t    acodec;         /*!< Audio codec */
+    uint8_t                 aud_channel;    /*!< Audio channel */
+    int                     aud_sample_rate;/*!< Audio sample rate */
+    int                     aud_frame_size; /*!< Received audio frame size */
+    int                     aud_frame_duration; /*!< Audio frame duration */
     esp_rtsp_mode_t         mode;           /*!< Set server or PUSH/PLAY mode */
     esp_rtsp_video_info_t   *video_info;    /*!< Video info */
     esp_rtsp_data_cb_t      *data_cb;       /*!< Data callback */

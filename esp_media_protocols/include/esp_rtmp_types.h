@@ -117,6 +117,13 @@ typedef enum {
 
 typedef int (*rtmp_event_cb)(esp_rtmp_event_t event, void* ctx);
 
+/**
+ * @brief        Make RTMP enter standby or wakeup
+ *               NOTES: When enter standby, connection can be kept while receive and send period are enlarged
+ * @param        on:  Whether enter into sleep or wakeup mode
+ */
+void esp_rtmp_set_standby(bool on);
+
 #ifdef __cplusplus
 }
 #endif

@@ -60,6 +60,7 @@ typedef enum {
     ESP_RTC_EVENT_REGISTERED,
     ESP_RTC_EVENT_INCOMING,
     ESP_RTC_EVENT_CALLING,
+    ESP_RTC_EVENT_CALL_ANSWERED,
     ESP_RTC_EVENT_HANGUP,
     ESP_RTC_EVENT_ERROR,
     ESP_RTC_EVENT_UNREGISTERED,
@@ -122,10 +123,32 @@ typedef struct {
                                                           bundle for server verification, must be enabled in menuconfig */
     int                         register_interval;   /*!< Registration interval in seconds (defaults is 3600s) */
     const char                  *user_agent;         /*!< Set user agent field (defaults is "ESP32 SIP/2.0") */
+    int                         fixed_local_port;    /*!< Set fixed local port (defaults is 0) */
+    bool                        p2p_mode;            /*!< When work in P2P mode it will skip register step and do invite or accept invite directly from peer */
 } esp_rtc_config_t;
 
 /**
- * @brief      Intialize rtc service
+ * @brief      Hangup message
+ */
+typedef struct {
+    char *reason;  /*!< Hangup reason */
+} esp_rtc_hangup_msg_t;
+
+/**
+ * @brief SIP Messages header info
+ */
+typedef struct {
+    char *via;     /*!< SIP Messages via fields  */
+    char *from;    /*!< SIP Messages from fields  */
+    char *to;      /*!< SIP Messages to fields  */
+    char *contact; /*!< SIP Messages contact fields  */
+    char *special; /*!< SIP Messages special fields defined by user, 
+                        Support multiple fields, last field should not contain "\r\n"
+                        Lib will auto add "\r\n" for last field */
+} esp_rtc_sip_message_info_t;
+
+/**
+ * @brief      Initialize rtc service
  *
  * @param[in]  config   The rtc configuration
  *
@@ -181,7 +204,46 @@ const char *esp_rtc_get_peer(esp_rtc_handle_t esp_rtc);
 int esp_rtc_bye(esp_rtc_handle_t esp_rtc);
 
 /**
- * @brief      Deintialize rtc service
+ * @brief      Set custom invite info
+ * 
+ * @note User can call it multiple times before call `esp_rtc_call`
+ *
+ * @param[in]  esp_rtc      The rtc handle
+ * @param[in]  sip_set_info Set Via, From, To, Contact fields
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+int esp_rtc_set_invite_info(esp_rtc_handle_t esp_rtc, const esp_rtc_sip_message_info_t *sip_set_info);
+
+/**
+ * @brief      Read incoming sip message
+ *
+ * @param[in]  esp_rtc       The rtc handle
+ * @param[in]  sip_read_info Read Via, From, To, Contact fields, we will copy to user buffer.
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ *     - ESP_ERR_INVALID_ARG
+ */
+int esp_rtc_read_incoming_messages(esp_rtc_handle_t esp_rtc, esp_rtc_sip_message_info_t *sip_read_info);
+
+/**
+ * @brief      Get hangup message when receive `ESP_RTC_EVENT_HANGUP`
+ * 
+ * @param esp_rtc  The rtc handle
+ * @param msg      Hangup message
+ * @return
+ *     - ESP_OK on success
+ *     - ESP_ERR_INVALID_ARG on wrong handle
+ */
+int esp_rtc_get_hangup_msg(esp_rtc_handle_t esp_rtc, esp_rtc_hangup_msg_t *msg);
+
+/**
+ * @brief      Deinitialize rtc service
  *
  * @param[in]  esp_rtc   The rtc handle
  *

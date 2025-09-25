@@ -73,6 +73,8 @@ IF (IDF_VERSION_MAJOR GREATER 3)
                  PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_new_jpeg "${CMAKE_CURRENT_SOURCE_DIR}/esp_new_jpeg/lib/${CONFIG_IDF_TARGET}/libesp_new_jpeg.a"
                  PRIV_REQUIRES esp-adf-libs)
+    add_prebuilt_library(esp_media_protocols "${CMAKE_CURRENT_SOURCE_DIR}/esp_media_protocols/lib/${CONFIG_IDF_TARGET}/libesp_media_protocols.a"
+                 PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_h264 "${CMAKE_CURRENT_SOURCE_DIR}/${esp_h264_name}/lib/${CONFIG_IDF_TARGET}/lib${esp_h264_name}.a"
                  PRIV_REQUIRES esp-adf-libs)
     add_prebuilt_library(esp_muxer "${CMAKE_CURRENT_SOURCE_DIR}/esp_muxer/lib/${CONFIG_IDF_TARGET}/libesp_muxer.a"
