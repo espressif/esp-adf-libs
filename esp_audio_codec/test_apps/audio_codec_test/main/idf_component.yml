@@ -3,3 +3,4 @@ description: Audio Codec Test
 dependencies:
   esp_audio_codec:
     path: ../../../../esp_audio_codec
+  espressif/esp_board_manager: '*'

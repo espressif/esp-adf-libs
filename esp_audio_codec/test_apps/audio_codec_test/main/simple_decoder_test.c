@@ -18,12 +18,21 @@
 #include "esp_audio_dec_default.h"
 #include "esp_audio_dec_reg.h"
 #include "esp_audio_simple_dec.h"
+#include "esp_audio_enc.h"
+#include "esp_audio_enc_reg.h"
+#include "esp_audio_enc_default.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "test_common.h"
+#include "esp_board_manager.h"
+
+extern const char test_mp3_start[] asm("_binary_test_mp3_start");
+extern const char test_mp3_end[] asm("_binary_test_mp3_end");
+extern const char test_flac_start[] asm("_binary_test_flac_start");
+extern const char test_flac_end[] asm("_binary_test_flac_end");
 
 #define TAG "SIMP_DEC_TEST"
-#define AUD_COMPARE
+
 typedef union {
     esp_m4a_dec_cfg_t m4a_cfg;
     esp_ts_dec_cfg_t  ts_cfg;
@@ -31,24 +40,48 @@ typedef union {
 } simp_dec_all_t;
 
 typedef struct {
-    uint8_t *data;
-    int      read_size;
-    int      size;
+    uint8_t  *data;
+    int       read_size;
+    int       size;
 } read_ctx_t;
 
 typedef struct {
-    uint8_t *data;
-    int      write_size;
-    int      read_size;
-    int      size;
-    int      decode_size;
+    uint8_t  *data;
+    int       write_size;
+    int       read_size;
+    int       size;
+    int       decode_size;
+    FILE     *pcm_file;
 } write_ctx_t;
 
-static write_ctx_t write_ctx;
-static read_ctx_t  read_ctx;
-static FILE       *simp_dec_fp;
-static FILE       *simp_dec_wr_fp;
-static char       *cmp_buf;
+static write_ctx_t                    write_ctx;
+static read_ctx_t                     read_ctx;
+static FILE                          *simp_dec_fp;
+static FILE                          *simp_dec_wr_fp;
+static char                          *cmp_buf;
+static esp_audio_simple_dec_handle_t  simple_dec_hd = NULL;
+
+static char reset_url1[][100] = {
+    "/sdcard/audio_files/ut/test.aac",
+    "/sdcard/audio_files/ut/test.mp3",
+    "/sdcard/audio_files/ut/test.flac",
+    "/sdcard/audio_files/amr/1_8000_1_12801_41.amrnb",
+    "/sdcard/audio_files/amr/3_16000_1_24000_44.amrwb",
+    "/sdcard/audio_files/ut/test.wav",
+    "/sdcard/audio_files/ut/test.m4a",
+    "/sdcard/audio_files/ut/test.ts",
+};
+
+static char reset_url2[][100] = {
+    "/sdcard/audio_files/aac/2_22050_1_16_61000_256.aac",
+    "/sdcard/audio_files/mp3/0_32000_2_16_88000_45.mp3",
+    "/sdcard/audio_files/flac/0_44100_2_940662_170.flac",
+    "/sdcard/audio_files/amr/2_8000_1_5219_2.amrnb",
+    "/sdcard/audio_files/amr/1_16000_1_24000_56.amrwb",
+    "/sdcard/audio_files/wav/1_48000_1_192000_17.wav",
+    "/sdcard/audio_files/m4a/3_44100_1_192000_3.m4a",
+    "/sdcard/audio_files/ts/1_32000_2_138000_109.ts",
+};
 
 static esp_audio_simple_dec_type_t get_simple_decoder_type(char *file)
 {
@@ -118,7 +151,11 @@ static int read_raw_from_file(uint8_t *data, int size)
 
 static int write_pcm_to_file(uint8_t *data, int size)
 {
-#ifdef AUD_COMPARE
+    return fwrite(data, 1, size, simp_dec_wr_fp);
+}
+
+static int write_pcm_to_compare(uint8_t *data, int size)
+{
     int a = size / 4096;
     int b = size % 4096;
     uint8_t *data_tmp = data;
@@ -143,9 +180,6 @@ static int write_pcm_to_file(uint8_t *data, int size)
         return ESP_FAIL;
     }
     return ESP_OK;
-#else
-    return fwrite(data, 1, size, simp_dec_wr_fp);
-#endif /* AUD_COMPARE */
 }
 
 static int encoder_read_pcm(uint8_t *data, int size)
@@ -168,17 +202,51 @@ static int encoder_write_frame(uint8_t *data, int size)
     return 0;
 }
 
-static int get_encode_data(audio_info_t *aud_info)
+static bool encoder_use_test_data(esp_audio_type_t type)
 {
+    switch (type) {
+        case ESP_AUDIO_TYPE_MP3:
+            write_ctx.size = (int)(test_mp3_end - test_mp3_start);
+            write_ctx.write_size = (int)(test_mp3_end - test_mp3_start);
+            write_ctx.data = (uint8_t *)test_mp3_start;
+            return true;
+        case ESP_AUDIO_TYPE_FLAC:
+            write_ctx.size = (int)(test_flac_end - test_flac_start);
+            write_ctx.write_size = (int)(test_flac_end - test_flac_start);
+            write_ctx.data = (uint8_t *)test_flac_start;
+            return true;
+        default:
+            return false;
+    }
+}
+
+static int get_encode_data(audio_info_t *aud_info, esp_audio_type_t type)
+{
+    if (encoder_use_test_data(type)) {
+        return 0;
+    }
+    int size = 40 * 1024;
+    read_ctx.data = malloc(size);
+    if (read_ctx.data == NULL) {
+        return -1;
+    }
+    read_ctx.size = size;
+
+    size = 20 * 1024;
+    write_ctx.data = malloc(size);
+    if (write_ctx.data == NULL) {
+        return -1;
+    }
+    write_ctx.size = size;
+
     read_ctx.size = audio_codec_gen_pcm(aud_info, read_ctx.data, read_ctx.size);
     read_ctx.read_size = 0;
 
-    // Encode AAC, encoded data will be sent out through callback `decode_one_frame`
     audio_codec_test_cfg_t enc_cfg = {
         .read = encoder_read_pcm,
         .write = encoder_write_frame,
     };
-    audio_encoder_test(ESP_AUDIO_TYPE_AAC, &enc_cfg, aud_info);
+    audio_encoder_test(type, &enc_cfg, aud_info, false);
     return 0;
 }
 
@@ -198,6 +266,31 @@ static int simple_decoder_read_data(uint8_t *data, int size)
 static int simple_decoder_write_pcm(uint8_t *data, int size)
 {
     write_ctx.decode_size += size;
+    return size;
+}
+
+static int simple_decoder_write_pcm_to_file(uint8_t *data, int size)
+{
+    fwrite(data, 1, size, write_ctx.pcm_file);
+    write_ctx.decode_size += size;
+    return size;
+}
+
+static int simple_decoder_write_pcm_to_compare(uint8_t *data, int size)
+{
+    uint8_t *cmp_buf = calloc(1, size);
+    if (cmp_buf == NULL) {
+        ESP_LOGE(TAG, "No memory for cmp_buf");
+        return ESP_FAIL;
+    }
+    fread(cmp_buf, 1, size, write_ctx.pcm_file);
+    if (memcmp(cmp_buf, data, size) != 0) {
+        ESP_LOGE(TAG, "PCM data not match!(%d)", __LINE__);
+        free(cmp_buf);
+        return 0;
+    }
+    write_ctx.decode_size += size;
+    free(cmp_buf);
     return size;
 }
 
@@ -221,15 +314,18 @@ static void change_extension_to_pcm(const char *input_path, char *output_path, s
     }
 }
 
-int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info)
+int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info, bool need_reset)
 {
-    esp_audio_dec_register_default();
-    int ret = esp_audio_simple_dec_register_default();
+    esp_audio_simple_dec_handle_t decoder = simple_dec_hd;
+    if (decoder == NULL) {
+        esp_audio_dec_register_default();
+        esp_audio_simple_dec_register_default();
+    }
+    esp_audio_err_t ret = ESP_AUDIO_ERR_OK;
     int max_out_size = 4096;
     int read_size = 512;
     uint8_t *in_buf = malloc(read_size);
     uint8_t *out_buf = malloc(max_out_size);
-    esp_audio_simple_dec_handle_t decoder = NULL;
     do {
         if (in_buf == NULL || out_buf == NULL) {
             ESP_LOGI(TAG, "No memory for decoder");
@@ -240,18 +336,22 @@ int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test
         esp_audio_simple_dec_cfg_t dec_cfg = {
             .dec_type = type,
             .dec_cfg = &all_cfg,
+            .use_frame_dec = false,
         };
         get_simple_decoder_config(&dec_cfg);
-        ret = esp_audio_simple_dec_open(&dec_cfg, &decoder);
-        if (ret != ESP_AUDIO_ERR_OK) {
-            ESP_LOGI(TAG, "Fail to open simple decoder ret %d", ret);
-            break;
+        if (decoder == NULL) {
+            ret = esp_audio_simple_dec_open(&dec_cfg, &decoder);
+            if (ret != ESP_AUDIO_ERR_OK) {
+                ESP_LOGI(TAG, "Fail to open simple decoder ret %d", ret);
+                break;
+            }
         }
         int total_decoded = 0;
         uint64_t decode_time = 0;
         esp_audio_simple_dec_raw_t raw = {
             .buffer = in_buf,
         };
+        int frame_count = 0;
         uint64_t read_start = esp_timer_get_time();
         while (ret == ESP_AUDIO_ERR_OK) {
             ret = cfg->read(in_buf, read_size);
@@ -303,6 +403,7 @@ int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test
                                  info->bits_per_sample, info->channel);
                     }
                     total_decoded += out_frame.decoded_size;
+                    frame_count++;
                     if (cfg->write) {
                         cfg->write(out_frame.buffer, out_frame.decoded_size);
                     }
@@ -321,9 +422,18 @@ int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test
             ESP_LOGI(TAG, "Decode for %d total_decoded:%d cpu: %.2f%%", type, total_decoded, cpu_usage);
         }
     } while (0);
-    esp_audio_simple_dec_close(decoder);
-    esp_audio_simple_dec_unregister_default();
-    esp_audio_dec_unregister_default();
+
+    if (need_reset) {
+        esp_audio_simple_dec_reset(decoder);
+    } else {
+        if (decoder) {
+            esp_audio_simple_dec_close(decoder);
+            decoder = NULL;
+        }
+        esp_audio_simple_dec_unregister_default();
+        esp_audio_dec_unregister_default();
+    }
+    simple_dec_hd = decoder;
     if (in_buf) {
         free(in_buf);
     }
@@ -333,7 +443,7 @@ int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test
     return ret;
 }
 
-int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *info)
+int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *info, bool do_compare, bool do_reset)
 {
     esp_audio_simple_dec_type_t type = get_simple_decoder_type(in_file);
     if (type == ESP_AUDIO_SIMPLE_DEC_TYPE_NONE) {
@@ -345,25 +455,25 @@ int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *
         ESP_LOGE(TAG, "File %s not found", in_file);
         return -1;
     }
-#ifdef AUD_COMPARE
-    simp_dec_wr_fp = fopen(out_file, "rb");
-    if (simp_dec_wr_fp == NULL) {
-        ESP_LOGE(TAG, "File %s not found", out_file);
-        return -1;
+    if (do_compare) {
+        simp_dec_wr_fp = fopen(out_file, "rb");
+        if (simp_dec_wr_fp == NULL) {
+            ESP_LOGE(TAG, "File %s not found", out_file);
+            return -1;
+        }
+        cmp_buf = calloc(1, 4096);
+    } else {
+        simp_dec_wr_fp = fopen(out_file, "wb");
+        if (simp_dec_wr_fp == NULL) {
+            ESP_LOGE(TAG, "File %s not found", out_file);
+            return -1;
+        }
     }
-    cmp_buf = calloc(1, 4096);
-#else
-    simp_dec_wr_fp = fopen(out_file, "wb");
-    if (simp_dec_wr_fp == NULL) {
-        ESP_LOGE(TAG, "File %s not found", out_file);
-        return -1;
-    }
-#endif /* AUD_COMPARE */
     audio_codec_test_cfg_t dec_cfg = {
         .read = read_raw_from_file,
-        .write = write_pcm_to_file,
+        .write = do_compare ? write_pcm_to_compare : write_pcm_to_file,
     };
-    int ret = audio_simple_decoder_test(type, &dec_cfg, info);
+    int ret = audio_simple_decoder_test(type, &dec_cfg, info, do_reset);
     if (ret < 0) {
         ESP_LOGE(TAG, "Fail to do simple decoder process, ret:%d", ret);
     }
@@ -371,16 +481,48 @@ int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *
     simp_dec_fp = NULL;
     fclose(simp_dec_wr_fp);
     simp_dec_wr_fp = NULL;
-#ifdef AUD_COMPARE
-    free(cmp_buf);
-    cmp_buf = NULL;
-#endif /* AUD_COMPARE */
+    if (do_compare) {
+        free(cmp_buf);
+        cmp_buf = NULL;
+    }
     return ret;
+}
+
+static void compare_reset_pcm_files(const char *file1, const char *file2)
+{
+    FILE *fp1 = fopen(file1, "rb");
+    TEST_ASSERT_NOT_NULL(fp1);
+    FILE *fp2 = fopen(file2, "rb");
+    TEST_ASSERT_NOT_NULL(fp2);
+    uint8_t *buf1 = malloc(1024);
+    TEST_ASSERT_NOT_NULL(buf1);
+    uint8_t *buf2 = malloc(1024);
+    TEST_ASSERT_NOT_NULL(buf2);
+    while (1) {
+        fread(buf1, 1, 1024, fp1);
+        fread(buf2, 1, 1024, fp2);
+        if (feof(fp1) || feof(fp2)) {
+            break;
+        }
+        TEST_ASSERT_EQUAL_MEMORY(buf1, buf2, 1024);
+    }
+    if (fp1) {
+        fclose(fp1);
+    }
+    if (fp2) {
+        fclose(fp2);
+    }
+    if (buf1) {
+        free(buf1);
+    }
+    if (buf2) {
+        free(buf2);
+    }
 }
 
 TEST_CASE("Specific music file test", CODEC_TEST_MODULE_NAME)
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     void *playlist = {0};
     sdcard_list_create(&playlist);
     sdcard_scan(sdcard_url_save_cb, "/sdcard/audio_files",
@@ -392,11 +534,12 @@ TEST_CASE("Specific music file test", CODEC_TEST_MODULE_NAME)
         char *inname = NULL;
         sdcard_list_choose(playlist, i, &inname);
         memset(outname, 0, sizeof(outname));
+        ESP_LOGI(TAG, "inname: %s", &inname[6]);
         change_extension_to_pcm(&inname[6], outname, strlen(inname) - 6);
-        audio_simple_decoder_test_file(&inname[6], outname, &aud_info);
+        audio_simple_decoder_test_file(&inname[6], outname, &aud_info, true, false);
     }
     sdcard_list_destroy(playlist);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("AAC simple decoder test", CODEC_TEST_MODULE_NAME)
@@ -407,23 +550,15 @@ TEST_CASE("AAC simple decoder test", CODEC_TEST_MODULE_NAME)
     // Prepare buffer to hold pcm data and encoded data
     memset(&read_ctx, 0, sizeof(read_ctx));
 
-    int size = 40 * 1024;
-    read_ctx.data = malloc(size);
-    TEST_ASSERT_NOT_NULL(read_ctx.data);
-    read_ctx.size = size;
-
     memset(&write_ctx, 0, sizeof(write_ctx));
-    size = 20 * 1024;
-    write_ctx.data = malloc(size);
-    TEST_ASSERT_NOT_NULL(write_ctx.data);
-    write_ctx.size = size;
     audio_info_t aud_info = {
         .sample_rate = 44100,
         .bits_per_sample = 16,
         .channel = 2,
+        .no_file_header = false,
     };
     // Get encoded data and save into `write_ctx.data`
-    TEST_ESP_OK(get_encode_data(&aud_info));
+    TEST_ESP_OK(get_encode_data(&aud_info, ESP_AUDIO_TYPE_AAC));
 
     // Do simple decoder test to read encoded data, gather the decoded pcm data size to `write_ctx.decode_size`
     audio_info_t dec_info = {0};
@@ -431,7 +566,7 @@ TEST_CASE("AAC simple decoder test", CODEC_TEST_MODULE_NAME)
         .read = simple_decoder_read_data,
         .write = simple_decoder_write_pcm,
     };
-    TEST_ESP_OK(audio_simple_decoder_test(ESP_AUDIO_SIMPLE_DEC_TYPE_AAC, &dec_cfg, &dec_info));
+    TEST_ESP_OK(audio_simple_decoder_test(ESP_AUDIO_SIMPLE_DEC_TYPE_AAC, &dec_cfg, &dec_info, false));
 
     // Verify the decoder results
     TEST_ASSERT_EQUAL_INT(write_ctx.decode_size, read_ctx.read_size);
@@ -456,4 +591,175 @@ TEST_CASE("Simple Decoder query type", CODEC_TEST_MODULE_NAME)
     TEST_ASSERT_EQUAL(esp_audio_simple_check_audio_type(ESP_AUDIO_SIMPLE_DEC_TYPE_WAV), ESP_AUDIO_ERR_OK);
     TEST_ASSERT_EQUAL(esp_audio_simple_check_audio_type(ESP_AUDIO_SIMPLE_DEC_TYPE_TS), ESP_AUDIO_ERR_OK);
     esp_audio_simple_dec_unregister_default();
+}
+
+TEST_CASE("Simple decoder reset with same stream test", CODEC_TEST_MODULE_NAME)
+{
+    esp_audio_simple_dec_type_t types[] = {
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AAC,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_MP3,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC,
+    };
+    esp_board_manager_init();
+    for (int i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+        int sample_rate = 48000;
+        uint8_t channel = 2;
+        if (types[i] == ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB) {
+            sample_rate = 8000;
+            channel = 1;
+        } else if (types[i] == ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB) {
+            sample_rate = 16000;
+            channel = 1;
+        } else {
+            sample_rate = 48000;
+            channel = 2;
+        }
+        ESP_LOGI(TAG, "Testing simple decoder reset for type %s sample_rate %d channel %d",
+                 esp_audio_codec_get_name(types[i]), sample_rate, channel);
+        memset(&read_ctx, 0, sizeof(read_ctx));
+        memset(&write_ctx, 0, sizeof(write_ctx));
+        char decode_file[100];
+        snprintf(decode_file, sizeof(decode_file), "/sdcard/test_%d.pcm", i);
+        write_ctx.pcm_file = fopen(decode_file, "wb");
+        TEST_ASSERT_NOT_NULL(write_ctx.pcm_file);
+        audio_info_t aud_info = {
+            .sample_rate = sample_rate,
+            .bits_per_sample = 16,
+            .channel = channel,
+        };
+        TEST_ESP_OK(get_encode_data(&aud_info, types[i]));
+        audio_info_t dec_info = {0};
+        audio_codec_test_cfg_t dec_cfg = {
+            .read = simple_decoder_read_data,
+            .write = simple_decoder_write_pcm_to_file,
+        };
+        TEST_ESP_OK(audio_simple_decoder_test(types[i], &dec_cfg, &dec_info, true));
+
+        if (write_ctx.pcm_file) {
+            fclose(write_ctx.pcm_file);
+            write_ctx.pcm_file = NULL;
+        }
+
+        write_ctx.pcm_file = fopen(decode_file, "rb");
+        TEST_ASSERT_NOT_NULL(write_ctx.pcm_file);
+        write_ctx.read_size = 0;
+        write_ctx.decode_size = 0;
+        memset(&dec_info, 0, sizeof(dec_info));
+        dec_cfg.read = simple_decoder_read_data;
+        dec_cfg.write = simple_decoder_write_pcm_to_compare;
+        TEST_ESP_OK(audio_simple_decoder_test(types[i], &dec_cfg, &dec_info, false));
+
+        if (write_ctx.pcm_file) {
+            fclose(write_ctx.pcm_file);
+            write_ctx.pcm_file = NULL;
+        }
+        if (read_ctx.data) {
+            free(read_ctx.data);
+            read_ctx.data = NULL;
+            if (write_ctx.data) {
+                free(write_ctx.data);
+                write_ctx.data = NULL;
+            }
+        }
+    }
+    esp_board_manager_deinit();
+}
+
+TEST_CASE("Simple decoder reset with file test", CODEC_TEST_MODULE_NAME)
+{
+    esp_audio_simple_dec_type_t types[] = {
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AAC,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_MP3,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_WAV,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_M4A,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_TS,
+    };
+    esp_board_manager_init();
+    audio_info_t aud_info = {0};
+    for (int i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+        ESP_LOGI(TAG, "Testing simple decoder reset for type %s", esp_audio_codec_get_name(types[i]));
+        audio_simple_decoder_test_file(reset_url1[i], "/sdcard/test1.pcm", &aud_info, false, true);
+        audio_simple_decoder_test_file(reset_url2[i], "/sdcard/test2.pcm", &aud_info, false, true);
+        audio_simple_decoder_test_file(reset_url1[i], "/sdcard/test3.pcm", &aud_info, false, true);
+        audio_simple_decoder_test_file(reset_url2[i], "/sdcard/test4.pcm", &aud_info, false, false);
+        compare_reset_pcm_files("/sdcard/test1.pcm", "/sdcard/test3.pcm");
+        compare_reset_pcm_files("/sdcard/test2.pcm", "/sdcard/test4.pcm");
+    }
+    esp_board_manager_deinit();
+}
+
+TEST_CASE("AAC simple decoder with frame test", CODEC_TEST_MODULE_NAME)
+{
+    TEST_ESP_OK(esp_aac_enc_register());
+    TEST_ESP_OK(esp_aac_dec_register());
+    esp_aac_enc_config_t aac_cfg = ESP_AAC_ENC_CONFIG_DEFAULT();
+    esp_audio_enc_config_t enc_cfg = {
+        .type = ESP_AUDIO_TYPE_AAC,
+        .cfg = &aac_cfg,
+        .cfg_sz = sizeof(aac_cfg)};
+    // Open encoder
+    esp_audio_enc_handle_t encoder = NULL;
+    TEST_ESP_OK(esp_audio_enc_open(&enc_cfg, &encoder));
+    // Get needed buffer size and prepare memory
+    int pcm_size = 0, raw_size = 0;
+    esp_audio_enc_get_frame_size(encoder, &pcm_size, &raw_size);
+    TEST_ASSERT_GREATER_THAN(0, pcm_size);
+    TEST_ASSERT_GREATER_THAN(0, raw_size);
+    uint8_t *pcm_data = malloc(pcm_size);
+    uint8_t *raw_data = malloc(raw_size);
+    TEST_ASSERT_NOT_NULL(pcm_data);
+    TEST_ASSERT_NOT_NULL(raw_data);
+    // Generate test pcm data
+    audio_info_t aud_info = {
+        .sample_rate = aac_cfg.sample_rate,
+        .bits_per_sample = aac_cfg.bits_per_sample,
+        .channel = aac_cfg.channel,
+    };
+    // Open Simple Decoder
+    simp_dec_all_t all_cfg = {};
+    esp_audio_simple_dec_cfg_t dec_cfg = {
+        .dec_type = ESP_AUDIO_SIMPLE_DEC_TYPE_AAC,
+        .dec_cfg = &all_cfg,
+        .cfg_size = sizeof(all_cfg),
+        .use_frame_dec = true,
+    };
+    esp_audio_simple_dec_handle_t decoder = NULL;
+    TEST_ESP_OK(esp_audio_simple_dec_open(&dec_cfg, &decoder));
+    uint8_t *decode_data = malloc(pcm_size);
+    TEST_ASSERT_NOT_NULL(decode_data);
+
+    // Do encoding to decoding
+    for (int i = 0; i < 20; i++) {
+        audio_codec_gen_pcm(&aud_info, pcm_data, pcm_size);
+        esp_audio_enc_in_frame_t in_frame = {
+            .buffer = pcm_data,
+            .len = pcm_size,
+        };
+        esp_audio_enc_out_frame_t out_frame = {
+            .buffer = raw_data,
+            .len = raw_size,
+        };
+        TEST_ESP_OK(esp_audio_enc_process(encoder, &in_frame, &out_frame));
+        TEST_ASSERT_GREATER_THAN(0, out_frame.encoded_bytes);
+        esp_audio_simple_dec_raw_t dec_raw = {
+            .buffer = raw_data,
+            .len = out_frame.encoded_bytes,
+        };
+        esp_audio_simple_dec_out_t dec_out = {
+            .buffer = decode_data,
+            .len = pcm_size,
+        };
+        TEST_ESP_OK(esp_audio_simple_dec_process(decoder, &dec_raw, &dec_out));
+        TEST_ASSERT_EQUAL(dec_out.decoded_size, pcm_size);
+    }
+    esp_audio_enc_close(encoder);
+    esp_audio_simple_dec_close(decoder);
+    free(pcm_data);
+    free(raw_data);
+    free(decode_data);
 }

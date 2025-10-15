@@ -36,9 +36,9 @@ extern "C" {
  * @brief  ALAC Encoder configurations
  */
 typedef struct {
-    int     sample_rate;     /*!< The sample rate of audio */
-    uint8_t channel;         /*!< The channel num of audio */
-    uint8_t bits_per_sample; /*!< The bits per sample of audio. Only support 16 bit */
+    int     sample_rate;     /*!< The sample rate of audio. Support sample rate(kHz) range: [1, 384] */
+    uint8_t channel;         /*!< The channel num of audio. Support channel number range: [1, 8] */
+    uint8_t bits_per_sample; /*!< The bits per sample of audio. Support bits per sample: 16, 24, 32 bit */
     bool    fast_mode;       /*!< When enabled: improved speed while lower compression ratios */
     int     frame_samples;   /*!< Samples per frame, if set to 0 will use default value 4096 */
 } esp_alac_enc_config_t;
@@ -133,6 +133,23 @@ esp_audio_err_t esp_alac_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_alac_enc_get_info(void *enc_hd, esp_audio_enc_info_t *enc_info);
+
+/**
+ * @brief  Reset of ALAC encoder to its initial state
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: During encoding need to encode different audio stream
+ *        which the audio information (sample rate, channel, bits per sample) is not changed
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_alac_enc_reset(void *enc_hd);
 
 /**
  * @brief  Deinitialize ALAC encoder

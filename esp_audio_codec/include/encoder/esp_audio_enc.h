@@ -195,6 +195,26 @@ esp_audio_err_t esp_audio_enc_process(esp_audio_enc_handle_t enc_hd, esp_audio_e
 esp_audio_err_t esp_audio_enc_get_info(esp_audio_enc_handle_t enc_hd, esp_audio_enc_info_t *enc_info);
 
 /**
+ * @brief  Reset of audio encoder
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: During encoding need to encode different audio stream
+ *        which the audio information (sample rate, channel, bits per sample) is not changed
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @param[in]  enc_hd  Audio encoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to reset
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_audio_err_t esp_audio_enc_reset(esp_audio_enc_handle_t enc_hd);
+
+/**
  * @brief  Close an encoder handle
  *
  * @param[in]  enc_hd  The encoder handle

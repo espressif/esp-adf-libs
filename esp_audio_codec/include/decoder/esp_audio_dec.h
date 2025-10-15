@@ -197,6 +197,25 @@ esp_audio_err_t esp_audio_dec_process(esp_audio_dec_handle_t decoder, esp_audio_
 esp_audio_err_t esp_audio_dec_get_info(esp_audio_dec_handle_t decoder, esp_audio_dec_info_t *info);
 
 /**
+ * @brief  Reset of audio decoder
+ * 
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: Seeking in same audio stream
+ *        This API is not thread-safe, avoid call it during processing
+ * 
+ * @param[in]  decoder  Audio decoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to reset
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_audio_err_t esp_audio_dec_reset(esp_audio_dec_handle_t decoder);
+
+/**
  * @brief  Close audio decoder
  *
  * @param[in]  decoder  Audio decoder handle

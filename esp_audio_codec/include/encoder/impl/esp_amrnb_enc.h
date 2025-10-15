@@ -170,6 +170,25 @@ esp_audio_err_t esp_amrnb_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in
 esp_audio_err_t esp_amrnb_enc_get_info(void *enc_hd, esp_audio_enc_info_t *enc_info);
 
 /**
+ * @brief  Reset of AMR-NB encoder to its initial state
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: During encoding need to encode different audio stream
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @param[in]  enc_hd  The AMRNB encoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to reset
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_amrnb_enc_reset(void *enc_hd);
+
+/**
  * @brief  Deinitialize AMRNB encoder handle
  *
  * @param[in]  enc_hd  The AMRNB encoder handle

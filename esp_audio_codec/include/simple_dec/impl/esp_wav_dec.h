@@ -37,6 +37,7 @@ extern "C" {
 #define ESP_WAV_DEC_DEFAULT_OPS() {   \
     .open   = esp_wav_dec_open,       \
     .decode = esp_wav_dec_decode,     \
+    .reset  = NULL,                   \
     .close  = esp_wav_dec_close,      \
 }
 

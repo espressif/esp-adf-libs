@@ -31,20 +31,21 @@ typedef union {
 } dec_all_cfg_t;
 
 typedef struct {
-    uint8_t *data;
-    int      read_size;
-    int      size;
+    uint8_t  *data;
+    int       read_size;
+    int       size;
 } read_ctx_t;
 
 typedef struct {
-    bool                      use_common_api;
-    esp_audio_dec_handle_t    decoder;
-    esp_audio_dec_out_frame_t out_frame;
-    bool                      decode_err;
+    bool                       use_common_api;
+    esp_audio_dec_handle_t     decoder;
+    esp_audio_dec_out_frame_t  out_frame;
+    bool                       decode_err;
 } write_ctx_t;
 
-static read_ctx_t  read_ctx;
-static write_ctx_t write_ctx;
+static read_ctx_t             read_ctx;
+static write_ctx_t            write_ctx;
+static esp_audio_dec_handle_t audio_dec_hd = NULL;
 
 static int decode_one_frame(uint8_t *data, int size);
 
@@ -115,17 +116,19 @@ static int get_decoder_cfg(esp_audio_dec_cfg_t *dec_cfg, audio_info_t *info)
     return 0;
 }
 
-int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info)
+int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info, bool need_reset)
 {
     dec_all_cfg_t all_cfg = {};
-    esp_audio_dec_register_default();
+    esp_audio_dec_handle_t dec_hd = audio_dec_hd;
+    if (dec_hd == NULL) {
+        esp_audio_dec_register_default();
+    }
     esp_audio_dec_cfg_t dec_cfg = {
         .type = type,
         .cfg = &all_cfg,
     };
     get_decoder_cfg(&dec_cfg, info);
-    esp_audio_dec_handle_t decoder = NULL;
-    int max_raw_size = 10 * 1024;
+    int max_raw_size = 15 * 1024;
     int max_out_size = 4096;
     uint8_t *raw_buf = malloc(max_raw_size);
     uint8_t *out_buf = malloc(max_out_size);
@@ -133,16 +136,19 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
     int heap_start_size = esp_get_free_heap_size();
     int open_consumed_size = 0;
     int cur_heap_size = 0;
+    int frame_count = 0;
     do {
         if (raw_buf == NULL || out_buf == NULL) {
             ESP_LOGI(TAG, "No memory for decoder");
             ret = ESP_AUDIO_ERR_MEM_LACK;
             break;
         }
-        ret = esp_audio_dec_open(&dec_cfg, &decoder);
-        if (ret != ESP_AUDIO_ERR_OK) {
-            ESP_LOGI(TAG, "Fail to open decoder ret %d", ret);
-            break;
+        if (dec_hd == NULL) {
+            ret = esp_audio_dec_open(&dec_cfg, &dec_hd);
+            if (ret != ESP_AUDIO_ERR_OK) {
+                ESP_LOGI(TAG, "Fail to open decoder ret %d", ret);
+                break;
+            }
         }
         cur_heap_size = esp_get_free_heap_size();
         if (cur_heap_size < heap_start_size) {
@@ -167,7 +173,7 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
             while (raw.len) {
                 uint64_t start = esp_timer_get_time();
                 heap_start_size = esp_get_free_heap_size();
-                ret = esp_audio_dec_process(decoder, &raw, &out_frame);
+                ret = esp_audio_dec_process(dec_hd, &raw, &out_frame);
                 decode_time += esp_timer_get_time() - start;
                 cur_heap_size = esp_get_free_heap_size();
                 if (cur_heap_size < heap_start_size) {
@@ -193,6 +199,7 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
                     break;
                 }
                 total_decoded += out_frame.decoded_size;
+                frame_count++;
                 if (cfg->write) {
                     cfg->write(out_frame.buffer, out_frame.decoded_size);
                 }
@@ -208,8 +215,16 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
                      open_consumed_size + process_max_consume);
         }
     } while (0);
-    esp_audio_dec_close(decoder);
-    esp_audio_dec_unregister_default();
+    if (need_reset) {
+        esp_audio_dec_reset(dec_hd);
+    } else {
+        if (dec_hd) {
+            esp_audio_dec_close(dec_hd);
+            dec_hd = NULL;
+        }
+        esp_audio_dec_unregister_default();
+    }
+    audio_dec_hd = dec_hd;
     if (raw_buf) {
         free(raw_buf);
     }
@@ -252,7 +267,7 @@ static int get_encode_data(esp_aac_dec_cfg_t *aac_cfg)
         .read = encoder_read_pcm,
         .write = decode_one_frame,
     };
-    audio_encoder_test(ESP_AUDIO_TYPE_AAC, &enc_cfg, &aud_info);
+    audio_encoder_test(ESP_AUDIO_TYPE_AAC, &enc_cfg, &aud_info, false);
     free(read_ctx.data);
     return 0;
 }
@@ -378,7 +393,7 @@ TEST_CASE("Decoder query type", CODEC_TEST_MODULE_NAME)
 TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
 {
     // ==================== Test Data Definition ====================
-    
+
     // Single frame Opus data (self_delimited = false)
     uint8_t opus_1frame_s0[] = {
         0x58,0x62,0xf9,0x1a,0x1a,0x15,0xd0,0xdd,0x80,0x04,0xa2,0xf6,0x17,0x19,0xc9,0x31,0xab,0x37,0xb9,
@@ -387,7 +402,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
         0x96,0x5e,0x42,0xc6,0x8b,0x4d,0xd7,0xaa,0xdc,0x99,0xc7,0x54,0x11,0xe4,0x2f,0xe8,
     };
     size_t opus_1frame_s0_len = sizeof(opus_1frame_s0);
-    
+
     // Double frame Opus data (self_delimited = false)
     uint8_t opus_2frame_s0[] = {
         0x58,0x62,0xf9,0x1a,0x1a,0x15,0xd0,0xdd,0x80,0x04,0xa2,0xf6,0x17,0x19,0xc9,0x31,0xab,0x37,0xb9,
@@ -403,7 +418,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
         0x68,0x93,0x56,0xa3,0x3f,0x30,0x5a,0xea,0x71,0xab,0x18,
     };
     size_t opus_2frame_s0_len = sizeof(opus_2frame_s0);
-   
+
     // Single frame Opus data (self_delimited = true)
     uint8_t opus_1frame_s1[] = {
         0x58,0x48,0x62,0xf9,0x1a,0x1a,0x15,0xd0,0xdd,0x80,0x04,0xa2,0xf6,
@@ -413,7 +428,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
         0x11,0xe4,0x2f,0xe8,
     };
     size_t opus_1frame_s1_len = sizeof(opus_1frame_s1);
-    
+
     // Double frame Opus data (self_delimited = true)
     uint8_t opus_2frame_s1[] = {
         0x58,0x48,0x62,0xf9,0x1a,0x1a,0x15,0xd0,0xdd,0x80,0x04,0xa2,0xf6,0x17,0x19,0xc9,0x31,0xab,0x37,
@@ -435,18 +450,18 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
     opus_cfg.frame_duration = ESP_OPUS_DEC_FRAME_DURATION_60_MS;  // 60ms frame duration
     opus_cfg.sample_rate = ESP_AUDIO_SAMPLE_RATE_16K;             // 16kHz sample rate
     opus_cfg.channel = ESP_AUDIO_MONO;                            // Mono channel
-    
+
     // ==================== Decoder Handle and Buffers ====================
     esp_audio_dec_handle_t dec_handle = NULL;
     esp_audio_dec_info_t info = {0};
-    
+
     // Input buffer
     esp_audio_dec_in_raw_t raw = {
         .buffer = NULL,
         .len = 0,
         .consumed = 0,
     };
-    
+
     // Output buffer (allocate enough space for double packet)
     esp_audio_dec_out_frame_t out_frame = {
         .buffer = malloc(opus_cfg.sample_rate * opus_cfg.channel * 60 * 2 * 2 / 1000), // Double packet size
@@ -457,7 +472,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
 
     // ==================== Test Scenario 1: self_delimited = false ====================
     printf("\n=== Test Scenario 1: self_delimited = false ===\n");
-    
+
     opus_cfg.self_delimited = false;
     TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_opus_dec_open((void *)&opus_cfg, sizeof(opus_cfg), &dec_handle));
     TEST_ASSERT_NOT_NULL(dec_handle);
@@ -476,7 +491,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
     raw.consumed = 0;
     TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_opus_dec_decode(dec_handle, &raw, &out_frame, &info));
     TEST_ASSERT_EQUAL(raw.consumed, opus_1frame_s0_len);
-    
+
     raw.buffer = opus_2frame_s0 + opus_1frame_s0_len;  // Point to second frame
     raw.len = opus_2frame_s0_len - opus_1frame_s0_len; // Remaining length
     raw.consumed = 0;
@@ -487,7 +502,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
 
     // ==================== Test Scenario 2: self_delimited = true ====================
     printf("\n=== Test Scenario 2: self_delimited = true ===\n");
-    
+
     opus_cfg.self_delimited = true;
     TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_opus_dec_open((void *)&opus_cfg, sizeof(opus_cfg), &dec_handle));
     TEST_ASSERT_NOT_NULL(dec_handle);
@@ -507,7 +522,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
     raw.consumed = 0;
     TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_opus_dec_decode(dec_handle, &raw, &out_frame, &info));
     TEST_ASSERT_EQUAL(raw.consumed, opus_1frame_s1_len);  // Decode first frame
-    
+
     raw.buffer = opus_2frame_s1 + raw.consumed;  // Point to second frame
     raw.len = opus_2frame_s1_len - opus_1frame_s1_len;  // Remaining length
     raw.consumed = 0;
@@ -516,7 +531,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
 
     // ==================== Test Scenario 3: Buffer Insufficient Test ====================
     printf("\n=== Test Scenario 3: Buffer Insufficient Test ===\n");
-    
+
     // Test 1: Configure 60ms frame duration, but output buffer is only 20ms size
     printf("Test buffer insufficient: Configure 60ms frame duration, but output buffer is only 20ms size\n");
     out_frame.len = opus_cfg.sample_rate * opus_cfg.channel * 20 * 2 / 1000;  // 20ms buffer
@@ -526,7 +541,7 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
 
     // ==================== Test Scenario 4: Frame Duration Mismatch Test ====================
     printf("\n=== Test Scenario 4: Frame Duration Mismatch Test ===\n");
-    
+
     // Configure 20ms frame duration, but data is 60ms
     opus_cfg.frame_duration = ESP_OPUS_DEC_FRAME_DURATION_20_MS;
     opus_cfg.self_delimited = false;
@@ -538,10 +553,10 @@ TEST_CASE("Decoder opus", CODEC_TEST_MODULE_NAME)
     raw.len = opus_1frame_s0_len;
     out_frame.len = opus_cfg.sample_rate * opus_cfg.channel * 20 * 2 / 1000;  // 20ms buffer
     TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_BUFF_NOT_ENOUGH, esp_opus_dec_decode(dec_handle, &raw, &out_frame, &info));
-    
+
     TEST_ASSERT_NOT_NULL(dec_handle);
     TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_opus_dec_close(dec_handle));
-    
+
     // ==================== Cleanup Resources ====================
     free(out_frame.buffer);
 }

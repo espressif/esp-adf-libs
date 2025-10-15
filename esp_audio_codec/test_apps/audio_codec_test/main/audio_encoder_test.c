@@ -23,6 +23,7 @@
 #define TAG "DEC_TEST"
 
 #define MAX_ENCODED_FRAMES (20)
+
 typedef union {
     esp_aac_enc_config_t   aac_cfg;
     esp_alac_enc_config_t  alac_cfg;
@@ -40,6 +41,8 @@ typedef union {
     cfg->bits_per_sample = info->bits_per_sample;  \
     cfg->channel         = info->channel;          \
 }
+
+static esp_audio_enc_handle_t audio_enc_hd = NULL;
 
 static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc_cfg, audio_info_t *info)
 {
@@ -64,7 +67,7 @@ static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc
             enc_cfg->cfg_sz = sizeof(esp_amrnb_enc_config_t);
             ASSIGN_BASIC_CFG(cfg);
             cfg->bitrate_mode = ESP_AMRNB_ENC_BITRATE_MR122;
-            cfg->no_file_header = true;
+            cfg->no_file_header = info->no_file_header;
             break;
         }
         case ESP_AUDIO_TYPE_AMRWB: {
@@ -72,7 +75,7 @@ static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc
             enc_cfg->cfg_sz = sizeof(esp_amrwb_enc_config_t);
             ASSIGN_BASIC_CFG(cfg);
             cfg->bitrate_mode = ESP_AMRWB_ENC_BITRATE_MD885;
-            cfg->no_file_header = true;
+            cfg->no_file_header = info->no_file_header;
         } break;
         case ESP_AUDIO_TYPE_G711A:
         case ESP_AUDIO_TYPE_G711U: {
@@ -126,17 +129,19 @@ static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc
     return 0;
 }
 
-int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *data_cfg, audio_info_t *info)
+int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *data_cfg, audio_info_t *info, bool need_reset)
 {
+    esp_audio_enc_handle_t encoder = audio_enc_hd;
     // Register all encoder
-    esp_audio_enc_register_default();
+    if (encoder == NULL) {
+        esp_audio_enc_register_default();
+    }
 
     enc_all_cfg_t all_cfg = {0};
     esp_audio_enc_config_t enc_cfg = {
         .type = type,
         .cfg = &all_cfg,
     };
-    esp_audio_enc_handle_t encoder = NULL;
     uint8_t *read_buf = NULL;
     uint8_t *write_buf = NULL;
     int ret = 0;
@@ -151,10 +156,12 @@ int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *data_cfg, 
             break;
         }
         // Open encoder
-        ret = esp_audio_enc_open(&enc_cfg, &encoder);
-        if (ret != ESP_AUDIO_ERR_OK) {
-            ESP_LOGE(TAG, "Fail to open encoder ret: %d", ret);
-            break;
+        if (encoder == NULL) {
+            ret = esp_audio_enc_open(&enc_cfg, &encoder);
+            if (ret != ESP_AUDIO_ERR_OK) {
+                ESP_LOGE(TAG, "Fail to open encoder ret: %d", ret);
+                break;
+            }
         }
         cur_heap_size = esp_get_free_heap_size();
         if (heap_start_size > cur_heap_size) {
@@ -227,16 +234,22 @@ int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *data_cfg, 
         }
 
     } while (0);
-    if (encoder) {
-        esp_audio_enc_close(encoder);
+    if (need_reset) {
+        esp_audio_enc_reset(encoder);
+    } else {
+        if (encoder) {
+            esp_audio_enc_close(encoder);
+            encoder = NULL;
+        }
+        esp_audio_enc_unregister_default();
     }
+    audio_enc_hd = encoder;
     if (read_buf) {
         free(read_buf);
     }
     if (write_buf) {
         free(write_buf);
     }
-    esp_audio_enc_unregister_default();
     return ret;
 }
 

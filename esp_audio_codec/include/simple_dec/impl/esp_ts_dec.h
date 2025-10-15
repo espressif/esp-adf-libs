@@ -61,6 +61,7 @@ typedef struct {
 #define ESP_TS_DEC_DEFAULT_OPS() {   \
     .open   = esp_ts_dec_open,       \
     .decode = esp_ts_dec_decode,     \
+    .reset  = NULL,                  \
     .close  = esp_ts_dec_close,      \
 }
 

@@ -130,6 +130,25 @@ esp_audio_err_t esp_adpcm_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in
 esp_audio_err_t esp_adpcm_enc_get_info(void *enc_hd, esp_audio_enc_info_t *enc_info);
 
 /**
+ * @brief  Reset of ADPCM encoder to its initial state
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: During encoding need to encode different audio stream
+ *        which the audio information (sample rate, channel, bits per sample) is not changed
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @param[in]  enc_hd  The ADPCM encoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_adpcm_enc_reset(void *enc_hd);
+
+/**
  * @brief  Deinitialize ADPCM encoder
  *
  * @param[in]  enc_hd  The ADPCM encoder handle

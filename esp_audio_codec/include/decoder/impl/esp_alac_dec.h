@@ -41,10 +41,11 @@ typedef struct {
 /**
  * @brief  Default decoder operations for ALAC
  */
-#define ESP_ALAC_DEC_DEFAULT_OPS() { \
-    .open = esp_alac_dec_open,       \
-    .decode = esp_alac_dec_decode,   \
-    .close = esp_alac_dec_close,     \
+#define ESP_ALAC_DEC_DEFAULT_OPS() {  \
+    .open   = esp_alac_dec_open,      \
+    .decode = esp_alac_dec_decode,    \
+    .reset  = esp_alac_dec_reset,     \
+    .close  = esp_alac_dec_close,     \
 }
 
 /**
@@ -95,6 +96,24 @@ esp_audio_err_t esp_alac_dec_open(void *cfg, uint32_t cfg_sz, void **dec_handle)
  */
 esp_audio_err_t esp_alac_dec_decode(void *dec_handle, esp_audio_dec_in_raw_t *raw, esp_audio_dec_out_frame_t *frame,
                                       esp_audio_dec_info_t *dec_info);
+
+/**
+ * @brief  Reset of ALAC decoder to its initial state
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: Seeking in same audio stream
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @param[in]  dec_handle  Decoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_alac_dec_reset(void *dec_handle);
 
 /**
  * @brief  Close ALAC decoder

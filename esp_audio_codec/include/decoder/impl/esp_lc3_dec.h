@@ -66,6 +66,7 @@ typedef struct {
 #define ESP_LC3_DEC_DEFAULT_OPS() {  \
     .open   = esp_lc3_dec_open,      \
     .decode = esp_lc3_dec_decode,    \
+    .reset  = esp_lc3_dec_reset,     \
     .close  = esp_lc3_dec_close,     \
 }
 
@@ -124,6 +125,24 @@ esp_audio_err_t esp_lc3_dec_open(void *cfg, uint32_t cfg_sz, void **lc3_handle);
  */
 esp_audio_err_t esp_lc3_dec_decode(void *lc3_handle, esp_audio_dec_in_raw_t *in_frame, esp_audio_dec_out_frame_t *out_frame,
                                    esp_audio_dec_info_t *info);
+
+/**
+ * @brief  Reset of LC3 decoder to its initial state
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: Seeking in same audio stream
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @param[in]  lc3_handle  Decoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_lc3_dec_reset(void *lc3_handle);
 
 /**
  * @brief  Close LC3 decoder

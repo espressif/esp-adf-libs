@@ -41,8 +41,9 @@ typedef struct {
     esp_audio_err_t (*get_info)(void *enc_hd, esp_audio_enc_info_t *enc_info);                    /*!< Get encoder information. */
     esp_audio_err_t (*get_frame_size)(void *enc_hd, int *in_size, int *out_size);                 /*!< Get in buffer and out buffer size. */
     esp_audio_err_t (*process)(void *enc_hd, esp_audio_enc_in_frame_t *in_frame,
-                               esp_audio_enc_out_frame_t *out_frame);                             /*!< Encode pcm data. */
-    void (*close)(void *enc_hd);                                                                  /*!< Close an encoder handle. */
+                               esp_audio_enc_out_frame_t *out_frame);             /*!< Encode pcm data. */
+    esp_audio_err_t (*reset)(void *enc_hd);                                       /*!< Reset encoder */
+    void (*close)(void *enc_hd);                                                  /*!< Close an encoder handle. */
 } esp_audio_enc_ops_t;
 
 /**
