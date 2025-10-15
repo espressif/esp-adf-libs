@@ -1,5 +1,7 @@
 # ALC
 
+- [中文版](./README_ALC_CN.md)
+
 `ALC` (Automatic Level Control) module is used to automatically adjust the volume level of audio signals to ensure stable output volume at different input signal levels. ALC is mainly used to prevent sudden increase or decrease in audio volume, thus providing a more consistent audio experience.
 
 # Features
@@ -31,7 +33,7 @@ Note:
 
 # Usage
 
-Here is an example of using [ALC](../test_app/main/test_alc.c)
+Here is an example of using [ALC](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ
 

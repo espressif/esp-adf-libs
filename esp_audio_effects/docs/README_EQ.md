@@ -1,5 +1,7 @@
 # EQ
 
+- [中文版](./README_EQ_CN.md)
+
 `EQ` (Equalizer) module is used to enable the adjustment of sound quality. It compensates for defects in speakers and acoustic environments, modifies various sound sources, and offers additional specialized functions. The core component of an equalizer is a filter, and an equalizer consists of multiple filters. Each filter serves a different function, which is explained in detail below.
 
 # Features
@@ -33,7 +35,7 @@ Note:
 
 # Usage
 
-Here is an example of using [EQ](../test_app/main/test_eq.c)
+Here is an example of using [EQ](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ
 

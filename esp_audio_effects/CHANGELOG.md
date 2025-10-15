@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.2.0
+
+### Features
+
+- Added audio effects module for `DRC`, `MBC`
+- Added `esp_ae_xx_reset` function for all effect modules
+- Added per-stream enable/disable control for `Mixer`
+- Added esp_audio_effects demo
+- Optimized effects implementation to reduce binary size
+- Added refine code and license for test app
+
+### Bug Fixes
+
+- Fixed an issue where `ALC` failed to operate correctly when the input level was too low
+- Fixed `FADE` module reset not taking effect
+- Fixed a bit-depth conversion error when converting 8-bit to 24-bit
+
 ## v1.1.0
 
 ### Features

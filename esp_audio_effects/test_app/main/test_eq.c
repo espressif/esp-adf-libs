@@ -1,162 +1,269 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) PTE LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
 #include "unity.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "test_common.h"
-#include "esp_ae_eq.h"
-#include "esp_ae_bit_cvt.h"
 #include "esp_ae_data_weaver.h"
+#include "esp_ae_eq.h"
+#include "ae_common.h"
+#include "esp_dsp.h"
 
 #define TAG "TEST_EQ"
-#define CMP_MODE
 
-static int music_mode[10][10] = {
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},         // default
-    {9, 8, 5, 2, 1, 0, -3, -4, -3, 0},      // dance
-    {8, 8, 8, 7, 4, 0, -3, -5, -7, -9},     // full buss
-    {-9, -8, -7, -6, -3, 1, 5, 8, 10, 12},  // full treble
-    {-2, -1, 0, 2, 3, 2, 0, -2, -2, -1},    // pop
-    {6, 5, 2, -2, -5, -2, 0, 3, 5, 6},      // rock
-    {2, 1, 0, 0, -1, 0, 1, 2, 3, 4},        // soft
-    {8, 7, 6, 3, 2, 0, -1, -2, -1, 0},      // large_hall
-    {4, 4, 3, 2, 0, 0, 0, 0, 0, 4},         // party
-    {0, 0, 0, 1, 2, 3, 3, 2, 1, 0}          // club
-};
+#define EQ_MAX_TEST_CH_NUM  (3)
+#define EQ_TEST_DURATION_MS 5000
+#define EQ_FFT_SIZE         2048
+#define EQ_FREQ_BINS        (EQ_FFT_SIZE / 2)
+#define EQ_SET_FILTER_PARA(_filter_type, _fc, _q, _gain) \
+    (esp_ae_eq_filter_para_t)                            \
+    {                                                    \
+        .filter_type = (_filter_type),                   \
+        .fc          = (_fc),                            \
+        .q           = (_q),                             \
+        .gain        = (_gain),                          \
+    }
+#define EQ_SET_CFG(_srate, _ch, _bits, _filter_num, _para) \
+    (esp_ae_eq_cfg_t)                                      \
+    {                                                      \
+        .sample_rate     = (_srate),                       \
+        .channel         = (_ch),                          \
+        .bits_per_sample = (_bits),                        \
+        .filter_num      = (_filter_num),                  \
+        .para            = (_para),                        \
+    }
 
-static esp_ae_eq_filter_type_t ft[5]   = {ESP_AE_EQ_FILTER_HIGH_PASS, ESP_AE_EQ_FILTER_LOW_PASS, ESP_AE_EQ_FILTER_PEAK,
-                                       ESP_AE_EQ_FILTER_HIGH_SHELF, ESP_AE_EQ_FILTER_LOW_SHELF};
-static float                q[5]    = {0.5, 1.0, 1.5, 2.0, 3.0};
-static float                gain[5] = {-15.0, -5.0, 0.0, 5.0, 15.0};
+static uint32_t           sample_rate[]     = {8000, 48000};
+static uint8_t            bits_per_sample[] = {16, 24, 32};
+static uint8_t            channel[]         = {3, 1};
+static float              gain_value[]      = {-15.0f, 0, 15.0f};
+static float              q_value[]         = {0.1, 2.0, 20.0};
+static uint8_t           *input_buffer      = NULL;
+static uint8_t           *output_buffer     = NULL;
+static float             *input_spectrum    = NULL;
+static float             *output_spectrum   = NULL;
+static esp_ae_eq_handle_t eq_handle         = NULL;
 
-static void filter_para_cfg(int fc, float q, float gain, esp_ae_eq_filter_type_t filter_type,
-                            esp_ae_eq_filter_para_t *eq_para)
+static void eq_verify_filter_response(esp_ae_eq_cfg_t *config, esp_ae_eq_filter_para_t *eq_para, bool *is_enable,
+                                      int num_samples, bool is_interleaved)
 {
-    eq_para->filter_type = filter_type;
-    if (filter_type == ESP_AE_EQ_FILTER_HIGH_PASS || filter_type == ESP_AE_EQ_FILTER_LOW_PASS) {
-        eq_para->fc = fc;
-        eq_para->q = q;
+    for (int i = 0; i < config->channel; i++) {
+        uint8_t *inbuf = is_interleaved ? (input_buffer + i * (config->bits_per_sample >> 3)) :
+                                          (input_buffer + i * (config->bits_per_sample >> 3) * num_samples);
+        uint8_t *outbuf = is_interleaved ? (output_buffer + i * (config->bits_per_sample >> 3)) :
+                                           (output_buffer + i * (config->bits_per_sample >> 3) * num_samples);
+        uint8_t skip = is_interleaved ? config->channel : 1;
+        ae_test_analyze_frequency_response(inbuf, num_samples, 2048, config->bits_per_sample, skip, input_spectrum);
+        ae_test_analyze_frequency_response(outbuf, num_samples, 2048, config->bits_per_sample, skip, output_spectrum);
+        for (int k = 0; k < EQ_FREQ_BINS; k++) {
+            int freq = k * config->sample_rate / EQ_FFT_SIZE;
+            ESP_LOGD(TAG, "ch = %d, freq = %dHz, input_spectrum[%d] = %f, output_spectrum[%d] = %f, gain_curve[%d] = %f",
+                     i, freq, k, input_spectrum[k], k, output_spectrum[k], k, output_spectrum[k] - input_spectrum[k]);
+        }
+        esp_ae_eq_filter_para_t para[10] = {0};
+        memcpy(para, eq_para, sizeof(esp_ae_eq_filter_para_t) * config->filter_num);
+        for (int j = 0; j < config->filter_num; j++) {
+            float fc = (float)para[j].fc;
+            if (is_enable[j]) {
+                if (para[j].filter_type == ESP_AE_EQ_FILTER_LOW_PASS) {
+                    int low_bin = (int)(fc * 0.5f * EQ_FFT_SIZE / config->sample_rate);
+                    int high_bin = (int)(fc * 2.0f * EQ_FFT_SIZE / config->sample_rate);
+                    if (low_bin < EQ_FREQ_BINS && high_bin < EQ_FREQ_BINS) {
+                        float low_gain = output_spectrum[low_bin] - input_spectrum[low_bin];
+                        float high_gain = output_spectrum[high_bin] - input_spectrum[high_bin];
+                        ESP_LOGD(TAG, "Low-pass: low_freq=%.2fdB, high_freq=%.2fdB", low_gain, high_gain);
+                        TEST_ASSERT_TRUE(low_gain > high_gain);
+                    }
+                } else if (para[j].filter_type == ESP_AE_EQ_FILTER_HIGH_PASS) {
+                    int low_bin = (int)(fc * 0.5f * EQ_FFT_SIZE / config->sample_rate);
+                    int high_bin = (int)(fc * 2.0f * EQ_FFT_SIZE / config->sample_rate);
+                    if (low_bin < EQ_FREQ_BINS && high_bin < EQ_FREQ_BINS) {
+                        float low_gain = output_spectrum[low_bin] - input_spectrum[low_bin];
+                        float high_gain = output_spectrum[high_bin] - input_spectrum[high_bin];
+                        ESP_LOGD(TAG, "High-pass: low_freq=%.2fdB, high_freq=%.2fdB", low_gain, high_gain);
+                        TEST_ASSERT_TRUE(high_gain > low_gain);
+                    }
+                } else if (para[j].filter_type == ESP_AE_EQ_FILTER_PEAK) {
+                    int fc_bin = (int)(fc * EQ_FFT_SIZE / config->sample_rate);
+                    int low_bin = (int)(fc * 0.5f * EQ_FFT_SIZE / config->sample_rate);
+                    int high_bin = (int)(fc * 2.0f * EQ_FFT_SIZE / config->sample_rate);
+                    float fc_gain = output_spectrum[fc_bin] - input_spectrum[fc_bin];
+                    ESP_LOGD(TAG, "Peak%d: Output gain=%.2fdB, Input gain=%.2fdB, fc_gain=%.2fdB, gain=%.2fdB", j,
+                             output_spectrum[fc_bin], input_spectrum[fc_bin], fc_gain, para[j].gain);
+                    TEST_ASSERT_FLOAT_WITHIN(3.0f, fc_gain, para[j].gain);
+                    if (config->filter_num == 1) {
+                        float low_gain = output_spectrum[low_bin] - input_spectrum[low_bin];
+                        float high_gain = output_spectrum[high_bin] - input_spectrum[high_bin];
+                        ESP_LOGD(TAG, "Peak: gain=%.2fdB, low=%.2fdB, high=%.2fdB", fc_gain, low_gain, high_gain);
+                        if (para[j].gain > 0) {
+                            TEST_ASSERT_TRUE(fc_gain > low_gain && fc_gain > high_gain);
+                        } else if (para[j].gain < 0) {
+                            TEST_ASSERT_TRUE(fc_gain < low_gain && fc_gain < high_gain);
+                        } else {
+                            TEST_ASSERT_FLOAT_WITHIN(0.1, fc_gain, low_gain);
+                            TEST_ASSERT_FLOAT_WITHIN(0.1, fc_gain, high_gain);
+                        }
+                    }
+                } else if (para[j].filter_type == ESP_AE_EQ_FILTER_HIGH_SHELF) {
+                    int low_bin = (int)(fc * 0.5f * EQ_FFT_SIZE / config->sample_rate);
+                    int high_bin = (int)(fc * 2.0f * EQ_FFT_SIZE / config->sample_rate);
+                    float low_gain = output_spectrum[low_bin] - input_spectrum[low_bin];
+                    float high_gain = output_spectrum[high_bin] - input_spectrum[high_bin];
+                    ESP_LOGD(TAG, "High-shelf: gain=%.2fdB, low_freq=%.2fdB, high_freq=%.2fdB", para[j].gain, low_gain, high_gain);
+                    TEST_ASSERT_FLOAT_WITHIN(3.0f, high_gain, para[j].gain);
+                } else if (para[j].filter_type == ESP_AE_EQ_FILTER_LOW_SHELF) {
+                    int low_bin = (int)(fc * 0.5f * EQ_FFT_SIZE / config->sample_rate);
+                    int high_bin = (int)(fc * 2.0f * EQ_FFT_SIZE / config->sample_rate);
+                    float low_gain = output_spectrum[low_bin] - input_spectrum[low_bin];
+                    float high_gain = output_spectrum[high_bin] - input_spectrum[high_bin];
+                    ESP_LOGD(TAG, "Low-shelf: gain=%.2fdB, low_freq=%.2fdB, high_freq=%.2fdB", para[j].gain, low_gain, high_gain);
+                    TEST_ASSERT_FLOAT_WITHIN(3.0f, low_gain, para[j].gain);
+                }
+            } else {
+                int fc_bin = (int)(fc * EQ_FFT_SIZE / config->sample_rate);
+                TEST_ASSERT_FLOAT_WITHIN(3.0f, output_spectrum[fc_bin], input_spectrum[fc_bin]);
+            }
+        }
+    }
+}
+
+static void eq_test_init(esp_ae_eq_cfg_t *config, int num_samples)
+{
+    esp_ae_eq_open(config, &eq_handle);
+    TEST_ASSERT_NOT_NULL(eq_handle);
+
+    input_buffer = (uint8_t *)calloc(num_samples * config->channel, (config->bits_per_sample >> 3));
+    output_buffer = (uint8_t *)calloc(num_samples * config->channel, (config->bits_per_sample >> 3));
+    TEST_ASSERT_NOT_NULL(input_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer);
+    input_spectrum = (float *)calloc(EQ_FREQ_BINS, sizeof(float));
+    output_spectrum = (float *)calloc(EQ_FREQ_BINS, sizeof(float));
+    TEST_ASSERT_NOT_NULL(input_spectrum);
+    TEST_ASSERT_NOT_NULL(output_spectrum);
+}
+
+void eq_test_process(esp_ae_eq_cfg_t *config, esp_ae_eq_filter_para_t *para, bool *is_enable,
+                     int num_samples, bool is_interleaved, bool is_inplace)
+{
+    esp_ae_err_t ret = ESP_AE_ERR_OK;
+    if (is_interleaved) {
+        ae_test_generate_sweep_signal(input_buffer, EQ_TEST_DURATION_MS, config->sample_rate, -20.0f, config->bits_per_sample, config->channel);
+        if (is_inplace) {
+            memcpy(output_buffer, input_buffer, num_samples * config->channel * (config->bits_per_sample >> 3));
+            ret = esp_ae_eq_process(eq_handle, num_samples, (esp_ae_sample_t)output_buffer, (esp_ae_sample_t)output_buffer);
+        } else {
+            ret = esp_ae_eq_process(eq_handle, num_samples, (esp_ae_sample_t)input_buffer, (esp_ae_sample_t)output_buffer);
+        }
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+        eq_verify_filter_response(config, para, is_enable, num_samples, true);
     } else {
-        eq_para->fc = fc;
-        eq_para->q = q;
-        eq_para->gain = gain;
+        uint8_t *in_deinter[EQ_MAX_TEST_CH_NUM] = {0};
+        uint8_t *out_deinter[EQ_MAX_TEST_CH_NUM] = {0};
+        for (int i = 0; i < config->channel; i++) {
+            int offset = i * (config->bits_per_sample >> 3) * num_samples;
+            ae_test_generate_sweep_signal(input_buffer + offset, EQ_TEST_DURATION_MS,
+                                          config->sample_rate, -20.0f, config->bits_per_sample, 1);
+            in_deinter[i] = input_buffer + offset;
+            out_deinter[i] = output_buffer + offset;
+        }
+        if (is_inplace) {
+            for (int i = 0; i < config->channel; i++) {
+                memcpy(out_deinter[i], in_deinter[i], num_samples * (config->bits_per_sample >> 3));
+            }
+            ret = esp_ae_eq_deintlv_process(eq_handle, num_samples, (esp_ae_sample_t *)out_deinter, (esp_ae_sample_t *)out_deinter);
+        } else {
+            ret = esp_ae_eq_deintlv_process(eq_handle, num_samples, (esp_ae_sample_t *)in_deinter, (esp_ae_sample_t *)out_deinter);
+        }
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+        eq_verify_filter_response(config, para, is_enable, num_samples, false);
     }
 }
 
-static esp_ae_eq_cfg_t *eq_config_single(int sample_rate, int channel, int bit,
-                                      int fc, float q, float gain,
-                                      esp_ae_eq_filter_type_t filter_type)
+void eq_test_deinit()
 {
-    esp_ae_eq_cfg_t *eq_config = calloc(1, sizeof(esp_ae_eq_cfg_t));
-    if (eq_config == NULL) {
-        ESP_LOGI(TAG, "eq config calloc error.");
-        return NULL;
-    }
-    eq_config->bits_per_sample = bit;
-    eq_config->sample_rate = sample_rate;
-    eq_config->channel = channel;
-    eq_config->filter_num = 1;
-    eq_config->para = calloc(1, sizeof(esp_ae_eq_filter_para_t) * eq_config->filter_num);
-    if (eq_config->para == NULL) {
-        ESP_LOGI(TAG, "para calloc error.");
-        free(eq_config);
-        return NULL;
-    }
-    esp_ae_eq_filter_para_t *para = eq_config->para;
-    filter_para_cfg(fc, q, gain, filter_type, para);
-    return eq_config;
+    free(input_buffer);
+    input_buffer = NULL;
+    free(output_buffer);
+    output_buffer = NULL;
+    free(input_spectrum);
+    input_spectrum = NULL;
+    free(output_spectrum);
+    output_spectrum = NULL;
+    esp_ae_eq_close(eq_handle);
+    eq_handle = NULL;
 }
 
-static esp_ae_eq_cfg_t *eq_config_para(int sample_rate, int channel, int bit)
+static void test_eq_consistency(uint32_t sample_rate, uint8_t bits_per_sample, uint8_t channel)
 {
-    esp_ae_eq_cfg_t *eq_config = calloc(1, sizeof(esp_ae_eq_cfg_t));
-    if (eq_config == NULL) {
-        ESP_LOGI(TAG, "eq config calloc error.");
-        return NULL;
-    }
-    eq_config->bits_per_sample = bit;
-    eq_config->sample_rate = sample_rate;
-    eq_config->channel = channel;
-    eq_config->filter_num = 10;
-    eq_config->para = calloc(1, sizeof(esp_ae_eq_filter_para_t) * eq_config->filter_num);
-    if (eq_config->para == NULL) {
-        ESP_LOGI(TAG, "para calloc error.");
-        free(eq_config);
-        return NULL;
-    }
-    esp_ae_eq_filter_para_t *para = eq_config->para;
-    int fc[15] = {31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
-    float q[15] = {0.0};
-    float gain[15];
-    for (int i = 0; i < eq_config->filter_num; i++) {
-        q[i] = 2.0;
-    }
-    for (int i = 0; i < eq_config->filter_num; i++) {
-        // gain[i] = (float)music_mode[3][i];
-        gain[i] = 5;
-    }
-    esp_ae_eq_filter_type_t filter_type[15] = {ESP_AE_EQ_FILTER_PEAK, ESP_AE_EQ_FILTER_PEAK, ESP_AE_EQ_FILTER_PEAK,
-                                            ESP_AE_EQ_FILTER_PEAK, ESP_AE_EQ_FILTER_PEAK, ESP_AE_EQ_FILTER_PEAK,
-                                            ESP_AE_EQ_FILTER_PEAK, ESP_AE_EQ_FILTER_PEAK, ESP_AE_EQ_FILTER_PEAK,
-                                            ESP_AE_EQ_FILTER_PEAK};
-    for (int i = 0; i < eq_config->filter_num; i++) {
-        filter_para_cfg(fc[i], q[i], gain[i], filter_type[i], para);
-        para++;
-    }
-    return eq_config;
-}
+    ESP_LOGI(TAG, "Testing EQ consistency: %ld Hz, %d bits, %d channels", sample_rate, bits_per_sample, channel);
+    esp_ae_eq_filter_para_t para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, 1000, 2.0f, 6.0f);
+    esp_ae_eq_cfg_t config = EQ_SET_CFG(sample_rate, channel, bits_per_sample, 1, &para);
+    esp_ae_eq_handle_t hd1 = NULL;
+    esp_ae_eq_handle_t hd2 = NULL;
+    esp_err_t ret = esp_ae_eq_open(&config, &hd1);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    ret = esp_ae_eq_open(&config, &hd2);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
 
-static int infile_open(FILE **file, char *name)
-{
-    FILE *infile = fopen(name, "rb");
-    if (!infile) {
-        ESP_LOGI(TAG, "infile open error");
-        return -1;
-    }
-    *file = infile;
-    return 0;
-}
+    const int duration_ms = 100;
+    int input_bytes_per_sample = (bits_per_sample >> 3) * channel;
+    int output_bytes_per_sample = (bits_per_sample >> 3) * channel;
 
-static int outfile_open(FILE **file, char *name)
-{
-#ifdef CMP_MODE
-    FILE *infile = fopen(name, "rb");
-#else
-    FILE *infile = fopen(name, "wb");
-#endif /* CMP_MODE */
-    if (!infile) {
-        ESP_LOGI(TAG, "infile open error");
-        return -1;
+    uint32_t sample_count = (sample_rate * duration_ms) / 1000;
+    void *interlv_in = calloc(sample_count, input_bytes_per_sample);
+    TEST_ASSERT_NOT_EQUAL(interlv_in, NULL);
+    void *interlv_out = calloc(sample_count, output_bytes_per_sample);
+    TEST_ASSERT_NOT_EQUAL(interlv_out, NULL);
+    void *deinterlv_in[4] = {0};
+    for (int i = 0; i < channel; i++) {
+        deinterlv_in[i] = calloc(sample_count, bits_per_sample >> 3);
+        TEST_ASSERT_NOT_EQUAL(deinterlv_in[i], NULL);
     }
-    *file = infile;
-    return 0;
+    void *deinterlv_out[4] = {0};
+    for (int i = 0; i < channel; i++) {
+        deinterlv_out[i] = calloc(sample_count, bits_per_sample >> 3);
+        TEST_ASSERT_NOT_EQUAL(deinterlv_out[i], NULL);
+    }
+    void *deinterlv_out_cmp = calloc(sample_count, output_bytes_per_sample);
+    TEST_ASSERT_NOT_EQUAL(deinterlv_out_cmp, NULL);
+
+    ae_test_generate_sweep_signal(interlv_in, duration_ms, sample_rate,
+                                  0.0f, bits_per_sample, channel);
+
+    ret = esp_ae_deintlv_process(channel, bits_per_sample, sample_count,
+                                 (esp_ae_sample_t)interlv_in, (esp_ae_sample_t *)deinterlv_in);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+
+    ret = esp_ae_eq_process(hd1, sample_count, (esp_ae_sample_t)interlv_in, (esp_ae_sample_t)interlv_out);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+
+    ret = esp_ae_eq_deintlv_process(hd2, sample_count, (esp_ae_sample_t *)deinterlv_in, (esp_ae_sample_t *)deinterlv_out);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+
+    ret = esp_ae_intlv_process(channel, bits_per_sample, sample_count,
+                               (esp_ae_sample_t *)deinterlv_out, (esp_ae_sample_t)deinterlv_out_cmp);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    TEST_ASSERT_EQUAL_MEMORY_ARRAY(deinterlv_out_cmp, interlv_out, sample_count * output_bytes_per_sample, 1);
+
+    esp_ae_eq_close(hd1);
+    esp_ae_eq_close(hd2);
+    free(interlv_in);
+    free(interlv_out);
+    for (int i = 0; i < channel; i++) {
+        free(deinterlv_in[i]);
+        free(deinterlv_out[i]);
+    }
+    free(deinterlv_out_cmp);
 }
 
 TEST_CASE("EQ branch test", "AUDIO_EFFECT")
@@ -164,25 +271,18 @@ TEST_CASE("EQ branch test", "AUDIO_EFFECT")
     esp_ae_eq_handle_t eq_hd = NULL;
     int ret;
     esp_ae_eq_cfg_t *eq_config = calloc(1, sizeof(esp_ae_eq_cfg_t));
-    if (eq_config == NULL) {
-        ESP_LOGI(TAG, "eq config calloc error.");
-        return;
-    }
+    TEST_ASSERT_NOT_NULL(eq_config);
     eq_config->bits_per_sample = 16;
     eq_config->sample_rate = 8000;
     eq_config->channel = 1;
     eq_config->filter_num = 2;
     eq_config->para = calloc(1, sizeof(esp_ae_eq_filter_para_t) * eq_config->filter_num);
-    if (eq_config->para == NULL) {
-        ESP_LOGI(TAG, "filter_para calloc error.");
-        free(eq_config);
-        return;
-    }
-    esp_ae_eq_filter_para_t *para = eq_config->para;
-    esp_ae_eq_filter_para_t *para1 = para + 1;
-    filter_para_cfg(500, 1.0, 5.0, ESP_AE_EQ_FILTER_HIGH_PASS, para);
-    filter_para_cfg(1000, 1.0, 5.0, ESP_AE_EQ_FILTER_HIGH_SHELF, para1);
-
+    TEST_ASSERT_NOT_NULL(eq_config->para);
+    esp_ae_eq_filter_para_t *para1 = eq_config->para + 1;
+    memcpy(eq_config->para, &(EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_HIGH_PASS, 500, 1.0f, 5.0f)),
+           sizeof(esp_ae_eq_filter_para_t));
+    memcpy(eq_config->para + 1, &(EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_HIGH_SHELF, 1000, 1.0f, 5.0f)),
+           sizeof(esp_ae_eq_filter_para_t));
     ESP_LOGI(TAG, "esp_ae_eq_open");
     ESP_LOGI(TAG, "test1");
     ret = esp_ae_eq_open(NULL, &eq_hd);
@@ -270,7 +370,11 @@ TEST_CASE("EQ branch test", "AUDIO_EFFECT")
     esp_ae_eq_close(eq_hd);
     ESP_LOGI(TAG, "create eq handle");
     eq_config->para->gain = 5.0;
+    eq_config->sample_rate = 100;
+    eq_config->para->fc = 20;
+    eq_config->filter_num = 1;
     ret = esp_ae_eq_open(eq_config, &eq_hd);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
     char in_samples[100];
     char in_samples_1[2][100] = {0};
     int sample_num = 10;
@@ -287,26 +391,31 @@ TEST_CASE("EQ branch test", "AUDIO_EFFECT")
     ESP_LOGI(TAG, "test4");
     ret = esp_ae_eq_process(eq_hd, 0, in_samples, in_samples);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
+    ESP_LOGI(TAG, "test5");
+    ret = esp_ae_eq_process(eq_hd, 10, in_samples, in_samples);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
     ESP_LOGI(TAG, "esp_ae_eq_deintlv_process");
     ESP_LOGI(TAG, "test1");
-    ret = esp_ae_eq_deintlv_process(NULL, sample_num, in_samples_1, in_samples_1);
+    ret = esp_ae_eq_deintlv_process(NULL, sample_num,
+                                    (esp_ae_sample_t *)in_samples_1, (esp_ae_sample_t *)in_samples_1);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test2");
-    ret = esp_ae_eq_deintlv_process(eq_hd, sample_num, NULL, in_samples_1);
+    ret = esp_ae_eq_deintlv_process(eq_hd, sample_num, NULL, (esp_ae_sample_t *)in_samples_1);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test3");
-    ret = esp_ae_eq_deintlv_process(eq_hd, 0, in_samples_1, in_samples_1);
+    ret = esp_ae_eq_deintlv_process(eq_hd, 0,
+                                    (esp_ae_sample_t *)in_samples_1, (esp_ae_sample_t *)in_samples_1);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test4");
-    ret = esp_ae_eq_deintlv_process(eq_hd, sample_num, in_samples_1, NULL);
+    ret = esp_ae_eq_deintlv_process(eq_hd, sample_num, (esp_ae_sample_t *)in_samples_1, NULL);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test4");
-    ret = esp_ae_eq_deintlv_process(eq_hd, sample_num, in_samples_1, in_samples_1);
+    ret = esp_ae_eq_deintlv_process(eq_hd, sample_num, (esp_ae_sample_t *)in_samples_1, (esp_ae_sample_t *)in_samples_1);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "esp_ae_eq_set_filter_para");
     esp_ae_eq_filter_para_t para_1;
     para_1.filter_type = ESP_AE_EQ_FILTER_PEAK;
-    para_1.fc = 500;
+    para_1.fc = 50;
     para_1.q = 1.0;
     para_1.gain = -5.0;
     ESP_LOGI(TAG, "test1");
@@ -336,7 +445,7 @@ TEST_CASE("EQ branch test", "AUDIO_EFFECT")
     ESP_LOGI(TAG, "test4");
     ret = esp_ae_eq_get_filter_para(eq_hd, 0, &fi_para);
     TEST_ASSERT_EQUAL(fi_para.filter_type, ESP_AE_EQ_FILTER_PEAK);
-    TEST_ASSERT_EQUAL(fi_para.fc, 500);
+    TEST_ASSERT_EQUAL(fi_para.fc, 50);
     TEST_ASSERT_EQUAL(fi_para.q, 1.0);
     TEST_ASSERT_EQUAL(fi_para.gain, -5.0);
     ESP_LOGI(TAG, "%d %d %02f %02f", fi_para.filter_type, (int)fi_para.fc, fi_para.q, fi_para.gain);
@@ -359,890 +468,372 @@ TEST_CASE("EQ branch test", "AUDIO_EFFECT")
     free(eq_config);
 }
 
-TEST_CASE("EQ set test", "AUDIO_EFFECT")
+TEST_CASE("EQ Unity Gain Test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    int sample_rate = 44100;
-    int bit = 16;
-    int channel = 1;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-
-    short *buffer = calloc(sizeof(short), 1024);
-    TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-    esp_ae_eq_filter_para_t para_test;
-    para_test.filter_type = ESP_AE_EQ_FILTER_LOW_PASS;
-    para_test.fc = 500;
-    para_test.q = 1.0;
-    esp_ae_eq_set_filter_para(eq_handle, 0, &para_test);
-    esp_ae_eq_filter_para_t para;
-    esp_ae_eq_get_filter_para(eq_handle, 0, &para);
-    TEST_ASSERT_EQUAL(para.filter_type, ESP_AE_EQ_FILTER_LOW_PASS);
-    TEST_ASSERT_EQUAL(para.fc, 500);
-    TEST_ASSERT_EQUAL(para.q, 1.0);
-
-    esp_ae_eq_close(eq_handle);
-    free(buffer);
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ interleave 16 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    int sample_rate = 44100;
-    int bit = 16;
-    int channel = 1;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // stream open
-    sprintf(in_name, "/sdcard/pcm/test_44100.pcm");
-    ret = infile_open(&infile, in_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    sprintf(out_name, "/sdcard/eq_test/16_c/test_para_eq1.pcm");
-    ret = outfile_open(&outfile, out_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-
-    short *buffer = calloc(sizeof(short), 1024);
-    short *cmp_buffer = calloc(sizeof(short), 1024);
-    while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-        sample_num = 1200 / (16 >> 3) / channel;
-        ret = esp_ae_eq_process(eq_handle, sample_num, buffer, buffer);
-        TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-#ifdef CMP_MODE
-        fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-        TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-        fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-    }
-    esp_ae_eq_close(eq_handle);
-    fclose(infile);
-    fclose(outfile);
-    free(buffer);
-    free(cmp_buffer);
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ deinterleave 16 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    int sample_rate = 44100;
-    int bit = 16;
-    int channel = 1;
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // stream open
-    sprintf(in_name, "/sdcard/pcm/test_44100.pcm");
-    ret = infile_open(&infile, in_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    sprintf(out_name, "/sdcard/eq_test/16_c_inter/test_para_eq2.pcm");
-    ret = outfile_open(&outfile, out_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-
-    short *buffer = calloc(sizeof(short), 1024);
-    TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-    short *cmp_buffer = calloc(sizeof(short), 1024);
-    TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-    short *outbuf[10];
-    for (int i = 0; i < channel; i++) {
-        outbuf[i] = calloc(sizeof(short), 512);
-        TEST_ASSERT_NOT_EQUAL(outbuf[i], NULL);
-    }
-
-    while ((in_read = fread(buffer, 1, 1024, infile)) > 0) {
-        sample_num = 1024 / 2 / channel;
-        esp_ae_deintlv_process(channel, 16, sample_num, buffer, outbuf);
-        esp_ae_eq_deintlv_process(eq_handle, sample_num, outbuf, outbuf);
-        esp_ae_intlv_process(channel, 16, sample_num, outbuf, buffer);
-#ifdef CMP_MODE
-        fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-        TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-        fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-    }
-    esp_ae_eq_close(eq_handle);
-    fclose(infile);
-    fclose(outfile);
-    free(buffer);
-    free(cmp_buffer);
-    for (int i = 0; i < channel; i++) {
-        if (outbuf[i] != NULL) {
-            free(outbuf[i]);
-        }
-    }
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ interleave 24 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    int sample_rate = 44100;
-    int bit = 24;
-    int channel = 1;
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // stream open
-    sprintf(in_name, "/sdcard/pcm/test_44100.pcm");
-    ret = infile_open(&infile, in_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    sprintf(out_name, "/sdcard/eq_test/24_c/test_para_eq3.pcm");
-    ret = outfile_open(&outfile, out_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-    void *b1_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-    esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-    TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-    void *b2_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-    esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-    TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-    char *buffer = calloc(1, 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-    short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-    char *buffer1 = calloc(1, 1024 * 2 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-
-    while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-        sample_num = 1200 / (16 >> 3) / channel;
-        esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-        esp_ae_eq_process(eq_handle, sample_num, buffer1, buffer1);
-        esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-        fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-        TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-        fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-    }
-    esp_ae_eq_close(eq_handle);
-    esp_ae_bit_cvt_close(b1_handle);
-    esp_ae_bit_cvt_close(b2_handle);
-    fclose(infile);
-    fclose(outfile);
-    free(buffer);
-    free(buffer1);
-    free(cmp_buffer);
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ deinterleave 24 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    int sample_rate = 44100;
-    int bit = 24;
-    int channel = 1;
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // stream open
-    sprintf(in_name, "/sdcard/pcm/test_44100.pcm");
-    ret = infile_open(&infile, in_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    sprintf(out_name, "/sdcard/eq_test/24_c_inter/test_para_eq4.pcm");
-    ret = outfile_open(&outfile, out_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-    void *b1_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-    esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-    TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-    void *b2_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-    esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-    TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-    short *buffer = calloc(sizeof(short), 1024 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-    short *buffer1 = calloc(sizeof(short), 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-    short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-    short *outbuf[10];
-    for (int i = 0; i < channel; i++) {
-        outbuf[i] = calloc(sizeof(short), 512 * 2 * 2);
-        TEST_ASSERT_NOT_EQUAL(outbuf[i], NULL);
-    }
-    while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-        sample_num = 1200 / (16 >> 3) / channel;
-        esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-        esp_ae_deintlv_process(channel, ESP_AE_BIT24, sample_num, buffer1, outbuf);
-        esp_ae_eq_deintlv_process(eq_handle, sample_num, outbuf, outbuf);
-        esp_ae_intlv_process(channel, ESP_AE_BIT24, sample_num, outbuf, buffer1);
-        esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-        fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-        TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-        fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-    }
-    esp_ae_eq_close(eq_handle);
-    esp_ae_bit_cvt_close(b1_handle);
-    esp_ae_bit_cvt_close(b2_handle);
-    fclose(infile);
-    fclose(outfile);
-    free(buffer);
-    free(buffer1);
-    free(cmp_buffer);
-    for (int i = 0; i < channel; i++) {
-        if (outbuf[i] != NULL) {
-            free(outbuf[i]);
-        }
-    }
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ interleave 32 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    int sample_rate = 44100;
-    int bit = 16;
-    int channel = 1;
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // stream open
-    sprintf(in_name, "/sdcard/pcm/test_44100.pcm");
-    ret = infile_open(&infile, in_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    sprintf(out_name, "/sdcard/eq_test/32_c/test_para_eq5.pcm");
-    ret = outfile_open(&outfile, out_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-    void *b1_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-    esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-    TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-    void *b2_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-    esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-    TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-    char *buffer = calloc(1, 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-    char *buffer1 = calloc(1, 1024 * 2 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-    short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-
-    while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-        sample_num = 1200 / (16 >> 3) / channel;
-        esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-        esp_ae_eq_process(eq_handle, sample_num, buffer1, buffer1);
-        esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-        fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-        TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-        fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-    }
-    esp_ae_eq_close(eq_handle);
-    esp_ae_bit_cvt_close(b1_handle);
-    esp_ae_bit_cvt_close(b2_handle);
-    fclose(infile);
-    fclose(outfile);
-    free(buffer);
-    free(buffer1);
-    free(cmp_buffer);
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ deinterleave 32 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    int in_read = 0;
-    int sample_num = 0;
-    int sample_rate = 44100;
-    int bit = 16;
-    int channel = 1;
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    char in_name[100];
-    char out_name[100];
-    int ret = 0;
-    void *eq_handle = NULL;
-    // stream open
-    sprintf(in_name, "/sdcard/pcm/test_44100.pcm");
-    ret = infile_open(&infile, in_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    sprintf(out_name, "/sdcard/eq_test/32_c_inter/test_para_eq6.pcm");
-    ret = outfile_open(&outfile, out_name);
-    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    // config
-    esp_ae_eq_cfg_t *eq_config = eq_config_para(sample_rate, channel, bit);
-    TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-    ret = esp_ae_eq_open(eq_config, &eq_handle);
-    TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-    void *b1_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-    esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-    TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-    void *b2_handle = NULL;
-    esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-    esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-    TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-    short *buffer = calloc(sizeof(short), 1024 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-    short *buffer1 = calloc(sizeof(short), 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-    short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-    TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-    short *outbuf[10];
-    for (int i = 0; i < channel; i++) {
-        outbuf[i] = calloc(sizeof(short), 512 * 2 * 2);
-        TEST_ASSERT_NOT_EQUAL(outbuf[i], NULL);
-    }
-
-    while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-        sample_num = 1200 / (16 >> 3) / channel;
-        esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-        esp_ae_deintlv_process(channel, 32, sample_num, buffer1, outbuf);
-        esp_ae_eq_deintlv_process(eq_handle, sample_num, outbuf, outbuf);
-        esp_ae_intlv_process(channel, 32, sample_num, outbuf, buffer1);
-        esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-        fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-        TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-        fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-    }
-    esp_ae_eq_close(eq_handle);
-    esp_ae_bit_cvt_close(b1_handle);
-    esp_ae_bit_cvt_close(b2_handle);
-    fclose(infile);
-    fclose(outfile);
-    free(buffer);
-    free(cmp_buffer);
-    free(buffer1);
-    for (int i = 0; i < channel; i++) {
-        if (outbuf[i] != NULL) {
-            free(outbuf[i]);
-        }
-    }
-    free(eq_config->para);
-    free(eq_config);
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("EQ single filter interleave 16 bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 5; k++) {
-                int in_read = 0;
-                int sample_num = 0;
-                int sample_rate = 8000;
-                int channel = 2;
-                int bit = 16;
-                char in_name[100];
-                char out_name[100];
-                int ret = 0;
-                void *eq_handle = NULL;
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_8000_2.pcm");
-                ret = infile_open(&infile, in_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                sprintf(out_name, "/sdcard/eq_test/16_c/test_para_eq1_fil%d_gain%d_q%d.pcm", i, j, k);
-                ret = outfile_open(&outfile, out_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                // config
-                esp_ae_eq_cfg_t *eq_config = eq_config_single(sample_rate, channel, bit, 500, q[k], gain[j], ft[i]);
-                TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-                ret = esp_ae_eq_open(eq_config, &eq_handle);
-                TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-
-                short *buffer = calloc(sizeof(short), 1024);
-                TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-                short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-                    sample_num = 1200 / (16 >> 3) / channel;
-                    esp_ae_eq_process(eq_handle, sample_num, buffer, buffer);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-                    fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-                }
-                esp_ae_eq_close(eq_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(buffer);
-                free(eq_config->para);
-                free(eq_config);
-                free(cmp_buffer);
+    for (int i = 0; i < AE_TEST_PARAM_NUM(sample_rate); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+                uint32_t srate = sample_rate[i];
+                uint8_t bits = bits_per_sample[j];
+                uint8_t ch = channel[k];
+                const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+                bool is_enable[1] = {true};
+                ESP_LOGI(TAG, "Testing Interleaved Unity Gain with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+                esp_ae_eq_filter_para_t filter_para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, srate / 4, 1.0f, 0.0f);
+                esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 1, &filter_para);
+                eq_test_init(&config, num_samples);
+                eq_test_process(&config, &filter_para, is_enable, num_samples, true, false);
+                eq_test_deinit();
+                ESP_LOGI(TAG, "Testing Deinterleaved Unity Gain with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+                eq_test_init(&config, num_samples);
+                eq_test_process(&config, &filter_para, is_enable, num_samples, false, false);
+                eq_test_deinit();
             }
         }
     }
-    ae_sdcard_deinit();
 }
 
-TEST_CASE("EQ single filter deinterleave 16 bit test", "AUDIO_EFFECT")
+TEST_CASE("EQ Peak Filter Test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 5; k++) {
-                int in_read = 0;
-                int sample_num = 0;
-                int sample_rate = 8000;
-                int channel = 2;
-                int bit = 16;
-                char in_name[100];
-                char out_name[100];
-                int ret = 0;
-                void *eq_handle = NULL;
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_8000_2.pcm");
-                ret = infile_open(&infile, in_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                sprintf(out_name, "/sdcard/eq_test/16_c_inter/test_para_eq2_fil%d_gain%d_q%d.pcm", i, j, k);
-                ret = outfile_open(&outfile, out_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                // config
-                esp_ae_eq_cfg_t *eq_config = eq_config_single(sample_rate, channel, bit, 500, q[k], gain[j], ft[i]);
-                TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-                ret = esp_ae_eq_open(eq_config, &eq_handle);
-                TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
+    for (int i = 0; i < AE_TEST_PARAM_NUM(sample_rate); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+                for (int gain_id = 0; gain_id < AE_TEST_PARAM_NUM(gain_value); gain_id++) {
+                    for (int q_id = 0; q_id < AE_TEST_PARAM_NUM(q_value); q_id++) {
+                        uint32_t srate = sample_rate[i];
+                        uint8_t bits = bits_per_sample[j];
+                        uint8_t ch = channel[k];
+                        float gain = gain_value[gain_id];
+                        float q = q_value[q_id];
+                        const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+                        bool is_enable[1] = {true};
+                        ESP_LOGI(TAG, "Testing Interleaved Peak with srate=%ld, bits=%d, ch=%d gain=%02f, q=%02f", srate, bits, ch, gain, q);
+                        esp_ae_eq_filter_para_t filter_para_plus = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, srate / 4, q, gain);
+                        esp_ae_eq_cfg_t config1 = EQ_SET_CFG(srate, ch, bits, 1, &filter_para_plus);
+                        eq_test_init(&config1, num_samples);
+                        eq_test_process(&config1, &filter_para_plus, is_enable, num_samples, true, false);
+                        eq_test_deinit();
 
-                short *buffer = calloc(sizeof(short), 1024);
-                TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-                short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                short *outbuf[10];
-                for (int i = 0; i < channel; i++) {
-                    outbuf[i] = calloc(sizeof(short), 512);
-                    TEST_ASSERT_NOT_EQUAL(outbuf[i], NULL);
-                }
-
-                while ((in_read = fread(buffer, 1, 1024, infile)) > 0) {
-                    sample_num = 1024 / 2 / channel;
-                    esp_ae_deintlv_process(channel, 16, sample_num, buffer, outbuf);
-                    esp_ae_eq_deintlv_process(eq_handle, sample_num, outbuf, outbuf);
-                    esp_ae_intlv_process(channel, 16, sample_num, outbuf, buffer);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, in_read, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, in_read), 0);
-#else
-                    fwrite(buffer, 1, in_read, outfile);
-#endif /* CMP_MODE */
-                }
-                esp_ae_eq_close(eq_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(buffer);
-                for (int i = 0; i < channel; i++) {
-                    if (outbuf[i] != NULL) {
-                        free(outbuf[i]);
+                        ESP_LOGI(TAG, "Testing Deinterleaved Peak with srate=%ld, bits=%d, ch=%d gain=%02f, q=%02f", srate, bits, ch, gain, q);
+                        eq_test_init(&config1, num_samples);
+                        eq_test_process(&config1, &filter_para_plus, is_enable, num_samples, false, false);
+                        eq_test_deinit();
                     }
                 }
-                free(eq_config->para);
-                free(eq_config);
-                free(cmp_buffer);
             }
         }
     }
-    ae_sdcard_deinit();
 }
 
-TEST_CASE("EQ single filter interleave 24 bit test", "AUDIO_EFFECT")
+TEST_CASE("EQ Low Pass Filter Test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 5; k++) {
-                int in_read = 0;
-                int sample_num = 0;
-                int sample_rate = 8000;
-                int channel = 2;
-                int bit = 24;
-                char in_name[100];
-                char out_name[100];
-                int ret = 0;
-                void *eq_handle = NULL;
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_8000_2.pcm");
-                ret = infile_open(&infile, in_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                sprintf(out_name, "/sdcard/eq_test/24_c/test_para_eq3_fil%d_gain%d_q%d.pcm", i, j, k);
-                ret = outfile_open(&outfile, out_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                // config
-                esp_ae_eq_cfg_t *eq_config = eq_config_single(sample_rate, channel, bit, 500, q[k], gain[j], ft[i]);
-                TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-                ret = esp_ae_eq_open(eq_config, &eq_handle);
-                TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-                char *buffer = calloc(1, 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-                short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                char *buffer1 = calloc(1, 1024 * 2 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-
-                while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-                    sample_num = 1200 / (16 >> 3) / channel;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-                    esp_ae_eq_process(eq_handle, sample_num, buffer1, buffer1);
-                    esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-                    fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
+    for (int i = 0; i < AE_TEST_PARAM_NUM(sample_rate); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+                for (int q_id = 0; q_id < AE_TEST_PARAM_NUM(q_value); q_id++) {
+                    uint32_t srate = sample_rate[i];
+                    uint8_t bits = bits_per_sample[j];
+                    uint8_t ch = channel[k];
+                    float q = q_value[q_id];
+                    const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+                    bool is_enable[1] = {true};
+                    ESP_LOGI(TAG, "Testing Interleaved Low Pass with srate=%ld, bits=%d, ch=%d, q=%02f", srate, bits, ch, q);
+                    esp_ae_eq_filter_para_t filter_para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_LOW_PASS, srate / 4, q, 0.0f);
+                    esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 1, &filter_para);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &filter_para, is_enable, num_samples, true, false);
+                    eq_test_deinit();
+                    ESP_LOGI(TAG, "Testing Deinterleaved Low Pass with srate=%ld, bits=%d, ch=%d, q=%02f", srate, bits, ch, q);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &filter_para, is_enable, num_samples, false, false);
+                    eq_test_deinit();
                 }
-                esp_ae_eq_close(eq_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(buffer);
-                free(buffer1);
-                free(eq_config->para);
-                free(eq_config);
-                free(cmp_buffer);
             }
         }
     }
-    ae_sdcard_deinit();
 }
 
-TEST_CASE("EQ single filter deinterleave 24 bit test", "AUDIO_EFFECT")
+TEST_CASE("EQ High Pass Filter Test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 5; k++) {
-                int in_read = 0;
-                int sample_num = 0;
-                int sample_rate = 8000;
-                int channel = 2;
-                int bit = 24;
-                char in_name[100];
-                char out_name[100];
-                int ret = 0;
-                void *eq_handle = NULL;
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_8000_2.pcm");
-                ret = infile_open(&infile, in_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                sprintf(out_name, "/sdcard/eq_test/24_c_inter/test_para_eq4_fil%d_gain%d_q%d.pcm", i, j, k);
-                ret = outfile_open(&outfile, out_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                // config
-                esp_ae_eq_cfg_t *eq_config = eq_config_single(sample_rate, channel, bit, 500, q[k], gain[j], ft[i]);
-                TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-                ret = esp_ae_eq_open(eq_config, &eq_handle);
-                TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-                short *buffer = calloc(sizeof(short), 1024 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-                short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                short *buffer1 = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-                short *outbuf[10];
-                for (int i = 0; i < channel; i++) {
-                    outbuf[i] = calloc(sizeof(short), 512 * 2 * 2);
-                    TEST_ASSERT_NOT_EQUAL(outbuf[i], NULL);
+    for (int i = 0; i < AE_TEST_PARAM_NUM(sample_rate); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+                for (int q_id = 0; q_id < AE_TEST_PARAM_NUM(q_value); q_id++) {
+                    uint32_t srate = sample_rate[i];
+                    uint8_t bits = bits_per_sample[j];
+                    uint8_t ch = channel[k];
+                    float q = q_value[q_id];
+                    const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+                    bool is_enable[1] = {true};
+                    ESP_LOGI(TAG, "Testing Interleaved High Pass with srate=%ld, bits=%d, ch=%d, q=%02f", srate, bits, ch, q);
+                    esp_ae_eq_filter_para_t filter_para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_HIGH_PASS, srate / 4, q, 0.0f);
+                    esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 1, &filter_para);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &filter_para, is_enable, num_samples, true, false);
+                    eq_test_deinit();
+                    ESP_LOGI(TAG, "Testing Deinterleaved High Pass with srate=%ld, bits=%d, ch=%d, q=%02f", srate, bits, ch, q);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &filter_para, is_enable, num_samples, false, false);
+                    eq_test_deinit();
                 }
-
-                while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-                    sample_num = 1200 / (16 >> 3) / channel;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-                    esp_ae_deintlv_process(channel, ESP_AE_BIT24, sample_num, buffer1, outbuf);
-                    esp_ae_eq_deintlv_process(eq_handle, sample_num, outbuf, outbuf);
-                    esp_ae_intlv_process(channel, ESP_AE_BIT24, sample_num, outbuf, buffer1);
-                    esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-                    fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-                }
-                esp_ae_eq_close(eq_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(buffer);
-                free(buffer1);
-                for (int i = 0; i < channel; i++) {
-                    if (outbuf[i] != NULL) {
-                        free(outbuf[i]);
-                    }
-                }
-                free(eq_config->para);
-                free(eq_config);
-                free(cmp_buffer);
             }
         }
     }
-    ae_sdcard_deinit();
 }
 
-TEST_CASE("EQ single filter interleave 32 bit test", "AUDIO_EFFECT")
+TEST_CASE("EQ High Shelf Filter Test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 5; k++) {
-                int in_read = 0;
-                int sample_num = 0;
-                int sample_rate = 8000;
-                int channel = 2;
-                int bit = 32;
-                char in_name[100];
-                char out_name[100];
-                int ret = 0;
-                void *eq_handle = NULL;
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_8000_2.pcm");
-                ret = infile_open(&infile, in_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                sprintf(out_name, "/sdcard/eq_test/32_c/test_para_eq5_fil%d_gain%d_q%d.pcm", i, j, k);
-                ret = outfile_open(&outfile, out_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                // config
-                esp_ae_eq_cfg_t *eq_config = eq_config_single(sample_rate, channel, bit, 500, q[k], gain[j], ft[i]);
-                TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-                ret = esp_ae_eq_open(eq_config, &eq_handle);
-                TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-                char *buffer = calloc(1, 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-                short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                char *buffer1 = calloc(1, 1024 * 2 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-
-                while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-                    sample_num = 1200 / (16 >> 3) / channel;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-                    esp_ae_eq_process(eq_handle, sample_num, buffer1, buffer1);
-                    esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-                    fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
+    for (int i = 0; i < AE_TEST_PARAM_NUM(sample_rate); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+                for (int gain_id = 0; gain_id < AE_TEST_PARAM_NUM(gain_value); gain_id++) {
+                    uint32_t srate = sample_rate[i];
+                    uint8_t bits = bits_per_sample[j];
+                    uint8_t ch = channel[k];
+                    float gain = gain_value[gain_id];
+                    const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+                    bool is_enable[1] = {true};
+                    ESP_LOGI(TAG, "Testing Interleaved High Shelf with srate=%ld, bits=%d, ch=%d, gain=%02f", srate, bits, ch, gain);
+                    esp_ae_eq_filter_para_t high_shelf_para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_HIGH_SHELF, 1000, 2.0f, gain);
+                    esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 1, &high_shelf_para);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &high_shelf_para, is_enable, num_samples, true, false);
+                    eq_test_deinit();
+                    ESP_LOGI(TAG, "Testing Deinterleaved High Shelf with srate=%ld, bits=%d, ch=%d, gain=%02f", srate, bits, ch, gain);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &high_shelf_para, is_enable, num_samples, false, false);
+                    eq_test_deinit();
                 }
-                esp_ae_eq_close(eq_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(buffer);
-                free(buffer1);
-                free(eq_config->para);
-                free(eq_config);
-                free(cmp_buffer);
             }
         }
     }
-    ae_sdcard_deinit();
 }
 
-TEST_CASE("EQ single filter deinterleave 32 bit test", "AUDIO_EFFECT")
+TEST_CASE("EQ Low Shelf Filter Test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    FILE *infile = NULL;
-    FILE *outfile = NULL;
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 5; j++) {
-            for (int k = 0; k < 5; k++) {
-                int in_read = 0;
-                int sample_num = 0;
-                int sample_rate = 8000;
-                int channel = 2;
-                int bit = 32;
-                char in_name[100];
-                char out_name[100];
-                int ret = 0;
-                void *eq_handle = NULL;
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_8000_2.pcm");
-                ret = infile_open(&infile, in_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                sprintf(out_name, "/sdcard/eq_test/32_c_inter/test_para_eq6_fil%d_gain%d_q%d.pcm", i, j, k);
-                ret = outfile_open(&outfile, out_name);
-                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-                // config
-                esp_ae_eq_cfg_t *eq_config = eq_config_single(sample_rate, channel, bit, 500, q[k], gain[j], ft[i]);
-                TEST_ASSERT_NOT_EQUAL(eq_config, NULL);
-                ret = esp_ae_eq_open(eq_config, &eq_handle);
-                TEST_ASSERT_NOT_EQUAL(eq_handle, NULL);
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-                short *buffer = calloc(sizeof(short), 1024 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer, NULL);
-                short *cmp_buffer = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                short *buffer1 = calloc(sizeof(short), 1024 * 2 * 2);
-                TEST_ASSERT_NOT_EQUAL(buffer1, NULL);
-                short *outbuf[10];
-                for (int i = 0; i < channel; i++) {
-                    outbuf[i] = calloc(sizeof(short), 512 * 2 * 2);
-                    TEST_ASSERT_NOT_EQUAL(outbuf[i], NULL);
+    for (int i = 0; i < AE_TEST_PARAM_NUM(sample_rate); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+                for (int gain_id = 0; gain_id < AE_TEST_PARAM_NUM(gain_value); gain_id++) {
+                    bool is_enable[1] = {true};
+                    uint32_t srate = sample_rate[i];
+                    uint8_t bits = bits_per_sample[j];
+                    uint8_t ch = channel[k];
+                    float gain = gain_value[gain_id];
+                    ESP_LOGI(TAG, "Testing Interleaved Low Shelf with srate=%ld, bits=%d, ch=%d, gain=%02f",
+                                sample_rate[i], bits_per_sample[j], channel[k], gain);
+                    const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+                    esp_ae_eq_filter_para_t low_shelf_para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_LOW_SHELF, srate / 5, 2.0f, gain);
+                    esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 1, &low_shelf_para);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &low_shelf_para, is_enable, num_samples, true, false);
+                    eq_test_deinit();
+                    ESP_LOGI(TAG, "Testing Deinterleaved Low Shelf with srate=%ld, bits=%d, ch=%d, gain=%02f",
+                            sample_rate[i], bits_per_sample[j], channel[k], gain);
+                    eq_test_init(&config, num_samples);
+                    eq_test_process(&config, &low_shelf_para, is_enable, num_samples, false, false);
+                    eq_test_deinit();
                 }
-
-                while ((in_read = fread(buffer, 1, 1200, infile)) > 0) {
-                    sample_num = 1200 / (16 >> 3) / channel;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, buffer, buffer1);
-                    esp_ae_deintlv_process(channel, 32, sample_num, buffer1, outbuf);
-                    esp_ae_eq_deintlv_process(eq_handle, sample_num, outbuf, outbuf);
-                    esp_ae_intlv_process(channel, 32, sample_num, outbuf, buffer1);
-                    esp_ae_bit_cvt_process(b2_handle, sample_num, buffer1, buffer);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(buffer, cmp_buffer, sample_num * channel * (16 >> 3)), 0);
-#else
-                    fwrite(buffer, 1, sample_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-                }
-                esp_ae_eq_close(eq_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(buffer);
-                free(buffer1);
-                for (int i = 0; i < channel; i++) {
-                    if (outbuf[i] != NULL) {
-                        free(outbuf[i]);
-                    }
-                }
-                free(eq_config->para);
-                free(eq_config);
-                free(cmp_buffer);
             }
         }
     }
-    ae_sdcard_deinit();
+}
+
+TEST_CASE("EQ Multi-Filters Test", "AUDIO_EFFECT")
+{
+    for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+        for (int k = 0; k < AE_TEST_PARAM_NUM(channel); k++) {
+            bool is_enable[10] = {true, true, true, true, true, true, true, true, true, true};
+            uint32_t srate = 48000;
+            uint8_t bits = bits_per_sample[j];
+            uint8_t ch = channel[k];
+            const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+            static uint32_t fc[10] = {31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
+            static float gain[10] = {9, 8, 5, 2, 1, 0, -3, -4, -3, 0};
+            ESP_LOGI(TAG, "Testing Interleaved Multi-Filters Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+            esp_ae_eq_filter_para_t para[10] = {0};
+            for (int i = 0; i < 10; i++) {
+                para[i].filter_type = ESP_AE_EQ_FILTER_PEAK;
+                para[i].fc = fc[i];
+                para[i].q = 2.0f;
+                para[i].gain = gain[i];
+            }
+            esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 10, para);
+            eq_test_init(&config, num_samples);
+            eq_test_process(&config, para, is_enable, num_samples, true, false);
+            eq_test_deinit();
+            ESP_LOGI(TAG, "Testing Deinterleaved Multi-Filters Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+            eq_test_init(&config, num_samples);
+            eq_test_process(&config, para, is_enable, num_samples, false, false);
+            eq_test_deinit();
+        }
+    }
+}
+
+TEST_CASE("EQ in place Test", "AUDIO_EFFECT")
+{
+    for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+        bool is_enable[10] = {true, true, true, true, true, true, true, true, true, true};
+        uint32_t srate = 48000;
+        uint8_t bits = bits_per_sample[j];
+        uint8_t ch = 2;
+        const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+        static uint32_t fc[10] = {31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
+        static float gain[10] = {9, 8, 5, 2, 1, 0, -3, -4, -3, 0};
+        ESP_LOGI(TAG, "Testing Interleaved Multi-Filters Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+        esp_ae_eq_filter_para_t para[10] = {0};
+        for (int i = 0; i < 10; i++) {
+            para[i].filter_type = ESP_AE_EQ_FILTER_PEAK;
+            para[i].fc = fc[i];
+            para[i].q = 2.0f;
+            para[i].gain = gain[i];
+        }
+        esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 10, para);
+        eq_test_init(&config, num_samples);
+        eq_test_process(&config, para, is_enable, num_samples, true, true);
+        eq_test_deinit();
+        ESP_LOGI(TAG, "Testing Deinterleaved Multi-Filters Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+        eq_test_init(&config, num_samples);
+        eq_test_process(&config, para, is_enable, num_samples, false, true);
+        eq_test_deinit();
+    }
+}
+
+TEST_CASE("EQ set filter para Test", "AUDIO_EFFECT")
+{
+    for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+        uint32_t srate = 48000;
+        uint8_t bits = bits_per_sample[j];
+        uint8_t ch = 2;
+        bool is_enable[10] = {true, true, true, true, true, true, true, true, true, true};
+        const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+        static uint32_t fc[10] = {31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
+        static float gain[10] = {9, 8, 5, 2, 1, 0, -3, -4, -3, 0};
+        esp_ae_eq_filter_para_t eq_para = EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, 2000, 1.0f, 6.0f);
+        ESP_LOGI(TAG, "Testing Interleaved Multi-Filters Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+        esp_ae_eq_filter_para_t para[10] = {0};
+        for (int i = 0; i < 10; i++) {
+            para[i].filter_type = ESP_AE_EQ_FILTER_PEAK;
+            para[i].fc = fc[i];
+            para[i].q = 2.0f;
+            para[i].gain = gain[i];
+        }
+        esp_ae_eq_filter_para_t para_tmp[10] = {0};
+        memcpy(para_tmp, para, sizeof(esp_ae_eq_filter_para_t) * 10);
+        esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 10, para_tmp);
+        eq_test_init(&config, num_samples);
+        eq_test_process(&config, para_tmp, is_enable, num_samples, true, false);
+        esp_ae_eq_set_filter_para(eq_handle, 6, &eq_para);
+        memcpy(&para[6], &eq_para, sizeof(esp_ae_eq_filter_para_t));
+        eq_test_process(&config, para, is_enable, num_samples, true, false);
+        eq_test_deinit();
+        ESP_LOGI(TAG, "Testing Deinterleaved Multi-Filters Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+        eq_test_init(&config, num_samples);
+        eq_test_process(&config, para_tmp, is_enable, num_samples, false, false);
+        esp_ae_eq_set_filter_para(eq_handle, 6, &eq_para);
+        eq_test_process(&config, para, is_enable, num_samples, false, false);
+        eq_test_deinit();
+    }
+}
+
+TEST_CASE("EQ enable filter band Test", "AUDIO_EFFECT")
+{
+    for (int j = 0; j < AE_TEST_PARAM_NUM(bits_per_sample); j++) {
+        uint32_t srate = 48000;
+        uint8_t bits = bits_per_sample[j];
+        uint8_t ch = 2;
+        bool is_enable[10] = {true, true, true, true, true, true, true, true, true, true};
+        const int num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+        static uint32_t fc[10] = {31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000};
+        static float gain[10] = {9, 8, 5, 2, 1, 0, -3, -4, -3, 0};
+        ESP_LOGI(TAG, "Testing Interleaved Enable Filter Band Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+        esp_ae_eq_filter_para_t para[10] = {0};
+        for (int i = 0; i < 10; i++) {
+            para[i].filter_type = ESP_AE_EQ_FILTER_PEAK;
+            para[i].fc = fc[i];
+            para[i].q = 2.0f;
+            para[i].gain = gain[i];
+        }
+        esp_ae_eq_cfg_t config = EQ_SET_CFG(srate, ch, bits, 10, para);
+        eq_test_init(&config, num_samples);
+        eq_test_process(&config, para, is_enable, num_samples, true, false);
+        esp_ae_eq_disable_filter(eq_handle, 5);
+        esp_ae_eq_disable_filter(eq_handle, 6);
+        is_enable[5] = false;
+        is_enable[6] = false;
+        eq_test_process(&config, para, is_enable, num_samples, true, false);
+        is_enable[5] = true;
+        is_enable[6] = true;
+        esp_ae_eq_enable_filter(eq_handle, 5);
+        esp_ae_eq_enable_filter(eq_handle, 6);
+        eq_test_process(&config, para, is_enable, num_samples, true, false);
+        eq_test_deinit();
+        ESP_LOGI(TAG, "Testing Deinterleaved Enable Filter Band Test with srate=%ld, bits=%d, ch=%d", srate, bits, ch);
+        eq_test_init(&config, num_samples);
+        eq_test_process(&config, para, is_enable, num_samples, false, false);
+        esp_ae_eq_disable_filter(eq_handle, 5);
+        esp_ae_eq_disable_filter(eq_handle, 6);
+        is_enable[5] = false;
+        is_enable[6] = false;
+        eq_test_process(&config, para, is_enable, num_samples, false, false);
+        esp_ae_eq_enable_filter(eq_handle, 5);
+        esp_ae_eq_enable_filter(eq_handle, 6);
+        is_enable[5] = true;
+        is_enable[6] = true;
+        eq_test_process(&config, para, is_enable, num_samples, false, false);
+        eq_test_deinit();
+    }
+}
+
+TEST_CASE("EQ reset test", "AUDIO_EFFECT")
+{
+    uint32_t srate = 48000;
+    uint8_t ch = 2;
+    uint8_t bits = 16;
+    uint32_t num_samples = EQ_TEST_DURATION_MS * srate / 1000;
+    esp_ae_err_t ret = ESP_AE_ERR_OK;
+    uint8_t *input_buffer = (uint8_t *)calloc(num_samples * ch, bits >> 3);
+    uint8_t *output_buffer = (uint8_t *)calloc(num_samples * ch, bits >> 3);
+    uint8_t *output_buffer_reset = (uint8_t *)calloc(num_samples * ch, bits >> 3);
+    TEST_ASSERT_NOT_NULL(input_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer_reset);
+    esp_ae_eq_filter_para_t para[3] = {
+        EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, 1000, 2.0f, 6.0f),
+        EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, 4000, 2.0f, -3.0f),
+        EQ_SET_FILTER_PARA(ESP_AE_EQ_FILTER_PEAK, 8000, 2.0f, 2.0f),
+    };
+    esp_ae_eq_cfg_t eq_config = EQ_SET_CFG(srate, ch, bits, 3, para);
+    esp_ae_eq_handle_t eq_handle = NULL;
+    ret = esp_ae_eq_open(&eq_config, &eq_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_NOT_NULL(eq_handle);
+    ae_test_generate_sweep_signal(input_buffer, EQ_TEST_DURATION_MS, srate, -6.0f, bits, ch);
+    ret = esp_ae_eq_process(eq_handle, num_samples / 2,
+                            (esp_ae_sample_t)(input_buffer + num_samples / 2 * ch * (bits >> 3)),
+                            (esp_ae_sample_t)output_buffer);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_eq_reset(eq_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_eq_process(eq_handle, num_samples / 2,
+                            (esp_ae_sample_t)(input_buffer + num_samples / 2 * ch * (bits >> 3)),
+                            (esp_ae_sample_t)output_buffer_reset);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_EQUAL_MEMORY(output_buffer, output_buffer_reset, num_samples / 2 * ch * (bits >> 3));
+
+    esp_ae_eq_close(eq_handle);
+    free(input_buffer);
+    free(output_buffer);
+    free(output_buffer_reset);
+}
+
+TEST_CASE("EQ interleave vs deinterleave consistency test", "AUDIO_EFFECT")
+{
+    for (int sr_idx = 0; sr_idx < AE_TEST_PARAM_NUM(sample_rate); sr_idx++) {
+        for (int bit_idx = 0; bit_idx < AE_TEST_PARAM_NUM(bits_per_sample); bit_idx++) {
+            for (int ch_idx = 0; ch_idx < AE_TEST_PARAM_NUM(channel); ch_idx++) {
+                test_eq_consistency(sample_rate[sr_idx], bits_per_sample[bit_idx], channel[ch_idx]);
+            }
+        }
+    }
 }

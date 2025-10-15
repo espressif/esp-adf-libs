@@ -44,7 +44,7 @@ extern "C" {
  *
  *         If user want to adjust the fade mode during processing, can call the `esp_ae_fade_set_mode` function.
  *
- *         If the user wants to restart the current fade mode, can call the `esp_ae_fade_reset_weight` function.
+ *         If the user wants to restart the current fade mode, can call the `esp_ae_fade_reset` function.
  *
  *         Fade processing is based on sampling points as processing units. The relationship between
  *         processing data length and sampling points is as follows:
@@ -176,11 +176,13 @@ esp_ae_err_t esp_ae_fade_set_mode(esp_ae_fade_handle_t handle, esp_ae_fade_mode_
 esp_ae_err_t esp_ae_fade_get_mode(esp_ae_fade_handle_t handle, esp_ae_fade_mode_t *mode);
 
 /**
- * @brief  Reset the fade process to the initial configuration state.
- *         If the initial configuration mode is fade in, the current weight is set to 0.
- *         If the initial configuration mode is fade out, the current weight is set to 1.
+ * @brief  Reset the fade process to the initial configuration state
+ *         If the initial configuration mode is fade in, the current weight is set to 0
+ *         If the initial configuration mode is fade out, the current weight is set to 1
  *         This function helps the user to restart fade in or fade out without
- *         reopening and closing.
+ *         reopening and closing if the audio information is not changed
+ *
+ * @deprecated Use `esp_ae_fade_reset()` instead
  *
  * @param[in]  handle  The fade handle
  *
@@ -188,7 +190,29 @@ esp_ae_err_t esp_ae_fade_get_mode(esp_ae_fade_handle_t handle, esp_ae_fade_mode_
  *       - ESP_AE_ERR_OK                 Operation succeeded
  *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
  */
+__attribute__((deprecated("use esp_ae_fade_reset instead")))
 esp_ae_err_t esp_ae_fade_reset_weight(esp_ae_fade_handle_t handle);
+
+/**
+ * @brief  Reset the internal processing state of the fade handle
+ *         It allows for efficient reuse of the handle when audio information (such as sample rate, channel, bits per sample)
+ *         remains unchanged, avoiding the overhead of reopening and closing the fade handle
+ *         Typical use cases include:
+ *         - Seek operations within the same audio stream
+ *         - Starting playback of a new audio stream with identical audio information
+ *
+ * @note   1. If the initial configuration mode is fade in, the current weight will set to 0
+ *         2. If the initial configuration mode is fade out, the current weight will set to 1
+ *         3. This function is not thread-safe, and the user must ensure correct call sequencing
+ *            and avoid invoking this function while the process is running
+ *
+ * @param[in]  handle  The fade handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_fade_reset(esp_ae_fade_handle_t handle);
 
 /**
  * @brief  Deinitialize  the fade handle

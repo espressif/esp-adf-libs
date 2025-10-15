@@ -31,21 +31,21 @@ extern "C" {
 #endif  /* __cplusplus */
 
 /**
- * @brief  Rate convertion is used to change the sample rate of an audio signal.
+ * @brief  Rate conversion is used to change the sample rate of an audio signal.
  *
- *         In the initialization configuration of Rate convertion, users need to configure
+ *         In the initialization configuration of Rate conversion, users need to configure
  *         the audio basic information, dest sample rate and complexity.
  *         The configuration of complexity affects the audio quality and processing
  *         speed of resampling.
  *
- *         Rate convertion processing is based on sampling points as processing units.
+ *         Rate conversion processing is based on sampling points as processing units.
  *         The relationship between processing data length and sampling points is as follows:
  *         sample_num = data_length / (channel * (bits_per_sample >> 3))
  *
  *         The `esp_ae_rate_cvt_get_max_out_sample_num` function allows users to obtain the recommended
  *         sample point size for the output buffer by providing the number of processed sample points.
  *
- *         Rate convertion also offers two interfaces to process interleaved and deinterleaved data seperately.
+ *         Rate conversion also offers two interfaces to process interleaved and deinterleaved data separately.
  */
 
 typedef enum {
@@ -54,12 +54,12 @@ typedef enum {
 } esp_ae_rate_cvt_perf_type_t;
 
 /**
- * @brief  The handle of rate convertion
+ * @brief  The handle of rate conversion
  */
 typedef void *esp_ae_rate_cvt_handle_t;
 
 /**
- * @brief  Rate convertion configuration
+ * @brief  Rate conversion configuration
  */
 typedef struct {
     uint32_t                    src_rate;         /*!< The sample rate of input audio stream which is change to should be multiple of 4000 or 11025 */
@@ -74,10 +74,10 @@ typedef struct {
 } esp_ae_rate_cvt_cfg_t;
 
 /**
- * @brief  Create rate convertion handle through configuration
+ * @brief  Create rate conversion handle through configuration
  *
- * @param[in]   cfg     Rate convertion configuration
- * @param[out]  handle  The rate convertion handle. If an error occurs, the result will be a NULL pointer
+ * @param[in]   cfg     Rate conversion configuration
+ * @param[out]  handle  The rate conversion handle. If an error occurs, the result will be a NULL pointer
  *
  * @return
  *       - ESP_AE_ERR_OK                 Operation succeeded
@@ -89,7 +89,7 @@ esp_ae_err_t esp_ae_rate_cvt_open(esp_ae_rate_cvt_cfg_t *cfg, esp_ae_rate_cvt_ha
 /**
  * @brief  Get the minimum required sample number for the output frame buffer
  *
- * @param[in]   handle          The rate convertion handle
+ * @param[in]   handle          The rate conversion handle
  * @param[in]   in_sample_num   The number of input sampling points for resampling processing
  * @param[out]  out_sample_num  Minimum number of sampling points for the output buffer
  *
@@ -107,12 +107,12 @@ esp_ae_err_t esp_ae_rate_cvt_get_max_out_sample_num(esp_ae_rate_cvt_handle_t han
  * @note  The interleaved data is shown in the example:
  *        sample_num=10, channel=2, the data layout like [L1,R1,...L10,R10]
  *
- * @param[in]      handle          The rate convertion handle
+ * @param[in]      handle          The rate conversion handle
  * @param[in]      in_samples      The input samples buffer
  * @param[in]      in_sample_num   The input samples number
  * @param[out]     out_samples     The output samples buffer
  * @param[in,out]  out_sample_num  For the input parameter, it represents the maximum number of samples in the output buffer.
- *                                 For the output parameter, it represents the actual number of output samples processed by rate convertion
+ *                                 For the output parameter, it represents the actual number of output samples processed by rate conversion
  *
  * @return
  *       - ESP_AE_ERR_OK                 Operation succeeded
@@ -129,12 +129,12 @@ esp_ae_err_t esp_ae_rate_cvt_process(esp_ae_rate_cvt_handle_t handle, esp_ae_sam
  * @note  The deinterleaved data is shown in the example:
  *        sample_num=10, channel=2, the array layout like [L1,...,L10], [R1,...,R10]
  *
- * @param[in]      handle          The rate convertion handle
+ * @param[in]      handle          The rate conversion handle
  * @param[in]      in_samples      Array of input buffer pointers with each channel
  * @param[in]      in_sample_num   Input samples for resampling processing
  * @param[out]     out_samples     Array of output buffer pointers with each channel
  * @param[in,out]  out_sample_num  For the input parameter, it represents the maximum number of samples in the output buffer.
- *                                 For the output parameter, it represents the actual number of output samples processed by rate convertion
+ *                                 For the output parameter, it represents the actual number of output samples processed by rate conversion
  *
  * @return
  *       - ESP_AE_ERR_OK                 Operation succeeded
@@ -146,9 +146,28 @@ esp_ae_err_t esp_ae_rate_cvt_deintlv_process(esp_ae_rate_cvt_handle_t handle, es
                                              uint32_t *out_sample_num);
 
 /**
- * @brief  Deinitialize the rate convertion handle
+ * @brief  Reset the internal state of the rate conversion handle and clear cached data
+ *         This allows the handle to be reused efficiently when the rate conversion configuration
+ *         remains unchanged, avoiding the overhead of closing and recreating the handle
+ *         Typical use cases include:
+ *         - Seek operations within the same audio stream
+ *         - Starting playback of a new audio stream with identical audio information
  *
- * @param  handle  The rate convertion handle
+ * @note   This function is not thread-safe. The user must ensure proper call sequencing
+ *         and avoid invoking this function while the process is running
+ *
+ * @param[in]  handle  The rate conversion handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_rate_cvt_reset(esp_ae_rate_cvt_handle_t handle);
+
+/**
+ * @brief  Deinitialize the rate conversion handle
+ *
+ * @param  handle  The rate conversion handle
  */
 void esp_ae_rate_cvt_close(esp_ae_rate_cvt_handle_t handle);
 

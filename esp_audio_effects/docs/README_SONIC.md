@@ -1,5 +1,7 @@
 # SONIC
 
+- [中文版](./README_SONIC_CN.md)
+
 `Sonic` module is used to adjust both the pitch and playback speed of audio. By setting the speed parameter, you can achieve variable playback speeds without altering the pitch. Conversely, by adjusting the pitch parameter, you can modify the pitch without changing the playback speed. Additionally, by adjusting both the speed and pitch parameters simultaneously, you can achieve different combinations of speed and pitch.
 
 # Features
@@ -43,7 +45,7 @@ Note:<br>
 
 # Usage
 
-Here is an example of using [Sonic](../test_app/main/test_sonic.c)
+Here is an example of using [Sonic](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # Copyrights and Licenses
 

@@ -1,69 +1,52 @@
-menu "Audio Codec Example Configuration"
+menu "ESP Audio Effects Configuration"
 
-    config EXAMPLE_FORMAT_IF_MOUNT_FAILED
-        bool "Format the card if mount failed"
-        default n
-        help
-            If this config item is set, format_if_mount_failed will be set to true and the card will be formatted if
-            the mount has failed.
+choice
+    prompt "Target Board"
+    default ESP32_S3_KORVO_V2_BOARD
+    help
+        Select an audio board to use with the ESP-GMF
+config ESP32_S3_KORVO_V2_BOARD
+    depends on IDF_TARGET_ESP32S3
+    bool "ESP32 S3 Korvo V2"
+config ESP32_S3_KORVO_V4_BOARD
+    depends on IDF_TARGET_ESP32S3
+    bool "ESP32 S3 Korvo V4"
+config ESP32_LYRAT_MINI_V1_BOARD
+    depends on IDF_TARGET_ESP32
+    bool "ESP32 LyraT Mini V1"
+config ESP32_KORVO_V1_BOARD
+    depends on IDF_TARGET_ESP32
+    bool "ESP32 Korvo V1"
+config ESP32_S3_BOX_BOARD
+    depends on IDF_TARGET_ESP32S3
+    bool "ESP32 S3 BOX"
+config ESP32_S3_BOX_3_BOARD
+    depends on IDF_TARGET_ESP32S3
+    bool "ESP32 S3 BOX 3"
+config ESP32_P4_FUNCTION_EV_V14_BOARD
+    depends on IDF_TARGET_ESP32P4
+    bool "ESP32 P4 Function EV V1.4"
+config ESP32_S3_EYE_BOARD
+    depends on IDF_TARGET_ESP32S3
+    bool "ESP32 S3 EYE"
+config DUMMY_CODEC_BOARD
+    bool "Dummy Codec Board"
+config XD_AIOT_C3
+    depends on IDF_TARGET_ESP32C3
+    bool "XD AIOT C3"
+endchoice
 
-    config EXAMPLE_FORMAT_SD_CARD
-        bool "Format the card as a part of the example"
-        default n
-        help
-            If this config item is set, the card will be formatted as a part of the example.
-
-    choice EXAMPLE_SDMMC_BUS_WIDTH
-        prompt "SD/MMC bus width"
-        default EXAMPLE_SDMMC_BUS_WIDTH_1
-        help
-            Select the bus width of SD or MMC interface.
-            Note that even if 1 line mode is used, D3 pin of the SD card must have a pull-up resistor connected.
-            Otherwise the card may enter SPI mode, the only way to recover from which is to cycle power to the card.
-
-        config EXAMPLE_SDMMC_BUS_WIDTH_4
-            bool "4 lines (D0 - D3)"
-
-        config EXAMPLE_SDMMC_BUS_WIDTH_1
-            bool "1 line (D0)"
-    endchoice
-
-    if SOC_SDMMC_USE_GPIO_MATRIX
-
-        config EXAMPLE_PIN_CMD
-            int "CMD GPIO number"
-            default 7 if IDF_TARGET_ESP32S3
-            default 44 if IDF_TARGET_ESP32P4
-
-        config EXAMPLE_PIN_CLK
-            int "CLK GPIO number"
-            default 15 if IDF_TARGET_ESP32S3
-            default 43 if IDF_TARGET_ESP32P4
-
-        config EXAMPLE_PIN_D0
-            int "D0 GPIO number"
-            default 4 if IDF_TARGET_ESP32S3
-            default 39 if IDF_TARGET_ESP32P4
-
-        if EXAMPLE_SDMMC_BUS_WIDTH_4
-
-            config EXAMPLE_PIN_D1
-                int "D1 GPIO number"
-                default 38 if IDF_TARGET_ESP32S3
-                default 40 if IDF_TARGET_ESP32P4
-
-            config EXAMPLE_PIN_D2
-                int "D2 GPIO number"
-                default 33 if IDF_TARGET_ESP32S3
-                default 41 if IDF_TARGET_ESP32P4
-
-            config EXAMPLE_PIN_D3
-                int "D3 GPIO number"
-                default 34 if IDF_TARGET_ESP32S3
-                default 42 if IDF_TARGET_ESP32P4
-
-        endif  # EXAMPLE_SDMMC_BUS_WIDTH_4
-
-    endif  # SOC_SDMMC_USE_GPIO_MATRIX
+config AUDIO_BOARD
+    string
+    default "S3_Korvo_V2" if ESP32_S3_KORVO_V2_BOARD
+    default "S3_Korvo_V4" if ESP32_S3_KORVO_V4_BOARD
+    default "LYRAT_MINI_V1" if ESP32_LYRAT_MINI_V1_BOARD
+    default "ESP32_KORVO_V1" if ESP32_KORVO_V1_BOARD
+    default "ESP32S3_BOX" if ESP32_S3_BOX_BOARD
+    default "ESP32_S3_BOX_3" if ESP32_S3_BOX_3_BOARD
+    default "ESP32_P4_DEV_V14" if ESP32_P4_FUNCTION_EV_V14_BOARD
+    default "ESP32S3_EYE" if ESP32_S3_EYE_BOARD
+    default "DUMMY_CODEC_BOARD" if DUMMY_CODEC_BOARD
+    default "XD_AIOT_C3" if XD_AIOT_C3
 
 endmenu

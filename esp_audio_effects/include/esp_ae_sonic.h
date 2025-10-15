@@ -185,6 +185,25 @@ esp_ae_err_t esp_ae_sonic_process(esp_ae_sonic_handle_t handle, esp_ae_sonic_in_
                                   esp_ae_sonic_out_data_t *out_samples);
 
 /**
+ * @brief  Reset the internal processing state of the Sonic handle and clear cached data while preserving user-configured settings
+ *         It allows the handle to be reused efficiently when the audio information (sample rate, channel, bits per sample)
+ *         remains unchanged, avoiding the overhead of closing and recreating the Sonic handle
+ *         Typical use cases include:
+ *         - Seek operations within the same audio stream
+ *         - Starting playback of a new audio stream with identical audio information
+ *
+ * @note   This function is not thread-safe. The user must ensure proper call sequencing 
+ *         and avoid invoking this function while the process is running
+ *
+ * @param[in]  handle  The Sonic handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_sonic_reset(esp_ae_sonic_handle_t handle);
+
+/**
  * @brief  Deinitialize the sonic stream
  *
  * @param  handle  The handle of the sonic

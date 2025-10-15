@@ -1,5 +1,7 @@
 # MIXER
 
+- [中文版](./README_MIXER_CN.md)
+
 `MIXER` module is used to combine multiple audio signals into a single audio signal, with each signal assigned a specific weight. These weight values are multiplied by the audio data from their corresponding channels, and the resulting values from each channel are summed to create the final mixed audio signal.
 
 # Features
@@ -30,7 +32,7 @@ Note:
 
 # Usage
 
-Here is an example of using [MIXER](../test_app/main/test_mixer.c)
+Here is an example of using [MIXER](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ  
 

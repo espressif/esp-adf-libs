@@ -66,7 +66,7 @@ esp_ae_err_t esp_ae_deintlv_process(uint8_t channel, uint8_t bits_per_sample,
  *         After interleaved process, the data is stored as `01010101...` into `out_samples`.
  *
  * @param[in]   channel          The audio stream channel number
- * @param[in]   bits_per_sample  The audio bits per sample, supports 16 and 32 bits
+ * @param[in]   bits_per_sample  The audio bits per sample, supports 16, 24 and 32 bits
  * @param[in]   sample_num       Number of sampling points processed during interleaving
  * @param[in]   in_samples       Input sample buffer array. The size of every `in_samples` must
  *                               be greater than or equal to `sample_num * channel * bit >> 3`
