@@ -1,4 +1,4 @@
-// Copyright 2024 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2025 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #pragma once
@@ -7,14 +7,14 @@
 extern "C" {
 #endif  /* __cplusplus */
 
-#define ESP_JPEG_VERION "0.6.1"
+#define ESP_JPEG_VERION "1.0.0"
 
 /**
- * @version 0.5.0:
+ * @version 1.0.0:
  *    Features:
  *      Encoder:
  *          - Support variety of width and height to encoder
- *          - Support RGB888 RGBA YCbYCr YCbY2YCrY2 GRAY pixel format
+ *          - Support RGB888 RGBA RGB565(big endian) RGB565(little endian) YCbYCr YCbY2YCrY2 CbYCrY GRAY pixel format
  *          - Support YUV444 YUV422 YUV420 subsampling
  *          - Support quality(1-100)
  *          - Support 0 90 180 270 degree clockwise rotation, under src_type = JPEG_PIXEL_FORMAT_YCbYCr,

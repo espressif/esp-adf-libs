@@ -7,7 +7,7 @@ ESP_NEW_JPEG is Espressif's lightweight JPEG encoder and decoder library. The me
 ### Encoder
 
 - Support variety of width and height to encoder
-- Support RGB888 RGBA YCbYCr YCbY2YCrY2 GRAY pixel format
+- Support RGB888 RGBA RGB565(big endian) RGB565(little endian) YCbYCr YCbY2YCrY2 CbYCrY GRAY pixel format
 - Support YUV444 YUV422 YUV420 subsampling
 - Support quality(1-100)
 - Support 0 90 180 270 degree clockwise rotation, under the follow cases
@@ -155,6 +155,8 @@ Please refer to the `test_app` folder for more details on API usage.
   - Decode a single JPEG picture with block deocder API
   - Decode JPEG stream of the same size
 
+For more information, please refer to [Introducing ESP_NEW_JPEG: An Efficient JPEG Encoder and Decoder](https://developer.espressif.com/blog/2025/09/esp-new-jpeg-introduction/). The article provides detailed information on the features and configuration options of esp_new_jpeg.
+
 ## FAQ
 
 1. Does ESP_NEW_JPEG support decoding progressive JPEG?
@@ -188,7 +190,7 @@ Please refer to the `test_app` folder for more details on API usage.
 
 The following table shows the support of ESP_NEW_JPEG for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported.
 
-| Chip     | v0.6.1   |
+| Chip     | v1.0.0   |
 |----------|----------|
 | ESP32    | &#10004; |
 | ESP32-S2 | &#10004; |

@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.0.0
+
+### Features
+
+- Added support for RGB565(big endian), RGB565(little endian), and CbYCrY pixel format in the encoder
+- Aligned pixel format with esp-fourcc
+
+### Bug Fixes
+
+- Fixed encoding error with large gray images
+- Fixed missing assignment of the `out_size` member in the `jpeg_dec_io_t` structure when scale is enabled during decoding
+
 ## v0.6.1
 
 ### Features
