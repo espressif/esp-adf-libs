@@ -149,7 +149,6 @@ sub parse_all_pc {
     my @stack = @_;
     my $search_in_stack = 0;
     my $sel_symbol;
-    
     for my $addr(@stack) {
         add_symbol($addr);
         #get parent call
@@ -243,6 +242,10 @@ sub parse_file {
         }
     }
     close $H;
+    for (keys %address) {
+        my $s = $address{$_}->[1];
+        printf "Leak addr %x size $s\n", $_;
+    }
 }
 
 sub print_malloc_info {

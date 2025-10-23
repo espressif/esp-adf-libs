@@ -1,25 +1,8 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2021 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
 
 #ifndef MEDIA_LIB_SOCKET_REG_H
@@ -30,14 +13,14 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif  /* __cplusplus */
 
 /**
- * @brief      Use short timeval to compatible with IDF higher version which support 64bits timer
+ * @brief  Use short timeval to compatible with IDF higher version which support 64bits timer
  */
 typedef struct {
-    int tv_sec;
-    int tv_usec;
+    int  tv_sec;
+    int  tv_usec;
 } media_lib_timeval;
 
 typedef int (*__media_lib_socket_accept)(int s, struct sockaddr *addr, socklen_t *addrlen);
@@ -67,49 +50,49 @@ typedef int (*__media_lib_socket_getsockopt)(int s, int level, int optname, void
 typedef int (*__media_lib_socket_getsockname)(int s, struct sockaddr *name, socklen_t *namelen);
 
 /**
- * @brief      Socket Wrapper Functions Group
+ * @brief  Socket Wrapper Functions Group
  */
 typedef struct {
-    __media_lib_socket_accept      sock_accept;      /*!< Socket accept Func Pointer */
-    __media_lib_socket_bind        sock_bind;        /*!< Socket bind Func Pointer */
-    __media_lib_socket_shutdown    sock_shutdown;    /*!< Socket shutdown Func Pointer */
-    __media_lib_socket_close       sock_close;       /*!< Socket close Func Pointer */
-    __media_lib_socket_connect     sock_connect;     /*!< Socket connect Func Pointer */
-    __media_lib_socket_listen      sock_listen;      /*!< Socket listen Func Pointer */
-    __media_lib_socket_recv        sock_recv;        /*!< Socket recv Func Pointer */
-    __media_lib_socket_read        sock_read;        /*!< Socket read Func Pointer */
-    __media_lib_socket_readv       sock_readv;       /*!< Socket readb Func Pointer */
-    __media_lib_socket_recvfrom    sock_recvfrom;    /*!< Socket recvfrom Func Pointer */
-    __media_lib_socket_recvmsg     sock_recvmsg;     /*!< Socket recvmsg Func Pointer */
-    __media_lib_socket_send        sock_send;        /*!< Socket send Func Pointer */
-    __media_lib_socket_sendmsg     sock_sendmsg;     /*!< Socket sendmsg Func Pointer */
-    __media_lib_socket_sendto      sock_sendto;      /*!< Socket sendto Func Pointer */
-    __media_lib_socket_open        sock_open;        /*!< Socket open Func Pointer */
-    __media_lib_socket_write       sock_write;       /*!< Socket write Func Pointer */
-    __media_lib_socket_writev      sock_writev;      /*!< Socket writev Func Pointer */
-    __media_lib_socket_select      sock_select;      /*!< Socket select Func Pointer */
-    __media_lib_socket_ioctl       sock_ioctl;       /*!< Socket ioctl Func Pointer */
-    __media_lib_socket_fcntl       sock_fcntl;       /*!< Socket fcntl Func Pointer */
-    __media_lib_socket_inet_ntop   sock_inet_ntop;   /*!< Socket inet_ntop Func Pointer */
-    __media_lib_socket_inet_pton   sock_inet_pton;   /*!< Socket inet_pton Func Pointer */
-    __media_lib_socket_setsockopt  sock_setsockopt;  /*!< Socket setspckopt Func Pointer */
-    __media_lib_socket_getsockopt  sock_getsockopt;  /*!< Socket getsockopt Func Pointer */
-    __media_lib_socket_getsockname sock_getsockname; /*!< Socket getsockname Func Pointer */
+    __media_lib_socket_accept       sock_accept;       /*!< Socket accept Func Pointer */
+    __media_lib_socket_bind         sock_bind;         /*!< Socket bind Func Pointer */
+    __media_lib_socket_shutdown     sock_shutdown;     /*!< Socket shutdown Func Pointer */
+    __media_lib_socket_close        sock_close;        /*!< Socket close Func Pointer */
+    __media_lib_socket_connect      sock_connect;      /*!< Socket connect Func Pointer */
+    __media_lib_socket_listen       sock_listen;       /*!< Socket listen Func Pointer */
+    __media_lib_socket_recv         sock_recv;         /*!< Socket recv Func Pointer */
+    __media_lib_socket_read         sock_read;         /*!< Socket read Func Pointer */
+    __media_lib_socket_readv        sock_readv;        /*!< Socket readb Func Pointer */
+    __media_lib_socket_recvfrom     sock_recvfrom;     /*!< Socket recvfrom Func Pointer */
+    __media_lib_socket_recvmsg      sock_recvmsg;      /*!< Socket recvmsg Func Pointer */
+    __media_lib_socket_send         sock_send;         /*!< Socket send Func Pointer */
+    __media_lib_socket_sendmsg      sock_sendmsg;      /*!< Socket sendmsg Func Pointer */
+    __media_lib_socket_sendto       sock_sendto;       /*!< Socket sendto Func Pointer */
+    __media_lib_socket_open         sock_open;         /*!< Socket open Func Pointer */
+    __media_lib_socket_write        sock_write;        /*!< Socket write Func Pointer */
+    __media_lib_socket_writev       sock_writev;       /*!< Socket writev Func Pointer */
+    __media_lib_socket_select       sock_select;       /*!< Socket select Func Pointer */
+    __media_lib_socket_ioctl        sock_ioctl;        /*!< Socket ioctl Func Pointer */
+    __media_lib_socket_fcntl        sock_fcntl;        /*!< Socket fcntl Func Pointer */
+    __media_lib_socket_inet_ntop    sock_inet_ntop;    /*!< Socket inet_ntop Func Pointer */
+    __media_lib_socket_inet_pton    sock_inet_pton;    /*!< Socket inet_pton Func Pointer */
+    __media_lib_socket_setsockopt   sock_setsockopt;   /*!< Socket setspckopt Func Pointer */
+    __media_lib_socket_getsockopt   sock_getsockopt;   /*!< Socket getsockopt Func Pointer */
+    __media_lib_socket_getsockname  sock_getsockname;  /*!< Socket getsockname Func Pointer */
 } media_lib_socket_t;
 
 /**
- * @brief     Register Socket lib functions for media library
+ * @brief  Register Socket lib functions for media library
  *
- * @param      socket_lib  Socket wrapper function lists
+ * @param  socket_lib  Socket wrapper function lists
  *
  * @return
- *             - ESP_OK: on success
- *             - ESP_ERR_INVALID_ARG: some members of socket lib not set
+ *       - ESP_OK               On success
+ *       - ESP_ERR_INVALID_ARG  Some members of socket lib not set
  */
 esp_err_t media_lib_socket_register(media_lib_socket_t *socket_lib);
 
 #ifdef __cplusplus
 }
-#endif
+#endif  /* __cplusplus */
 
-#endif
+#endif  /* MEDIA_LIB_SOCKET_REG_H */
