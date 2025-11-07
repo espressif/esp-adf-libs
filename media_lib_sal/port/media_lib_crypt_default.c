@@ -1,25 +1,8 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2021 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
 
 #include "esp_log.h"
@@ -46,7 +29,7 @@
 #include "hwcrypto/aes.h"
 #endif
 
-#ifdef CONFIG_MEDIA_PROTOCOL_LIB_ENABLE
+#ifdef CONFIG_MEDIA_LIB_CRYPT_ENABLE
 
 #define RETURN_ON_NULL_HANDLE(h)                                               \
     if (h == NULL)   {                                                         \
@@ -90,7 +73,7 @@ static int _md5_finish(media_lib_md5_handle_t ctx, unsigned char output[16])
 
 static void _sha256_init(media_lib_sha256_handle_t *ctx)
 {
-    mbedtls_sha256_context *sha256 = (mbedtls_sha256_context*) media_lib_malloc(sizeof(mbedtls_sha256_context));
+    mbedtls_sha256_context *sha256 = (mbedtls_sha256_context *)media_lib_malloc(sizeof(mbedtls_sha256_context));
     if (sha256) {
         mbedtls_sha256_init(sha256);
         *ctx = sha256;
@@ -143,17 +126,19 @@ static void _aes_free(media_lib_aes_handle_t ctx)
 static int _aes_set_key(media_lib_aes_handle_t ctx, uint8_t *key, uint8_t key_bits)
 {
     RETURN_ON_NULL_HANDLE(ctx);
-    return esp_aes_setkey((esp_aes_context *)ctx, key, key_bits);
+    int ret = esp_aes_setkey((esp_aes_context *)ctx, key, key_bits);
+    return ret;
 }
 
 static int _aes_crypt_cbc(media_lib_aes_handle_t ctx, bool decrypt_mode, uint8_t iv[16], uint8_t *input,
                           size_t size, uint8_t *output)
 {
     RETURN_ON_NULL_HANDLE(ctx);
-    return esp_aes_crypt_cbc(
+    int ret = esp_aes_crypt_cbc(
             (esp_aes_context *)ctx,
             decrypt_mode ? ESP_AES_DECRYPT : ESP_AES_ENCRYPT,
             size, iv, input, output);
+    return ret;
 }
 
 esp_err_t media_lib_add_default_crypt_adapter(void)

@@ -1,28 +1,8 @@
-
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2021 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in
- * which case, it is free of charge, to any person obtaining a copy of this
- * software and associated documentation files (the "Software"), to deal in the
- * Software without restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do
- * so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * See LICENSE file for details.
  */
 
 #include <stdlib.h>
@@ -40,7 +20,11 @@
 #include "esp_idf_version.h"
 
 #if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0))
+#include "esp_private/freertos_debug.h"
+#else
 #include "freertos/task_snapshot.h"
+#endif
 #endif
 
 #ifdef __XTENSA__
@@ -57,6 +41,12 @@
 #else
 #include "soc/soc_memory_layout.h"
 #endif
+#endif
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#define get_task_start xTaskGetStackStart
+#else
+#define get_task_start pxTaskGetStackStart
 #endif
 
 #define RETURN_ON_NULL_HANDLE(h)                                               \
@@ -77,7 +67,7 @@ static void *_malloc_in_heap(size_t size)
 }
 
 static void _free_in_heap(void *buf)
-{ 
+{
     heap_caps_free(buf);
 }
 
@@ -145,8 +135,17 @@ static int _thread_create(media_lib_thread_handle_t *handle, const char *name,
                           void(*body)(void *arg), void *arg, uint32_t stack_size,
                           int prio, int core)
 {
-    StackType_t *task_stack = (StackType_t *)_calloc_in_heap(1, stack_size);
+    StackType_t *task_stack = NULL;
     do {
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+        BaseType_t ret = xTaskCreatePinnedToCoreWithCaps(body, name, stack_size, arg, prio, (TaskHandle_t *)handle,
+                                                         core, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (ret != pdPASS) {
+            ESP_LOGE(TAG, "Error creating RestrictedPinnedToCore %s", name);
+            break;
+        }
+#else
+        task_stack = (StackType_t *) calloc_in_heap(1, stack_size);
         TaskParameters_t xRegParameters = {.pvTaskCode = body,
                                            .pcName = name,
                                            .usStackDepth = stack_size,
@@ -160,10 +159,11 @@ static int _thread_create(media_lib_thread_handle_t *handle, const char *name,
                                                .ulParameters = 0x00,
                                            }}};
         if (xTaskCreateRestrictedPinnedToCore(
-                &xRegParameters, (xTaskHandle *)handle, core) != pdPASS) {
+                &xRegParameters, (TaskHandle_t *)handle, core) != pdPASS) {
             ESP_LOGE(TAG, "Error creating RestrictedPinnedToCore %s", name);
             break;
         }
+#endif
         return ESP_OK;
     } while (0);
     if (task_stack) {
@@ -177,7 +177,7 @@ static int _thread_create(media_lib_thread_handle_t *handle, const char *name,
                           int prio, int core)
 {
     if (xTaskCreatePinnedToCore(body, name, stack_size, arg, prio,
-                                (xTaskHandle *)handle, core) != pdPASS) {
+                                (TaskHandle_t *)handle, core) != pdPASS) {
         ESP_LOGE(TAG, "Fail to create thread %s\n", name);
         return ESP_FAIL;
     }
@@ -187,19 +187,25 @@ static int _thread_create(media_lib_thread_handle_t *handle, const char *name,
 
 static void _thread_destroy(media_lib_thread_handle_t handle)
 {
+#if defined(CONFIG_SPIRAM_BOOT_INIT) &&              \
+    (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY)  &&  \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+    vTaskDeleteWithCaps((TaskHandle_t)handle);
+#else
     // allow NULL to destroy self
-    vTaskDelete((xTaskHandle)handle);
+    vTaskDelete((TaskHandle_t)handle);
+#endif
 }
 
 static bool _thread_set_priority(media_lib_thread_handle_t handle, int prio)
 {
-    vTaskPrioritySet((xTaskHandle)handle, prio);
+    vTaskPrioritySet((TaskHandle_t)handle, prio);
     return true;
 }
 
 static void _thread_sleep(uint32_t ms)
 {
-    vTaskDelay(ms / portTICK_RATE_MS);
+    vTaskDelay(ms / portTICK_PERIOD_MS);
 }
 
 static int _sema_create(media_lib_sema_handle_t *sema)
@@ -288,7 +294,7 @@ static int _enter_critical(void)
 }
 
 static int _leave_critical(void)
-{ 
+{
     return ESP_OK;
 }
 
@@ -339,7 +345,7 @@ static int _get_stack_frame(void** addr, int n)
     TaskSnapshot_t snap_shot;
     TaskHandle_t cur_task = xTaskGetCurrentTaskHandle();
     vTaskGetSnapshot(cur_task, &snap_shot);
-    snap_shot.pxTopOfStack = pxTaskGetStackStart(cur_task);;
+    snap_shot.pxTopOfStack = get_task_start(cur_task);
     esp_backtrace_get_start(&(frame.pc), &(frame.sp), &(frame.next_pc));
 
     for (int i = 0; i < n; i++) {
@@ -411,7 +417,7 @@ static int _get_stack_frame(void** addr, int n)
     TaskSnapshot_t snap_shot;
     TaskHandle_t cur_task = xTaskGetCurrentTaskHandle();
     vTaskGetSnapshot(cur_task, &snap_shot);
-    snap_shot.pxTopOfStack = pxTaskGetStackStart(cur_task);
+    snap_shot.pxTopOfStack = get_task_start(cur_task);
     asm volatile ("addi %0, sp, 0\n"
                   "auipc %1, 0\n"
                   "addi %1, %1, 0\n"

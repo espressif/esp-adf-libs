@@ -1,28 +1,10 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2023 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in
- * which case, it is free of charge, to any person obtaining a copy of this
- * software and associated documentation files (the "Software"), to deal in the
- * Software without restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do
- * so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * See LICENSE file for details.
  */
+
 #include <string.h>
 #include "media_lib_mem_trace.h"
 #include "media_lib_mem_his.h"
@@ -306,7 +288,7 @@ static void *_malloc(size_t size)
     return ptr;
 }
 
-static void *_malloc_align(size_t align, size_t size, int caps)
+static void *_caps_malloc_align(size_t align, size_t size, int caps)
 {
     void *ptr = mem_trace->kept.caps_malloc_align(align, size, caps);
     if (ptr) {
@@ -474,7 +456,7 @@ int media_lib_start_mem_trace(media_lib_mem_trace_cfg_t *cfg)
         trace_cfg.record_num = n;
         mem_lib.malloc = _malloc;
         mem_lib.free = _free;
-        mem_lib.caps_malloc_align = _malloc_align,
+        mem_lib.caps_malloc_align = _caps_malloc_align,
         mem_lib.calloc = _calloc;
         mem_lib.realloc = _realloc;
         mem_lib.strdup = _strdup;
