@@ -4,6 +4,22 @@ config MEDIA_PROTOCOL_LIB_ENABLE
     bool "Enable Media Protocol Library"
     default "y"
 
+config MEDIA_LIB_CRYPT_ENABLE
+    bool "Enable media lib sal crypt library"
+    default "y"
+
+config MEDIA_LIB_SOCKET_ENABLE
+    bool "Enable media lib sal socket library"
+    default "y"
+
+config MEDIA_LIB_TLS_ENABLE
+    bool "Enable media lib sal tls library"
+    default "y"
+
+config MEDIA_LIB_NETIF_ENABLE
+    bool "Enable media lib sal netif library"
+    default "y"
+
 config MEDIA_LIB_MEM_AUTO_TRACE
     bool "Support trace memory automatically after media_lib_sal init"
     default "n"
