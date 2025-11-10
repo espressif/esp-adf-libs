@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.1
+
+### Features
+
+- Update dependency to `espressif/media_lib_sal`
+
 ## v0.5.0
 
 ### Features
