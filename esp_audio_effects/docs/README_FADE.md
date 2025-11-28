@@ -1,5 +1,7 @@
 # FADE
 
+- [中文版](./README_FADE_CN.md)
+
 `FADE` module is used to gradually introduce or remove sound, creating a smooth transition effect by increasing or decreasing the volume.
 
 # Features
@@ -30,7 +32,7 @@ Note:
 
 # Usage
 
-Here is an example of using [FADE](../test_app/main/test_fade.c)
+Here is an example of using [FADE](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ  
 

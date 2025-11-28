@@ -84,7 +84,7 @@ typedef struct {
                                  The data range of weight1 is [0.0, 1.0] */
     float    weight2;       /*!< The weight value maintained under stable conditions
                                  when MIXER is set to 'ESP_AE_MIXER_MODE_FADE_UPWARD' mode.
-                                 The data range of weight1 is [0.0, 1.0] */
+                                 The data range of weight2 is [0.0, 1.0] */
     uint32_t transit_time;  /*!< Time of change from weight1 to weight2 or weight2 to weight1.
                                  unit: ms */
 } esp_ae_mixer_info_t;
@@ -103,6 +103,10 @@ typedef struct {
 
 /**
  * @brief  Create the mixer handle through configuration
+ *
+ * @note  After opening the mixer, each stream’s gain is initialized to its configured weight1 value
+ *        To transition the stream’s gain to weight2, call `esp_ae_mixer_set_mode()` and
+ *        set the mode to `ESP_AE_MIXER_MODE_FADE_UPWARD`
  *
  * @param[in]   cfg     Mixer configuration
  * @param[out]  handle  The mixer handle. If an error occurs, the result will be a NULL pointer
@@ -131,11 +135,12 @@ esp_ae_err_t esp_ae_mixer_set_mode(esp_ae_mixer_handle_t handle, uint8_t src_idx
 /**
  * @brief  Mix multiple interleaved audio data streams
  *
+ * @note  If the input buffer pointer of one stream is NULL, the mixer considers that stream to be disabled
+ *
  * @param[in]   handle       The mixer handle
  * @param[in]   sample_num   Number of sampling points processed by mixer
  * @param[in]   in_samples   An array that stores pointers to the interleaved input streams
  * @param[out]  out_samples  The output samples buffer must be 16 bytes aligned
- *
  *
  * @return
  *       - ESP_AE_ERR_OK                 Operation succeeded
@@ -147,6 +152,8 @@ esp_ae_err_t esp_ae_mixer_process(esp_ae_mixer_handle_t handle, uint32_t sample_
 
 /**
  * @brief  Mix multiple deinterleaved audio data streams
+ *
+ * @note  If the input buffer pointer of any channel in a stream is NULL, the mixer considers that stream to be disabled
  *
  * @param[in]   handle       The mixer handle
  * @param[in]   sample_num   Number of sampling points processed by mixer
@@ -163,6 +170,27 @@ esp_ae_err_t esp_ae_mixer_process(esp_ae_mixer_handle_t handle, uint32_t sample_
 esp_ae_err_t esp_ae_mixer_deintlv_process(esp_ae_mixer_handle_t handle, uint32_t sample_num,
                                           esp_ae_sample_t *in_samples[],
                                           esp_ae_sample_t  out_samples[]);
+
+/**
+ * @brief  Reset the internal processing state of a specific mixer stream to its initial weight (`weight1`)
+ *         This function allows efficient reuse of the mixer stream without the overhead of reopening
+ *         and closing when the mixer's configuration remains unchanged
+ *         Typical use cases include:
+ *         - Seek operations within the same audio stream
+ *         - Starting playback of a new audio stream with identical audio information
+ *
+ * @note  1. This function is not thread-safe. The user must ensure proper call sequencing and avoid invoking
+ *           this function while the process is running
+ *        2. The weight of the mixer stream will be reset to `weight1`, if user want to transition the stream’s gain to weight2,
+ *           call `esp_ae_mixer_set_mode()` and set the mode to `ESP_AE_MIXER_MODE_FADE_UPWARD`
+ *
+ * @param[in]  handle   The mixer handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_mixer_reset(esp_ae_mixer_handle_t handle);
 
 /**
  * @brief  Deinitialize the mixer handle

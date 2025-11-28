@@ -3,3 +3,9 @@ description: Audio Effects Test
 dependencies:
   esp_audio_effects:
     path: ../../../esp_audio_effects
+  espressif/esp-dsp:
+    version: "*"
+  protocol_examples_common:
+    path: ${IDF_PATH}/examples/common_components/protocol_examples_common
+  espressif/media_lib_sal:
+    version: "0.9.0"

@@ -221,6 +221,25 @@ esp_ae_err_t esp_ae_eq_enable_filter(esp_ae_eq_handle_t handle, uint8_t filter_i
 esp_ae_err_t esp_ae_eq_disable_filter(esp_ae_eq_handle_t handle, uint8_t filter_idx);
 
 /**
+ * @brief  Reset the internal processing state of the EQ handle while preserving user-configured settings
+ *         This allows for efficient reuse of the handle when audio information (such as sample rate, channel, bits per sample)
+ *         remains unchanged, avoiding the need to deinitialize and recreate the EQ handle
+ *         Typical use cases include:
+ *         - Seek operations within the same audio stream
+ *         - Starting playback of a new audio stream with identical audio information
+ * 
+ * @note   This function is not thread-safe, and the user must ensure proper call sequencing and avoid invoking this function
+ *         while the process is running
+ *
+ * @param[in] handle  The EQ handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_eq_reset(esp_ae_eq_handle_t handle);
+
+/**
  * @brief  Deinitialize the eq handle
  *
  * @param  handle  The eq handle

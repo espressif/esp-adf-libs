@@ -1,0 +1,50 @@
+menu "Audio Effects Example"
+
+choice ESP_AUDIO_EFFECTS_DEMO_SELECT
+    prompt "Audio effect element"
+    default ESP_AUDIO_EFFECTS_DEMO_SELECT_ALC
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_ALC
+    bool "ALC"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_SONIC
+    bool "Sonic"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_EQ
+    bool "EQ"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_FADE
+    bool "Fade"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_DRC
+    bool "DRC"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_MBC
+    bool "MBC"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_MIXER
+    bool "Mixer"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_BASIC_AUDIO_INFO_CVT
+    bool "Basic Audio Info Convert"
+
+endchoice
+
+choice ESP_AUDIO_EFFECTS_DEMO_DRC_DEMO_SELECT
+    prompt "DRC Demo"
+    depends on ESP_AUDIO_EFFECTS_DEMO_SELECT_DRC
+    default ESP_AUDIO_EFFECTS_DEMO_SOUND_BALANCE_DEMO
+
+config ESP_AUDIO_EFFECTS_DEMO_SOUND_BALANCE_DEMO
+    bool "Sound Balance Demo"
+    help
+        Enable sound balance demo when DRC is selected
+
+config ESP_AUDIO_EFFECTS_DEMO_REMOVE_HIT_DEMO
+    bool "Remove Hit Demo"
+    help
+        Enable remove hit demo when DRC is selected
+
+endchoice
+
+endmenu

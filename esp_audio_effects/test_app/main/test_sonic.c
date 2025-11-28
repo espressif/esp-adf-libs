@@ -1,26 +1,10 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) PTE LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -30,332 +14,138 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_err.h"
+#include "ae_common.h"
 #include "test_common.h"
 #include "esp_ae_data_weaver.h"
 #include "esp_ae_bit_cvt.h"
 #include "esp_ae_sonic.h"
+#include "nvs_flash.h"
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "protocol_examples_common.h"
 
 #define TAG "TEST_SONIC"
-#define CMP_MODE
 
-static int sonic_interleave_16_bit_test(int mode, char *mode_name)
+#define HTTP_SERVER_URL_DOWNLOAD "http://10.18.20.184:8080/audio_files/audio_test_dataset/voice"
+#define HTTP_SERVER_URL_UPLOAD   "http://10.18.20.184:8080/upload?folder=ae_test/sonic_test"
+
+static char file_name[][100] = {
+    "manch_48000_1_16_10",
+    "manen_48000_1_16_10",
+    "manloud_48000_1_16_10",
+    "womanch_16000_1_16_6",
+    "womanen_48000_1_16_10",
+    "womanloud_48000_1_16_10",
+};
+
+static uint8_t bits_per_sample[] = {16, 24, 32};
+
+static int process_audio_data_http(ae_http_context_t *infile, ae_http_context_t *outfile, void *sonic_handle,
+                                   ae_audio_info_t *audio_info, int output_bits)
 {
-    // stream open
-    float para[6] = {0.5, 0.75, 1.25, 1.5, 1.75, 2.0};
-    int chan[5] = {1, 2};
-    int sp[5] = {8, 44};
-    int samplerate[5] = {8000, 44100};
-    char out_name[100] = {0};
-    char in_name[100] = {0};
-    for (int j = 0; j < 1; j++) {
-        for (int k = 0; k < 2; k++) {
-            for (int i = 0; i < 6; i++) {
-                sprintf(in_name, "/sdcard/pcm/thetest%d_%d.pcm", sp[j], k + 1);
-                FILE *infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/sonic_test/asm/test16_%s%d_%d_%d.pcm", mode_name, sp[j], chan[k], i);
-#ifdef CMP_MODE
-                FILE *outfile = fopen(out_name, "rb");
-#else
-                FILE *outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-
-                int sample_rate = samplerate[j];
-                int channel = chan[k];
-                esp_ae_sonic_cfg_t config = {0};
-                config.sample_rate = sample_rate;
-                config.channel = channel;
-                config.bits_per_sample = 16;
-                void *sonic_handle = NULL;
-                int in_num = 512;
-                int out_num = 512;
-                short *inbuf = calloc(1, in_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                short *outbuf = calloc(1, out_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                short *outbuf_cmp = calloc(1, out_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(outbuf_cmp, NULL);
-                short *in;
-                esp_ae_sonic_open(&config, &sonic_handle);
-                TEST_ASSERT_NOT_EQUAL(sonic_handle, NULL);
-                if (mode == 1) {
-                    esp_ae_sonic_set_speed(sonic_handle, para[i]);
-                } else if (mode == 2) {
-                    esp_ae_sonic_set_pitch(sonic_handle, para[i]);
-                }
-                esp_ae_sonic_in_data_t in_samples = {0};
-                esp_ae_sonic_out_data_t out_samples = {0};
-                in_samples.samples = inbuf;
-                out_samples.samples = outbuf;
-                int in_read = 0;
-                int sample_num = 0;
-                int remain_num = 0;
-                int ret = 0;
-                while ((in_read = fread(inbuf, 1, in_num * channel * sizeof(short), infile)) > 0) {
-                    sample_num = in_read / (channel * sizeof(short));
-                    remain_num = sample_num;
-                    in_samples.samples = inbuf;
-                    in_samples.num = sample_num;
-                    out_samples.needed_num = 512;
-                    while (remain_num > 0 || out_samples.out_num > 0) {
-                        ret = esp_ae_sonic_process(sonic_handle, &in_samples, &out_samples);
-                        TEST_ASSERT_EQUAL(ret, 0);
-                        if (out_samples.out_num > 0) {
-#ifdef CMP_MODE
-                            fread(outbuf_cmp, 1,
-                                  out_samples.out_num * sizeof(short) * channel, outfile);
-                            TEST_ASSERT_EQUAL(memcmp(out_samples.samples, outbuf_cmp,
-                                                     out_samples.out_num * sizeof(short) * channel),
-                                              0);
-#else
-                            fwrite(out_samples.samples, 1,
-                                   out_samples.out_num * sizeof(short) * channel, outfile);
-#endif /* CMP_MODE */
-                        }
-                        in = inbuf + in_samples.consume_num * channel;
-                        remain_num -= in_samples.consume_num;
-                        in_samples.num = remain_num;
-                        in_samples.samples = in;
-                    }
-                }
-                esp_ae_sonic_close(sonic_handle);
-                fclose(infile);
-                infile = NULL;
-                fclose(outfile);
-                outfile = NULL;
-                free(inbuf);
-                inbuf = NULL;
-                free(outbuf);
-                outbuf = NULL;
-                free(outbuf_cmp);
-                outbuf_cmp = NULL;
-            }
+    int in_num = 512;
+    int out_num = 512;
+    size_t total_samples = 0;
+    short *inbuf = calloc(1, in_num * audio_info->channels * sizeof(short));
+    TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
+    short *outbuf = calloc(1, out_num * audio_info->channels * (output_bits >> 3));
+    TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
+    void *inbuf_target = NULL;
+    esp_ae_bit_cvt_handle_t cvt_in_handle = NULL;
+    if (output_bits != 16) {
+        inbuf_target = calloc(1, in_num * audio_info->channels * (output_bits >> 3));
+        TEST_ASSERT_NOT_EQUAL(inbuf_target, NULL);
+        esp_ae_bit_cvt_cfg_t cvt_in_cfg = {audio_info->sample_rate, audio_info->channels, 16, output_bits};
+        esp_ae_bit_cvt_open(&cvt_in_cfg, &cvt_in_handle);
+    }
+    esp_ae_sonic_in_data_t in_samples = {0};
+    esp_ae_sonic_out_data_t out_samples = {0};
+    int in_read = 0;
+    int sample_num = 0;
+    int remain_num = 0;
+    int ret = 0;
+    while ((in_read = ae_http_read(inbuf, 1, in_num * audio_info->channels * sizeof(short), infile)) > 0) {
+        sample_num = in_read / (audio_info->channels * sizeof(short));
+        remain_num = sample_num;
+        in_samples.samples = inbuf;
+        out_samples.samples = outbuf;
+        if (output_bits != 16) {
+            esp_ae_bit_cvt_process(cvt_in_handle, sample_num, inbuf, inbuf_target);
+            in_samples.samples = inbuf_target;
         }
+        in_samples.num = sample_num;
+        out_samples.needed_num = 512;
+
+        void *in = in_samples.samples;
+        while (remain_num > 0 || out_samples.out_num > 0) {
+            ret = esp_ae_sonic_process(sonic_handle, &in_samples, &out_samples);
+            TEST_ASSERT_EQUAL(ret, 0);
+            if (out_samples.out_num > 0) {
+                ae_http_write(out_samples.samples, 1, out_samples.out_num * (output_bits >> 3) * audio_info->channels, false, outfile);
+                total_samples += out_samples.out_num;
+            }
+            int consume_bytes = in_samples.consume_num * audio_info->channels * (output_bits >> 3);
+            in = (uint8_t *)in + consume_bytes;
+            remain_num -= in_samples.consume_num;
+            in_samples.num = remain_num;
+            in_samples.samples = in;
+        }
+    }
+    ae_http_write(NULL, 0, 0, true, outfile);
+    if (cvt_in_handle) {
+        esp_ae_bit_cvt_close(cvt_in_handle);
+    }
+    free(inbuf);
+    free(outbuf);
+    if (inbuf_target) {
+        free(inbuf_target);
     }
     return 1;
 }
 
-static int sonic_interleave_24_bit_test(int mode, char *mode_name)
+static int sonic_http_test(const char *filename, float speed, float pitch, int target_bits)
 {
-    // stream open
-    float para[6] = {0.5, 0.75, 1.25, 1.5, 1.75, 2.0};
-    int chan[5] = {1, 2};
-    int sp[5] = {8, 44};
-    int samplerate[5] = {8000, 44100};
-    char out_name[100] = {0};
-    char in_name[100] = {0};
-    for (int j = 0; j < 1; j++) {
-        for (int k = 0; k < 2; k++) {
-            for (int i = 0; i < 6; i++) {
-                sprintf(in_name, "/sdcard/pcm/thetest%d_%d.pcm", sp[j], k + 1);
-                FILE *infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/sonic_test/asm/test24_%s%d_%d_%d.pcm", mode_name, sp[j], chan[k], i);
-#ifdef CMP_MODE
-                FILE *outfile = fopen(out_name, "rb");
-#else
-                FILE *outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
+    ESP_LOGI(TAG, "Starting HTTP test for file: %s, speed: %.2f, pitch: %.2f, bits: %d",
+             filename, speed, pitch, target_bits);
+    ae_http_context_t input_ctx = {0};
+    ae_http_context_t output_ctx = {0};
 
-                int sample_rate = samplerate[j];
-                int channel = chan[k];
-                esp_ae_sonic_cfg_t config = {0};
-                config.sample_rate = sample_rate;
-                config.channel = channel;
-                config.bits_per_sample = ESP_AE_BIT24;
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
+    int ret = ae_http_download_init(&input_ctx, filename, HTTP_SERVER_URL_DOWNLOAD);
+    TEST_ASSERT_EQUAL(ret, ESP_OK);
 
-                int in_num = 512;
-                int out_num = 512;
-                char *inbuf = calloc(sizeof(short), in_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *outbuf = calloc(sizeof(short), out_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                int *in_buf = calloc(sizeof(short), in_num * channel * sizeof(int));
-                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
-                int *out_buf = calloc(sizeof(short), out_num * channel * sizeof(int));
-                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
-                int *outbuf_cmp = calloc(sizeof(short), out_num * channel * sizeof(int));
-                TEST_ASSERT_NOT_EQUAL(outbuf_cmp, NULL);
-                void *sonic_handle = NULL;
-                esp_ae_sonic_open(&config, &sonic_handle);
-                TEST_ASSERT_NOT_EQUAL(sonic_handle, NULL);
-                if (mode == 1) {
-                    esp_ae_sonic_set_speed(sonic_handle, para[i]);
-                } else if (mode == 2) {
-                    esp_ae_sonic_set_pitch(sonic_handle, para[i]);
-                }
-                esp_ae_sonic_in_data_t in_samples = {0};
-                esp_ae_sonic_out_data_t out_samples = {0};
-                int *in;
-                in_samples.samples = in_buf;
-                out_samples.samples = out_buf;
-                int in_read = 0;
-                int sample_num = 0;
-                int remain_num = 0;
-                int ret = 0;
-                while ((in_read = fread(inbuf, 1, in_num * channel * sizeof(short), infile)) > 0) {
-                    sample_num = in_read / (channel * sizeof(short));
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, inbuf, in_buf);
-                    remain_num = sample_num;
-                    in_samples.samples = in_buf;
-                    in_samples.num = sample_num;
-                    out_samples.needed_num = 512;
-                    while (remain_num > 0 || out_samples.out_num > 0) {
-                        ret = esp_ae_sonic_process(sonic_handle, &in_samples, &out_samples);
-                        TEST_ASSERT_EQUAL(ret, 0);
-                        if (out_samples.out_num > 0) {
-                            esp_ae_bit_cvt_process(b2_handle, out_samples.out_num,
-                                                    out_samples.samples, outbuf);
-#ifdef CMP_MODE
-                            fread(outbuf_cmp, 1,
-                                  out_samples.out_num * sizeof(short) * channel, outfile);
-                            TEST_ASSERT_EQUAL(memcmp(outbuf, outbuf_cmp,
-                                                     out_samples.out_num * sizeof(short) * channel),
-                                              0);
-#else
-                            fwrite(outbuf, 1, out_samples.out_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-                        }
-                        in = inbuf + in_samples.consume_num * channel * (config.bits_per_sample >> 3);
-                        remain_num -= in_samples.consume_num;
-                        in_samples.num = remain_num;
-                        in_samples.samples = in;
-                    }
-                }
-                esp_ae_sonic_close(sonic_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(in_buf);
-                free(outbuf);
-                free(out_buf);
-                free(outbuf_cmp);
-            }
-        }
-    }
-    return 1;
-}
+    long data_offset = 0;
+    ae_audio_info_t audio_info = {0};
+    uint32_t data_size = 0;
+    ae_http_parse_wav_header(&input_ctx, &audio_info.sample_rate, &audio_info.channels,
+                             &audio_info.bits_per_sample, &data_offset, &data_size);
+    ESP_LOGI(TAG, "Audio format: %d channels, %d Hz, %d bits",
+             audio_info.channels, audio_info.sample_rate, audio_info.bits_per_sample);
 
-static int sonic_interleave_32_bit_test(int mode, char *mode_name)
-{
-    // stream open
-    float para[6] = {0.5, 0.75, 1.25, 1.5, 1.75, 2.0};
-    int chan[5] = {1, 2};
-    int sp[5] = {8, 44};
-    int samplerate[5] = {8000, 44100};
-    char out_name[100] = {0};
-    char in_name[100] = {0};
-    for (int j = 0; j < 1; j++) {
-        for (int k = 0; k < 2; k++) {
-            for (int i = 0; i < 6; i++) {
-                sprintf(in_name, "/sdcard/pcm/thetest%d_%d.pcm", sp[j], k + 1);
-                FILE *infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/sonic_test/asm/test32_%s%d_%d_%d.pcm", mode_name, sp[j], chan[k], i);
-#ifdef CMP_MODE
-                FILE *outfile = fopen(out_name, "rb");
-#else
-                FILE *outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-                int sample_rate = samplerate[j];
-                int channel = chan[k];
-                esp_ae_sonic_cfg_t config = {0};
-                config.sample_rate = sample_rate;
-                config.channel = channel;
-                config.bits_per_sample = 32;
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = sample_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-                int in_num = 512;
-                int out_num = 512;
-                char *inbuf = calloc(sizeof(short), in_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *outbuf = calloc(sizeof(short), out_num * channel * sizeof(short));
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                int *in_buf = calloc(sizeof(short), in_num * channel * sizeof(int));
-                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
-                int *out_buf = calloc(sizeof(short), out_num * channel * sizeof(int));
-                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
-                int *outbuf_cmp = calloc(sizeof(short), out_num * channel * sizeof(int));
-                TEST_ASSERT_NOT_EQUAL(outbuf_cmp, NULL);
-                void *sonic_handle = NULL;
-                esp_ae_sonic_open(&config, &sonic_handle);
-                TEST_ASSERT_NOT_EQUAL(sonic_handle, NULL);
-                if (mode == 1) {
-                    esp_ae_sonic_set_speed(sonic_handle, para[i]);
-                } else if (mode == 2) {
-                    esp_ae_sonic_set_pitch(sonic_handle, para[i]);
-                }
-                esp_ae_sonic_in_data_t in_samples = {0};
-                esp_ae_sonic_out_data_t out_samples = {0};
-                int *in;
-                in_samples.samples = in_buf;
-                out_samples.samples = out_buf;
-                int in_read = 0;
-                int sample_num = 0;
-                int remain_num = 0;
-                int ret = 0;
-                while ((in_read = fread(inbuf, 1, in_num * channel * sizeof(short), infile)) > 0) {
-                    sample_num = in_read / (channel * sizeof(short));
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, inbuf, in_buf);
-                    remain_num = sample_num;
-                    in_samples.samples = in_buf;
-                    in_samples.num = sample_num;
-                    out_samples.needed_num = 512;
-                    while (remain_num > 0 || out_samples.out_num > 0) {
-                        ret = esp_ae_sonic_process(sonic_handle, &in_samples, &out_samples);
-                        TEST_ASSERT_EQUAL(ret, 0);
-                        if (out_samples.out_num > 0) {
-                            esp_ae_bit_cvt_process(b2_handle, out_samples.out_num,
-                                                    out_samples.samples, outbuf);
-#ifdef CMP_MODE
-                            fread(outbuf_cmp, 1,
-                                  out_samples.out_num * (16 >> 3) * channel, outfile);
-                            TEST_ASSERT_EQUAL(memcmp(outbuf, outbuf_cmp,
-                                                     out_samples.out_num * sizeof(short) * channel),
-                                              0);
-#else
-                            fwrite(outbuf, 1, out_samples.out_num * (16 >> 3) * channel, outfile);
-#endif /* CMP_MODE */
-                        }
-                        in = inbuf + in_samples.consume_num * channel * (config.bits_per_sample >> 3);
-                        remain_num -= in_samples.consume_num;
-                        in_samples.num = remain_num;
-                        in_samples.samples = in;
-                    }
-                }
-                esp_ae_sonic_close(sonic_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(in_buf);
-                free(outbuf);
-                free(out_buf);
-                free(outbuf_cmp);
-            }
-        }
-    }
-    return 1;
+    // Initialize output context for upload
+    char output_filename[1024];
+    snprintf(output_filename, sizeof(output_filename), "%s_speed_%.2f_pitch_%.2f_bits_%d.wav", filename, speed, pitch, target_bits);
+    audio_info.bits_per_sample = target_bits;
+    ret = ae_http_upload_init(&output_ctx, output_filename, &audio_info, HTTP_SERVER_URL_UPLOAD);
+    TEST_ASSERT_EQUAL(ret, ESP_OK);
+
+    esp_ae_sonic_cfg_t config = {0};
+    config.sample_rate = audio_info.sample_rate;
+    config.channel = audio_info.channels;
+    config.bits_per_sample = audio_info.bits_per_sample;
+
+    void *sonic_handle = NULL;
+    ret = esp_ae_sonic_open(&config, &sonic_handle);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+
+    esp_ae_sonic_set_speed(sonic_handle, speed);
+    esp_ae_sonic_set_pitch(sonic_handle, pitch);
+
+    int result = process_audio_data_http(&input_ctx, &output_ctx, sonic_handle, &audio_info, target_bits);
+    // Cleanup
+    esp_ae_sonic_close(sonic_handle);
+    ae_http_deinit(&input_ctx);
+    ae_http_deinit(&output_ctx);
+    return result;
 }
 
 TEST_CASE("Sonic branch test", "AUDIO_EFFECT")
@@ -456,20 +246,94 @@ TEST_CASE("Sonic branch test", "AUDIO_EFFECT")
     esp_ae_sonic_close(sonic_handle);
 }
 
-TEST_CASE("Sonic speed test", "AUDIO_EFFECT")
+TEST_CASE("Sonic HTTP download and upload test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    sonic_interleave_16_bit_test(1, "speed");
-    sonic_interleave_24_bit_test(1, "speed");
-    sonic_interleave_32_bit_test(1, "speed");
-    ae_sdcard_deinit();
+    ESP_LOGI(TAG, "Starting HTTP download and upload test");
+    // Initialize network
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_ERROR_CHECK(example_connect());
+    // Test different speed and pitch combinations
+    float test_combinations[][2] = {{0.5f, 1.0f}, {1.0f, 0.5f}, {1.0f, 2.0f}, {2.0f, 1.0f}, {0.75f, 1.25f}, {1.25f, 0.75f}};
+    for (int i = 0; i < AE_TEST_PARAM_NUM(file_name); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(test_combinations); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(bits_per_sample); k++) {
+                float speed = test_combinations[j][0];
+                float pitch = test_combinations[j][1];
+                ESP_LOGI(TAG, "Testing combination %d: speed=%.2f, pitch=%.2f, file=%s, bits=%d",
+                         j + 1, speed, pitch, file_name[i], bits_per_sample[k]);
+                sonic_http_test(file_name[i], speed, pitch, bits_per_sample[k]);
+                ESP_LOGI(TAG, "Completed test combination %d", j + 1);
+            }
+        }
+    }
+    example_disconnect();
+    ESP_LOGI(TAG, "HTTP download and upload test completed successfully");
 }
 
-TEST_CASE("Sonic pitch test", "AUDIO_EFFECT")
+TEST_CASE("Sonic reset test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    sonic_interleave_16_bit_test(2, "pitch");
-    sonic_interleave_24_bit_test(2, "pitch");
-    sonic_interleave_32_bit_test(2, "pitch");
-    ae_sdcard_deinit();
+    esp_ae_err_t ret;
+    esp_ae_sonic_cfg_t cfg = {
+        .sample_rate = 44100,
+        .channel = 2,
+        .bits_per_sample = 16,
+    };
+
+    void *sonic_handle = NULL;
+    ret = esp_ae_sonic_open(&cfg, &sonic_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_NOT_NULL(sonic_handle);
+
+    ret = esp_ae_sonic_set_speed(sonic_handle, 1.2f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_sonic_set_pitch(sonic_handle, 1.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    uint32_t num_samples = 1000 * cfg.sample_rate / 1000;
+    uint32_t out_samples_num = 1000 * cfg.sample_rate / 1000;
+    uint8_t *input_buffer = (uint8_t *)calloc(num_samples * cfg.channel, cfg.bits_per_sample >> 3);
+    uint8_t *output_buffer = (uint8_t *)calloc(out_samples_num * cfg.channel, cfg.bits_per_sample >> 3);
+    uint8_t *output_buffer_reset = (uint8_t *)calloc(out_samples_num * cfg.channel, cfg.bits_per_sample >> 3);
+    TEST_ASSERT_NOT_NULL(input_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer_reset);
+
+    ae_test_generate_sweep_signal(input_buffer, 1000, cfg.sample_rate, -6.0f, cfg.bits_per_sample, cfg.channel);
+
+    esp_ae_sonic_in_data_t in_samples = {
+        .samples = input_buffer,
+        .num = num_samples};
+    esp_ae_sonic_out_data_t out_samples = {
+        .samples = output_buffer,
+        .needed_num = out_samples_num};
+
+    ret = esp_ae_sonic_process(sonic_handle, &in_samples, &out_samples);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    uint32_t out_num_1 = out_samples.needed_num;
+
+    ret = esp_ae_sonic_reset(sonic_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    esp_ae_sonic_out_data_t out_samples_reset = {
+        .samples = output_buffer_reset,
+        .needed_num = out_samples_num};
+    ret = esp_ae_sonic_process(sonic_handle, &in_samples, &out_samples_reset);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    uint32_t out_num_2 = out_samples_reset.needed_num;
+
+    TEST_ASSERT_EQUAL(out_num_1, out_num_2);
+    TEST_ASSERT_EQUAL_MEMORY(output_buffer, output_buffer_reset, out_num_1 * cfg.channel * (cfg.bits_per_sample >> 3));
+
+    esp_ae_sonic_close(sonic_handle);
+    free(input_buffer);
+    free(output_buffer);
+    free(output_buffer_reset);
 }

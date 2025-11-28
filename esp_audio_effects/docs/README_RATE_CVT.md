@@ -1,5 +1,7 @@
 # RATE CONVERSION
 
+- [中文版](./README_RATE_CVT_CN.md)
+
 `RATE CONVERSION` module is used to change the sampling rate of the original audio signal to the desired sampling rate.
 
 # Features
@@ -177,7 +179,7 @@ Input sample rate is **96000 mono**<br>
 
 # Usage
 
-Here is an example of using [RATE CONVERSION](../test_app/main/test_rate_cvt.c)
+Here is an example of using [RATE CONVERSION](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ  
 

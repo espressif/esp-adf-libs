@@ -1,5 +1,7 @@
 # DATA WEAVER
 
+- [中文版](./README_DATA_WEAVER_CN.md)
+
 `DATA WEAVER` module is used to interleave multiple independently stored channel data together and to split the interleaved data into independent buffers for each channel.
 
 # Features

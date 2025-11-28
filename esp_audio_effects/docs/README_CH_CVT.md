@@ -1,5 +1,7 @@
 # CHANNEL CONVERSION
 
+- [中文版](./README_CH_CVT_CN.md)
+
 `CHANNEL CONVERSION` module is designed to transform the original audio channel into a target channel. The implementation algorithm works by multiplying the input data with a specified weight matrix, resulting in the output data.
 
 # Features
@@ -28,7 +30,7 @@ Note:
 
 # Usage
 
-Here is an example of using [CHANNEL CONVERSION](../test_app/main/test_ch_cvt.c)
+Here is an example of using [CHANNEL CONVERSION](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ
 

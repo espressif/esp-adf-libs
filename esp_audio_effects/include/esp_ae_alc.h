@@ -157,6 +157,25 @@ esp_ae_err_t esp_ae_alc_deintlv_process(esp_ae_alc_handle_t handle, uint32_t sam
                                         esp_ae_sample_t in_samples[], esp_ae_sample_t out_samples[]);
 
 /**
+ * @brief  Reset the internal processing state of ALC handle while preserving user-configured gain settings
+ *         It allows the handle to be reused efficiently when the audio information (sample rate, channel, bits per sample)
+ *         remains unchanged, avoiding the overhead of closing and recreating the ALC handle
+ *         Typical use cases include:
+ *         - Seek operations within the same audio stream
+ *         - Starting playback of a new audio stream with identical audio information
+ * 
+ * @note   This function is not thread-safe. The user must ensure proper call sequencing
+ *         and avoid invoking this function while the process is running
+ * 
+ * @param[in]  handle  The ALC handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_alc_reset(esp_ae_alc_handle_t handle);
+
+/**
  * @brief  Deinitialize ALC handle
  *
  * @param  handle  The ALC handle

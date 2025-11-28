@@ -80,7 +80,7 @@ typedef struct {
 } esp_ae_ch_cvt_cfg_t;
 
 /**
- * @brief  Create an channel conversion handle based on the provided configuration
+ * @brief  Create a channel conversion handle based on the provided configuration
  *
  * @param[in]   cfg     Pointer to the channel conversion configuration
  * @param[out]  handle  The channel conversion handle. If an error occurs, the result will be a NULL pointer

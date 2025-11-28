@@ -1,0 +1,6 @@
+description: Audio Effects Example
+
+dependencies:
+  espressif/esp_board_manager: '*'
+  espressif/esp_audio_effects:
+    path: ../../../../esp_audio_effects

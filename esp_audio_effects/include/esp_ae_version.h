@@ -29,18 +29,6 @@ extern "C" {
 #endif  /* __cplusplus */
 
 /**
- *  Features:
- *     - Support bits per sample: 16, 24, 32 bit
- *     - Support high sampling rate processing
- *     - Support any channel processing
- *     - Support data layout to be processed in an interleaved or non interleaved form
- *
- *  Release Notes:
- *     v1.0.0:
- *     - Add ALC, data weaver, bit convert, channel convert, rate convert, equalizer, fade, mixer, sonic
- */
-
-/**
  * @brief  Get the version of audio effects.
  */
 const char *esp_ae_get_version(void);

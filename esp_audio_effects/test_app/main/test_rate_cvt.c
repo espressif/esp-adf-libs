@@ -1,42 +1,201 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) PTE LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
+
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
 #include "unity.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "test_common.h"
+#include "ae_common.h"
 #include "esp_ae_rate_cvt.h"
 #include "esp_ae_data_weaver.h"
-#include "esp_ae_bit_cvt.h"
+#include "esp_ae_ch_cvt.h"
+#include "nvs_flash.h"
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "protocol_examples_common.h"
 
-#define TAG "TEST_RSP"
-#define CMP_MODE
+#define TAG                      "TEST_RATE_CVT"
+#define HTTP_SERVER_URL_DOWNLOAD "http://10.18.20.184:8080/audio_files/audio_test_dataset/sine"
+#define HTTP_SERVER_URL_UPLOAD   "http://10.18.20.184:8080/upload?folder=ae_test/rate_cvt_test"
+
+static uint32_t sample_rate_in[] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
+static uint32_t sample_rate[]    = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
+static uint8_t  bits[]           = {16, 24, 32};
+
+static bool process_audio_data_http(ae_http_context_t *infile, ae_http_context_t *outfile,
+                                    ae_audio_info_t *audio_info, uint32_t dest_rate, uint32_t data_size)
+{
+    esp_ae_rate_cvt_cfg_t config = {
+        .src_rate = audio_info->sample_rate,
+        .dest_rate = dest_rate,
+        .channel = audio_info->channels,
+        .bits_per_sample = audio_info->bits_per_sample,
+        .complexity = 3,
+        .perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED};
+
+    void *rate_cvt_handle = NULL;
+    esp_ae_err_t ret = esp_ae_rate_cvt_open(&config, &rate_cvt_handle);
+
+    uint32_t in_num = 256;
+    uint32_t out_num = 0;
+    ret = esp_ae_rate_cvt_get_max_out_sample_num(rate_cvt_handle, in_num, &out_num);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    size_t total_samples = 0;
+    uint8_t *inbuf = calloc(1, in_num * audio_info->channels * (audio_info->bits_per_sample >> 3));
+    TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
+    uint8_t *outbuf = calloc(1, out_num * audio_info->channels * (audio_info->bits_per_sample >> 3));
+    TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
+    int in_read = 0;
+    int sample_num = 0;
+    uint32_t total_read = 0;
+    bool do_retry = false;
+    while (1) {
+        in_read = ae_http_read(inbuf, 1, in_num * audio_info->channels * (audio_info->bits_per_sample >> 3), infile);
+        if (in_read <= 0) {
+            break;
+        }
+        total_read += in_read;
+        if (total_read > data_size) {
+            break;
+        }
+        sample_num = in_read / (audio_info->channels * (audio_info->bits_per_sample >> 3));
+        uint32_t out_samples = out_num;
+        ret = esp_ae_rate_cvt_process(rate_cvt_handle, inbuf, sample_num, outbuf, &out_samples);
+        TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+        if (out_samples > 0) {
+            int written = ae_http_write(outbuf, 1, out_samples * (audio_info->bits_per_sample >> 3) * audio_info->channels, false, outfile);
+            if (written < 0) {
+                ESP_LOGE(TAG, "Failed to write data to HTTP stream do retry");
+                do_retry = true;
+                break;
+            }
+            total_samples += out_samples;
+        }
+    }
+    ae_http_write(NULL, 0, 0, true, outfile);
+    free(inbuf);
+    free(outbuf);
+    esp_ae_rate_cvt_close(rate_cvt_handle);
+    return do_retry;
+}
+
+static void rate_cvt_http_test(uint32_t src_rate, uint32_t dest_rate, uint8_t bits)
+{
+_RATE_CVT_HTTP_TEST_RETRY:
+    ae_http_context_t input_ctx = {0};
+    ae_http_context_t output_ctx = {0};
+    char download_filename[128];
+    sprintf(download_filename, "sine1kHz0dB_%ld_1_%d_10", src_rate, bits);
+    int ret = ae_http_download_init(&input_ctx, download_filename, HTTP_SERVER_URL_DOWNLOAD);
+    TEST_ASSERT_EQUAL(ret, ESP_OK);
+
+    long data_offset = 0;
+    ae_audio_info_t audio_info = {0};
+    ae_audio_info_t dest_audio_info = {0};
+    uint32_t data_size = 0;
+    ae_http_parse_wav_header(&input_ctx, &audio_info.sample_rate, &audio_info.channels,
+                             &audio_info.bits_per_sample, &data_offset, &data_size);
+    ESP_LOGI(TAG, "Starting HTTP test for rate conversion: %ld -> %ld, bits: %d, channels: %d",
+             src_rate, dest_rate, audio_info.bits_per_sample, audio_info.channels);
+    memcpy(&dest_audio_info, &audio_info, sizeof(ae_audio_info_t));
+    dest_audio_info.sample_rate = dest_rate;
+    // Initialize output context for upload
+    char output_filename[128];
+    snprintf(output_filename, sizeof(output_filename), "sine1kHz0dB_%ld_to_%ld_1_%d_10.wav",
+             src_rate, dest_rate, audio_info.bits_per_sample);
+    char upload_url[128];
+    snprintf(upload_url, sizeof(upload_url), "%s/%d", HTTP_SERVER_URL_UPLOAD, audio_info.bits_per_sample);
+    ret = ae_http_upload_init(&output_ctx, output_filename, &dest_audio_info, upload_url);
+    TEST_ASSERT_EQUAL(ret, ESP_OK);
+
+    bool do_retry = process_audio_data_http(&input_ctx, &output_ctx, &audio_info, dest_rate, data_size);
+    ae_http_deinit(&input_ctx);
+    ae_http_deinit(&output_ctx);
+    if (do_retry) {
+        ESP_LOGI(TAG, "Retry rate conversion");
+        goto _RATE_CVT_HTTP_TEST_RETRY;
+    }
+}
+
+static void test_rate_cvt_consistency(uint32_t src_rate, uint32_t dest_rate, uint8_t bits_per_sample)
+{
+    ESP_LOGI(TAG, "Testing consistency: %ld->%ld, %d bits", src_rate, dest_rate, bits_per_sample);
+    esp_ae_rate_cvt_cfg_t config = {
+        .src_rate = src_rate,
+        .dest_rate = dest_rate,
+        .channel = 2,
+        .bits_per_sample = bits_per_sample,
+        .complexity = 3,
+        .perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED};
+    void *hd1 = NULL;
+    void *hd2 = NULL;
+    esp_err_t ret = esp_ae_rate_cvt_open(&config, &hd1);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    ret = esp_ae_rate_cvt_open(&config, &hd2);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    const int duration_ms = 100;
+    int input_bytes_per_sample = (bits_per_sample >> 3) * config.channel;
+    int output_bytes_per_sample = (bits_per_sample >> 3) * config.channel;
+
+    uint32_t sample_count = (src_rate * duration_ms) / 1000;
+    uint32_t out_sample_count = 0;
+    ret = esp_ae_rate_cvt_get_max_out_sample_num(hd1, sample_count, &out_sample_count);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    void *interlv_in = calloc(sample_count, input_bytes_per_sample);
+    TEST_ASSERT_NOT_EQUAL(interlv_in, NULL);
+    void *interlv_out = calloc(out_sample_count, output_bytes_per_sample);
+    TEST_ASSERT_NOT_EQUAL(interlv_out, NULL);
+    void *deinterlv_in[2] = {calloc(sample_count, bits_per_sample >> 3), calloc(sample_count, bits_per_sample >> 3)};
+    TEST_ASSERT_NOT_EQUAL(deinterlv_in[0], NULL);
+    TEST_ASSERT_NOT_EQUAL(deinterlv_in[1], NULL);
+    void *deinterlv_out[2] = {calloc(out_sample_count, bits_per_sample >> 3), calloc(out_sample_count, bits_per_sample >> 3)};
+    TEST_ASSERT_NOT_EQUAL(deinterlv_out[0], NULL);
+    TEST_ASSERT_NOT_EQUAL(deinterlv_out[1], NULL);
+    void *deinterlv_out_cmp = calloc(out_sample_count, output_bytes_per_sample);
+    TEST_ASSERT_NOT_EQUAL(deinterlv_out_cmp, NULL);
+
+    ae_test_generate_sweep_signal(interlv_in, duration_ms, src_rate,
+                                  0.0f, bits_per_sample, config.channel);
+
+    ret = esp_ae_deintlv_process(config.channel, bits_per_sample, sample_count,
+                                 (esp_ae_sample_t)interlv_in, (esp_ae_sample_t *)deinterlv_in);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    uint32_t interleaved_out_samples = out_sample_count;
+    ret = esp_ae_rate_cvt_process(hd1, (esp_ae_sample_t)interlv_in,
+                                  sample_count, (esp_ae_sample_t)interlv_out, &interleaved_out_samples);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+
+    uint32_t deinterleaved_out_samples = out_sample_count;
+    ret = esp_ae_rate_cvt_deintlv_process(hd2, (esp_ae_sample_t *)deinterlv_in,
+                                          sample_count, (esp_ae_sample_t *)deinterlv_out,
+                                          &deinterleaved_out_samples);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    TEST_ASSERT_EQUAL(interleaved_out_samples, deinterleaved_out_samples);
+
+    ret = esp_ae_intlv_process(config.channel, bits_per_sample, deinterleaved_out_samples,
+                               (esp_ae_sample_t *)deinterlv_out, (esp_ae_sample_t)deinterlv_out_cmp);
+    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+    TEST_ASSERT_EQUAL_MEMORY_ARRAY(deinterlv_out_cmp, interlv_out, deinterleaved_out_samples * output_bytes_per_sample, 1);
+
+    esp_ae_rate_cvt_close(hd1);
+    esp_ae_rate_cvt_close(hd2);
+    free(interlv_in);
+    free(interlv_out);
+    for (int i = 0; i < config.channel; i++) {
+        free(deinterlv_in[i]);
+        free(deinterlv_out[i]);
+    }
+    free(deinterlv_out_cmp);
+}
 
 TEST_CASE("Rate Convert branch test", "AUDIO_EFFECT")
 {
@@ -104,671 +263,155 @@ TEST_CASE("Rate Convert branch test", "AUDIO_EFFECT")
     uint32_t sample_num = 0;
     ESP_LOGI(TAG, "esp_ae_rate_cvt_process");
     ESP_LOGI(TAG, "test1");
-    ret = esp_ae_rate_cvt_process(NULL, in_samples, 1024, out_samples, &sample_num);
+    ret = esp_ae_rate_cvt_process(NULL, (esp_ae_sample_t)in_samples, 1024, (esp_ae_sample_t)out_samples, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test2");
-    ret = esp_ae_rate_cvt_process(rsp_handle, NULL, 1024, out_samples, &sample_num);
+    ret = esp_ae_rate_cvt_process(rsp_handle, NULL, 1024, (esp_ae_sample_t)out_samples, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test3");
-    ret = esp_ae_rate_cvt_process(rsp_handle, in_samples, 0, out_samples, &sample_num);
+    ret = esp_ae_rate_cvt_process(rsp_handle, (esp_ae_sample_t)in_samples, 0, (esp_ae_sample_t)out_samples, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test4");
-    ret = esp_ae_rate_cvt_process(rsp_handle, in_samples, 1024, NULL, &sample_num);
+    ret = esp_ae_rate_cvt_process(rsp_handle, (esp_ae_sample_t)in_samples, 1024, NULL, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test5");
-    ret = esp_ae_rate_cvt_process(rsp_handle, in_samples, 1024, out_samples, &sample_num);
+    ret = esp_ae_rate_cvt_process(rsp_handle, (esp_ae_sample_t)in_samples, 1024, (esp_ae_sample_t)out_samples, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test6");
     sample_num = 50;
-    ret = esp_ae_rate_cvt_process(rsp_handle, in_samples, 1024, out_samples, &sample_num);
+    ret = esp_ae_rate_cvt_process(rsp_handle, (esp_ae_sample_t)in_samples, 1024, (esp_ae_sample_t)out_samples, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "esp_ae_rate_cvt_deintlv_process");
     sample_num = 0;
     ESP_LOGI(TAG, "test1");
-    ret = esp_ae_rate_cvt_deintlv_process(NULL, in_samples1, 1024,
-                                            out_samples1, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(NULL, (esp_ae_sample_t *)in_samples1, 1024,
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test2");
     ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, NULL, 1024,
-                                            out_samples1, &sample_num);
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test3");
-    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_samples1, 0,
-                                            out_samples1, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, (esp_ae_sample_t *)in_samples1, 0,
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test4");
-    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_samples1,
-                                            1024, NULL, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, (esp_ae_sample_t *)in_samples1,
+                                          1024, (esp_ae_sample_t *)NULL, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test5");
-    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_samples1, 1024,
-                                            out_samples1, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, (esp_ae_sample_t *)in_samples1, 1024,
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test6");
     sample_num = 50;
-    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_samples1, 1024,
-                                            out_samples1, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, (esp_ae_sample_t *)in_samples1, 1024,
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test7");
     sample_num = 2048;
-    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_samples1, 1024,
-                                            out_samples1, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, (esp_ae_sample_t *)in_samples1, 1024,
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     ESP_LOGI(TAG, "test8");
-    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_samples1, 1024,
-                                            out_samples1, &sample_num);
+    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, (esp_ae_sample_t *)in_samples1, 1024,
+                                          (esp_ae_sample_t *)out_samples1, &sample_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_INVALID_PARAMETER);
     esp_ae_rate_cvt_close(rsp_handle);
 }
 
-TEST_CASE("Rate Convert interleave 16bit test", "AUDIO_EFFECT")
+TEST_CASE("Rate Convert reset test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    char in_name[100];
-    char out_name[100];
-    int sr[20] = {8, 11, 12, 16, 22, 24, 32, 44, 48, 64, 88, 96};
-    int sample_rate_in[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    int sample_rate[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 12; j++) {
-            for (int k = 1; k <= 3; k++) {
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_%d_2.pcm", sample_rate_in[i]);
-                FILE *infile = NULL;
-                infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/rsp_test/16/test_rsp_rate1_%d_%d_%d.pcm", sr[i], sample_rate[j], k);
-#ifdef CMP_MODE
-                FILE *outfile = fopen(out_name, "rb");
-#else
-                FILE *outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
+    uint32_t srate_in = 44100;
+    uint32_t srate_out = 48000;
+    uint8_t ch_num = 2;
+    uint8_t bits_per_sample = 16;
+    uint32_t duration_ms = 1000;
+    uint32_t num_samples = duration_ms * srate_in / 1000;
+    esp_ae_err_t ret = ESP_AE_ERR_OK;
 
-                int src_rate = sample_rate_in[i];
-                int dest_rate = sample_rate[j];
-                int channel = 2;
-                int bit = 16;
-                int complexity = k;
-                esp_ae_rate_cvt_cfg_t config;
-                config.bits_per_sample = bit;
-                config.src_rate = src_rate;
-                config.dest_rate = dest_rate;
-                config.channel = channel;
-                config.complexity = complexity;
-                config.perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED;
-                void *rsp_handle = NULL;
-                int ret = esp_ae_rate_cvt_open(&config, &rsp_handle);
-                TEST_ASSERT_NOT_EQUAL(rsp_handle, NULL);
-                uint32_t sample_num = 0;
-                uint32_t out_samples_num = 0;
-                sample_num = 1024 / (16 >> 3) / channel;
-                char *inbuf = calloc(1, 1024);
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                esp_ae_rate_cvt_get_max_out_sample_num(rsp_handle, sample_num, &out_samples_num);
-                char *outbuf = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                char *cmp_buffer = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                int in_offset = 0;
-                int in_read = 0;
-                uint32_t out_samples = 0;
-                while (1) {
-                    memset(inbuf, 0, 1024);
-                    in_read = fread(inbuf, 1, 1024, infile);
-                    if (in_read <= 0) {
-                        break;
-                    }
-                    sample_num = 1024 / (16 >> 3) / channel;
-                    out_samples = out_samples_num;
-                    ret = esp_ae_rate_cvt_process(rsp_handle, inbuf, sample_num, outbuf, &out_samples);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, out_samples * channel * 2, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, out_samples * channel * 2), 0);
-#else
-                    fwrite(outbuf, 2, out_samples * channel, outfile);
-#endif /* CMP_MODE */
-                }
-                esp_ae_rate_cvt_close(rsp_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(outbuf);
-                free(cmp_buffer);
-            }
-        }
-    }
-    ae_sdcard_deinit();
+    esp_ae_rate_cvt_cfg_t config = {
+        .src_rate = srate_in,
+        .dest_rate = srate_out,
+        .channel = ch_num,
+        .bits_per_sample = bits_per_sample,
+        .complexity = 2,
+        .perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED};
+
+    void *rate_cvt_handle = NULL;
+    ret = esp_ae_rate_cvt_open(&config, &rate_cvt_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_NOT_NULL(rate_cvt_handle);
+    uint32_t out_size = 0;
+    uint8_t *input_buffer = (uint8_t *)calloc(num_samples * ch_num, bits_per_sample >> 3);
+    esp_ae_rate_cvt_get_max_out_sample_num(rate_cvt_handle, num_samples, &out_size);
+    uint8_t *output_buffer = (uint8_t *)calloc(out_size * ch_num, bits_per_sample >> 3);
+    uint8_t *output_buffer_reset = (uint8_t *)calloc(out_size * ch_num, bits_per_sample >> 3);
+    TEST_ASSERT_NOT_NULL(input_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer_reset);
+
+    ae_test_generate_sweep_signal(input_buffer, duration_ms, srate_in, -6.0f, bits_per_sample, ch_num);
+    uint32_t out_samples = out_size;
+    uint32_t half_samples = num_samples / 2;
+    ret = esp_ae_rate_cvt_process(rate_cvt_handle, (esp_ae_sample_t)input_buffer + half_samples * ch_num * (bits_per_sample >> 3),
+                                  half_samples, (esp_ae_sample_t)output_buffer, &out_samples);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    ret = esp_ae_rate_cvt_reset(rate_cvt_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    uint32_t out_samples_reset = out_size;
+    ret = esp_ae_rate_cvt_process(rate_cvt_handle, (esp_ae_sample_t)input_buffer + half_samples * ch_num * (bits_per_sample >> 3),
+                                  half_samples, (esp_ae_sample_t)output_buffer_reset, &out_samples_reset);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    TEST_ASSERT_EQUAL(out_samples, out_samples_reset);
+    TEST_ASSERT_EQUAL_MEMORY(output_buffer, output_buffer_reset, out_samples * ch_num * (bits_per_sample >> 3));
+
+    esp_ae_rate_cvt_close(rate_cvt_handle);
+    free(input_buffer);
+    free(output_buffer);
+    free(output_buffer_reset);
 }
 
-TEST_CASE("Rate Convert uninterleave 16bit test", "AUDIO_EFFECT")
+TEST_CASE("Rate Convert HTTP download and upload test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    char in_name[100];
-    char out_name[100];
-    int sr[20] = {8, 11, 12, 16, 22, 24, 32, 44, 48, 64, 88, 96};
-    int sample_rate_in[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    int sample_rate[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 12; j++) {
-            for (int k = 1; k <= 3; k++) {
-                // stream open
-                sprintf(in_name, "/sdcard/pcm/test_%d_2.pcm", sample_rate_in[i]);
-                FILE *infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/rsp_test/16_inter/test_rsp_rate2_%d_%d_%d.pcm", sr[i], sample_rate[j], k);
-#ifdef CMP_MODE
-                FILE *outfile = fopen(out_name, "rb");
-#else
-                FILE *outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-                int src_rate = sample_rate_in[i];
-                int dest_rate = sample_rate[j];
-                int channel = 2;
-                int bit = 16;
-                int complexity = k;
-                esp_ae_rate_cvt_cfg_t config = {0};
-                config.src_rate = src_rate;
-                config.dest_rate = dest_rate;
-                config.channel = channel;
-                config.bits_per_sample = bit;
-                config.complexity = complexity;
-                config.perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED;
-                void *rsp_handle = NULL;
-                int ret = esp_ae_rate_cvt_open(&config, &rsp_handle);
-                TEST_ASSERT_NOT_EQUAL(rsp_handle, NULL);
+    ESP_LOGI(TAG, "Starting HTTP download and upload test");
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
 
-                int in_offset = 0;
-                int in_read = 0;
-                uint32_t sample_num = 0;
-                uint32_t out_samples_num = 0;
-                sample_num = 1024 / (16 >> 3) / channel;
-                char *inbuf = calloc(1, 1024);
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *in_buf[10] = {0};
-                for (int i = 0; i < channel; i++) {
-                    in_buf[i] = calloc(1, 1024);
-                    TEST_ASSERT_NOT_EQUAL(in_buf[i], NULL);
-                }
-                esp_ae_rate_cvt_get_max_out_sample_num(rsp_handle, sample_num, &out_samples_num);
-                char *outbuf = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                char *out_buf[10] = {0};
-                for (int i = 0; i < channel; i++) {
-                    out_buf[i] = calloc(1, out_samples_num * bit >> 3);
-                    TEST_ASSERT_NOT_EQUAL(out_buf[i], NULL);
-                }
-                char *cmp_buffer = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_ERROR_CHECK(example_connect());
 
-                uint32_t out_sample;
-                while (1) {
-                    memset(inbuf, 0, 1024);
-                    in_read = fread(inbuf, 1, 1024, infile);
-                    if (in_read <= 0) {
-                        break;
-                    }
-                    sample_num = 1024 / (16 >> 3) / channel;
-                    esp_ae_deintlv_process(channel, 16, sample_num, inbuf, in_buf);
-                    out_sample = out_samples_num;
-                    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_buf, sample_num, out_buf, &out_sample);
-                    esp_ae_intlv_process(channel, 16, out_sample, out_buf, outbuf);
-#ifdef CMP_MODE
-                    fread(cmp_buffer, 1, out_sample * channel * 2, outfile);
-                    TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, out_sample * channel * 2), 0);
-#else
-                    fwrite(outbuf, 2, out_sample * channel, outfile);
-#endif /* CMP_MODE */
-                }
-                esp_ae_rate_cvt_close(rsp_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(outbuf);
-                free(cmp_buffer);
-                for (int i = 0; i < channel; i++) {
-                    free(in_buf[i]);
-                    free(out_buf[i]);
-                }
+    // Test different destination sample rates
+    uint32_t rates[] = {8000, 16000, 32000, 44100, 48000, 96000};
+
+    for (int i = 0; i < AE_TEST_PARAM_NUM(rates); i++) {
+        for (int j = 0; j < AE_TEST_PARAM_NUM(rates); j++) {
+            for (int k = 0; k < AE_TEST_PARAM_NUM(bits); k++) {
+                ESP_LOGI(TAG, "Testing rate conversion: %ld -> %ld, bits: %d", rates[i], rates[j], bits[k]);
+                rate_cvt_http_test(rates[i], rates[j], bits[k]);
+                vTaskDelay(4000 / portTICK_PERIOD_MS);
             }
         }
     }
-    ae_sdcard_deinit();
+    example_disconnect();
+    ESP_LOGI(TAG, "HTTP download and upload test completed successfully");
 }
 
-TEST_CASE("Rate Convert interleave 24bit test", "AUDIO_EFFECT")
+TEST_CASE("Rate Convert interleave vs deinterleave consistency test", "AUDIO_EFFECT")
 {
-    ae_sdcard_init();
-    char in_name[100];
-    char out_name[100];
-    int sr[20] = {8, 11, 12, 16, 22, 24, 32, 44, 48, 64, 88, 96};
-    int sample_rate_in[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    int sample_rate[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 12; j++) {
-            for (int k = 1; k <= 3; k++) {
-                sprintf(in_name, "/sdcard/pcm/test_%d_2.pcm", sample_rate_in[i]);
-                FILE *infile = NULL;
-                infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/rsp_test/24/test_rsp_rate3_%d_%d_%d.pcm", sr[i], sample_rate[j], k);
-                FILE *outfile = NULL;
-#ifdef CMP_MODE
-                outfile = fopen(out_name, "rb");
-#else
-                outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-
-                int src_rate = sample_rate_in[i];
-                int dest_rate = sample_rate[j];
-                int channel = 2;
-                int bit = ESP_AE_BIT24;
-                int complexity = k;
-                esp_ae_rate_cvt_cfg_t config;
-                config.bits_per_sample = bit;
-                config.src_rate = src_rate;
-                config.dest_rate = dest_rate;
-                config.channel = channel;
-                config.complexity = complexity;
-                config.perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED;
-                void *rsp_handle = NULL;
-                int ret = esp_ae_rate_cvt_open(&config, &rsp_handle);
-                TEST_ASSERT_NOT_EQUAL(rsp_handle, NULL);
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = src_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = dest_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-                uint32_t sample_num = 0;
-                uint32_t out_samples_num = 0;
-                sample_num = 2048 / (16 >> 3) / channel;
-                char *inbuf = calloc(1, 2048);
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *in_buf = calloc(1, 2048 * 2);
-                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
-                esp_ae_rate_cvt_get_max_out_sample_num(rsp_handle, sample_num, &out_samples_num);
-                char *out_buf = calloc(1, out_samples_num * (ESP_AE_BIT24 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
-                char *outbuf = calloc(1, out_samples_num * (16 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                char *cmp_buffer = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-
-                int in_offset = 0;
-                int in_read = 0;
-                uint32_t out_samples = 0;
-                while (1) {
-                    memset(inbuf, 0, 2048);
-                    in_read = fread(inbuf, 1, 2048, infile);
-                    if (in_read <= 0) {
-                        break;
-                    }
-                    sample_num = 2048 / (16 >> 3) / channel;
-                    out_samples = out_samples_num;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, inbuf, in_buf);
-                    ret = esp_ae_rate_cvt_process(rsp_handle, in_buf, sample_num, out_buf, &out_samples);
-                    if (out_samples != 0) {
-                        esp_ae_bit_cvt_process(b2_handle, out_samples, out_buf, outbuf);
-#ifdef CMP_MODE
-                        fread(cmp_buffer, 1, out_samples * channel * (16 >> 3), outfile);
-                        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, out_samples * channel * (16 >> 3)), 0);
-#else
-                        fwrite(outbuf, 1, out_samples * channel * (16 >> 3), outfile);
-#endif /* CMP_MODE */
-                    }
-                }
-                esp_ae_rate_cvt_close(rsp_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(in_buf);
-                free(outbuf);
-                free(out_buf);
-                free(cmp_buffer);
+    for (int src_rate_idx = 0; src_rate_idx < AE_TEST_PARAM_NUM(sample_rate_in); src_rate_idx++) {
+        for (int dest_rate_idx = 0; dest_rate_idx < AE_TEST_PARAM_NUM(sample_rate); dest_rate_idx++) {
+            for (int bit_idx = 0; bit_idx < AE_TEST_PARAM_NUM(bits); bit_idx++) {
+                test_rate_cvt_consistency(sample_rate_in[src_rate_idx], sample_rate[dest_rate_idx], bits[bit_idx]);
             }
         }
     }
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("Rate Convert uninterleave 24bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    char in_name[100];
-    char out_name[100];
-    int sr[20] = {8, 11, 12, 16, 22, 24, 32, 44, 48, 64, 88, 96};
-    int sample_rate_in[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    int sample_rate[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 12; j++) {
-            for (int k = 1; k <= 3; k++) {
-                sprintf(in_name, "/sdcard/pcm/test_%d_2.pcm", sample_rate_in[i]);
-                FILE *infile = NULL;
-                infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/rsp_test/24_inter/test_rsp_rate4_%d_%d_%d.pcm", sr[i], sample_rate[j], k);
-                FILE *outfile = NULL;
-#ifdef CMP_MODE
-                outfile = fopen(out_name, "rb");
-#else
-                outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-
-                int src_rate = sample_rate_in[i];
-                int dest_rate = sample_rate[j];
-                int channel = 2;
-                int bit = ESP_AE_BIT24;
-                int complexity = k;
-                esp_ae_rate_cvt_cfg_t config = {0};
-                config.src_rate = src_rate;
-                config.dest_rate = dest_rate;
-                config.channel = channel;
-                config.bits_per_sample = bit;
-                config.complexity = complexity;
-                config.perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED;
-                void *rsp_handle = NULL;
-                int ret = esp_ae_rate_cvt_open(&config, &rsp_handle);
-                TEST_ASSERT_NOT_EQUAL(rsp_handle, NULL);
-
-                uint32_t sample_num = 0;
-                uint32_t out_samples_num = 0;
-                sample_num = 2048 / (16 >> 3) / channel;
-                char *inbuf = calloc(2, 1024);
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *inbuf1 = calloc(4, 1024);
-                TEST_ASSERT_NOT_EQUAL(inbuf1, NULL);
-                char *in_buf[10] = {0};
-                for (int i = 0; i < channel; i++) {
-                    in_buf[i] = calloc(4, 1024 / channel);
-                    TEST_ASSERT_NOT_EQUAL(in_buf[i], NULL);
-                }
-                esp_ae_rate_cvt_get_max_out_sample_num(rsp_handle, sample_num, &out_samples_num);
-                char *outbuf = calloc(1, out_samples_num * (16 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                char *cmp_buffer = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                char *outbuf1 = calloc(1, out_samples_num * (ESP_AE_BIT24 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(outbuf1, NULL);
-                char *out_buf[10] = {0};
-                for (int i = 0; i < channel; i++) {
-                    out_buf[i] = calloc(1, out_samples_num * (ESP_AE_BIT24 >> 3));
-                    TEST_ASSERT_NOT_EQUAL(out_buf[i], NULL);
-                }
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = src_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT24};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = dest_rate, .channel = channel, .src_bits = ESP_AE_BIT24, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-                int in_offset = 0;
-                int in_read = 0;
-                uint32_t out_sample;
-                while (1) {
-                    memset(inbuf, 0, 2048);
-                    in_read = fread(inbuf, 1, 2048, infile);
-                    if (in_read <= 0) {
-                        break;
-                    }
-                    sample_num = 2048 / (16 >> 3) / channel;
-                    out_sample = out_samples_num;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, inbuf, inbuf1);
-                    esp_ae_deintlv_process(channel, ESP_AE_BIT24, sample_num, inbuf1, in_buf);
-                    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_buf, sample_num, out_buf, &out_sample);
-                    if (out_sample != 0) {
-                        esp_ae_intlv_process(channel, ESP_AE_BIT24, out_sample, out_buf, outbuf1);
-                        esp_ae_bit_cvt_process(b2_handle, out_sample, outbuf1, outbuf);
-#ifdef CMP_MODE
-                        fread(cmp_buffer, 1, out_sample * channel * (16 >> 3), outfile);
-                        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, out_sample * channel * (16 >> 3)), 0);
-#else
-                        fwrite(outbuf, 1, out_sample * channel * (16 >> 3), outfile);
-#endif /* CMP_MODE */
-                    }
-                }
-                esp_ae_rate_cvt_close(rsp_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(outbuf);
-                free(inbuf1);
-                free(outbuf1);
-                free(cmp_buffer);
-                for (int i = 0; i < channel; i++) {
-                    free(in_buf[i]);
-                    free(out_buf[i]);
-                }
-            }
-        }
-    }
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("Rate Convert interleave 32bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    char in_name[100];
-    char out_name[100];
-    int sr[20] = {8, 11, 12, 16, 22, 24, 32, 44, 48, 64, 88, 96};
-    int sample_rate_in[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    int sample_rate[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 12; j++) {
-            for (int k = 1; k <= 3; k++) {
-                sprintf(in_name, "/sdcard/pcm/test_%d_2.pcm", sample_rate_in[i]);
-                FILE *infile = NULL;
-                infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/rsp_test/32/test_rsp_rate5_%d_%d_%d.pcm", sr[i], sample_rate[j], k);
-                FILE *outfile = NULL;
-#ifdef CMP_MODE
-                outfile = fopen(out_name, "rb");
-#else
-                outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-
-                int src_rate = sample_rate_in[i];
-                int dest_rate = sample_rate[j];
-                int channel = 2;
-                int bit = 32;
-                int complexity = k;
-                esp_ae_rate_cvt_cfg_t config;
-                config.bits_per_sample = bit;
-                config.src_rate = src_rate;
-                config.dest_rate = dest_rate;
-                config.channel = channel;
-                config.complexity = complexity;
-                config.perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED;
-                void *rsp_handle = NULL;
-                int ret = esp_ae_rate_cvt_open(&config, &rsp_handle);
-                TEST_ASSERT_NOT_EQUAL(rsp_handle, NULL);
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = src_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = dest_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-
-                uint32_t sample_num = 0;
-                uint32_t out_samples_num = 0;
-                sample_num = 2048 / (16 >> 3) / channel;
-                char *inbuf = calloc(1, 2048);
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *in_buf = calloc(1, 2048 * 2);
-                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
-                esp_ae_rate_cvt_get_max_out_sample_num(rsp_handle, sample_num, &out_samples_num);
-                char *out_buf = calloc(1, out_samples_num * (32 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
-                char *outbuf = calloc(1, out_samples_num * (16 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                char *cmp_buffer = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                int in_offset = 0;
-                int in_read = 0;
-                uint32_t out_samples = 0;
-                while (1) {
-                    memset(inbuf, 0, 2048);
-                    in_read = fread(inbuf, 1, 2048, infile);
-                    if (in_read <= 0) {
-                        break;
-                    }
-                    sample_num = 2048 / (16 >> 3) / channel;
-                    out_samples = out_samples_num;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, inbuf, in_buf);
-                    ret = esp_ae_rate_cvt_process(rsp_handle, in_buf, sample_num, out_buf, &out_samples);
-                    if (out_samples != 0) {
-                        esp_ae_bit_cvt_process(b2_handle, out_samples, out_buf, outbuf);
-#ifdef CMP_MODE
-                        fread(cmp_buffer, 1, out_samples * channel * (16 >> 3), outfile);
-                        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, out_samples * channel * (16 >> 3)), 0);
-#else
-                        fwrite(outbuf, 1, out_samples * channel * (16 >> 3), outfile);
-#endif /* CMP_MODE */
-                    }
-                }
-                esp_ae_rate_cvt_close(rsp_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(in_buf);
-                free(outbuf);
-                free(out_buf);
-                free(cmp_buffer);
-            }
-        }
-    }
-    ae_sdcard_deinit();
-}
-
-TEST_CASE("Rate Convert uninterleave 32bit test", "AUDIO_EFFECT")
-{
-    ae_sdcard_init();
-    char in_name[100];
-    char out_name[100];
-    int sr[20] = {8, 11, 12, 16, 22, 24, 32, 44, 48, 64, 88, 96};
-    int sample_rate_in[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    int sample_rate[20] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 12; j++) {
-            for (int k = 1; k <= 3; k++) {
-                sprintf(in_name, "/sdcard/pcm/test_%d_2.pcm", sample_rate_in[i]);
-                FILE *infile = NULL;
-                infile = fopen(in_name, "rb");
-                TEST_ASSERT_NOT_EQUAL(infile, NULL);
-                sprintf(out_name, "/sdcard/rsp_test/32_inter/test_rsp_rate6_%d_%d_%d.pcm", sr[i], sample_rate[j], k);
-                FILE *outfile = NULL;
-#ifdef CMP_MODE
-                outfile = fopen(out_name, "rb");
-#else
-                outfile = fopen(out_name, "wb");
-#endif /* CMP_MODE */
-                TEST_ASSERT_NOT_EQUAL(outfile, NULL);
-
-                int src_rate = sample_rate_in[i];
-                int dest_rate = sample_rate[j];
-                int channel = 2;
-                int bit = 32;
-                int complexity = k;
-                esp_ae_rate_cvt_cfg_t config = {0};
-                config.src_rate = src_rate;
-                config.dest_rate = dest_rate;
-                config.channel = channel;
-                config.bits_per_sample = bit;
-                config.complexity = complexity;
-                config.perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED;
-                void *rsp_handle = NULL;
-                int ret = esp_ae_rate_cvt_open(&config, &rsp_handle);
-                TEST_ASSERT_NOT_EQUAL(rsp_handle, NULL);
-                uint32_t sample_num = 0;
-                uint32_t out_samples_num = 0;
-                sample_num = 2048 / (16 >> 3) / channel;
-                char *inbuf = calloc(2, 1024);
-                TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
-                char *inbuf1 = calloc(4, 1024);
-                TEST_ASSERT_NOT_EQUAL(inbuf1, NULL);
-                char *in_buf[10] = {0};
-                for (int i = 0; i < channel; i++) {
-                    in_buf[i] = calloc(4, 1024 / channel);
-                    TEST_ASSERT_NOT_EQUAL(in_buf[i], NULL);
-                }
-                esp_ae_rate_cvt_get_max_out_sample_num(rsp_handle, sample_num, &out_samples_num);
-                char *outbuf = calloc(1, out_samples_num * (16 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
-                char *cmp_buffer = calloc(1, out_samples_num * channel * bit >> 3);
-                TEST_ASSERT_NOT_EQUAL(cmp_buffer, NULL);
-                char *outbuf1 = calloc(1, out_samples_num * (32 >> 3) * channel);
-                TEST_ASSERT_NOT_EQUAL(outbuf1, NULL);
-                char *out_buf[10] = {0};
-                for (int i = 0; i < channel; i++) {
-                    out_buf[i] = calloc(1, out_samples_num * (32 >> 3));
-                    TEST_ASSERT_NOT_EQUAL(out_buf[i], NULL);
-                }
-                void *b1_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b1_config = {.sample_rate = src_rate, .channel = channel, .src_bits = ESP_AE_BIT16, .dest_bits = ESP_AE_BIT32};
-                esp_ae_bit_cvt_open(&b1_config, &b1_handle);
-                TEST_ASSERT_NOT_EQUAL(b1_handle, NULL);
-                void *b2_handle = NULL;
-                esp_ae_bit_cvt_cfg_t b2_config = {.sample_rate = dest_rate, .channel = channel, .src_bits = ESP_AE_BIT32, .dest_bits = ESP_AE_BIT16};
-                esp_ae_bit_cvt_open(&b2_config, &b2_handle);
-                TEST_ASSERT_NOT_EQUAL(b2_handle, NULL);
-                int in_offset = 0;
-                int in_read = 0;
-                uint32_t out_sample;
-                while (1) {
-                    memset(inbuf, 0, 2048);
-                    in_read = fread(inbuf, 1, 2048, infile);
-                    if (in_read <= 0) {
-                        break;
-                    }
-                    sample_num = 2048 / (16 >> 3) / channel;
-                    out_sample = out_samples_num;
-                    esp_ae_bit_cvt_process(b1_handle, sample_num, inbuf, inbuf1);
-                    esp_ae_deintlv_process(channel, 32, sample_num, inbuf1, in_buf);
-                    ret = esp_ae_rate_cvt_deintlv_process(rsp_handle, in_buf, sample_num, out_buf, &out_sample);
-                    if (out_sample != 0) {
-                        esp_ae_intlv_process(channel, 32, out_sample, out_buf, outbuf1);
-                        esp_ae_bit_cvt_process(b2_handle, out_sample, outbuf1, outbuf);
-#ifdef CMP_MODE
-                        fread(cmp_buffer, 1, out_sample * channel * (16 >> 3), outfile);
-                        TEST_ASSERT_EQUAL(memcmp(outbuf, cmp_buffer, out_sample * channel * (16 >> 3)), 0);
-#else
-                        fwrite(outbuf, 1, out_sample * channel * (16 >> 3), outfile);
-#endif /* CMP_MODE */
-                    }
-                }
-                esp_ae_rate_cvt_close(rsp_handle);
-                esp_ae_bit_cvt_close(b1_handle);
-                esp_ae_bit_cvt_close(b2_handle);
-                fclose(infile);
-                fclose(outfile);
-                free(inbuf);
-                free(outbuf);
-                free(inbuf1);
-                free(outbuf1);
-                free(cmp_buffer);
-                for (int i = 0; i < channel; i++) {
-                    free(in_buf[i]);
-                    free(out_buf[i]);
-                }
-            }
-        }
-    }
-    ae_sdcard_deinit();
 }

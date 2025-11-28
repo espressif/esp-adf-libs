@@ -1,5 +1,7 @@
 # BIT CONVERSION
 
+- [中文版](./README_BIT_CVT_CN.md)
+
 `BIT CONVERSION` module is used to convert the original audio bits per sample into the target bits per sample.
 
 # Features
@@ -28,7 +30,7 @@ Note:
 
 # Usage
 
-Here is an example of using [BIT CONVERSION](../test_app/main/test_bit_cvt.c)
+Here is an example of using [BIT CONVERSION](../example/esp_audio_effects_demo/main/esp_audio_effects_demo.c)
 
 # FAQ      
 1) Why support unsigned 8-bit instead of signed 8-bit?
