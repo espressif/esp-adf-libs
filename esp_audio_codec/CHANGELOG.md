@@ -1,5 +1,10 @@
 # Changelog
 
+## Un-released
+
+## Features
+- Added test code for customized simple decoder cases
+
 ## v2.3.0
 
 ### Features

@@ -291,3 +291,4 @@ For sample usage, please refer to [audio_decoder_test.c](test_apps/audio_codec_t
 
 ## Simple Decoder Usage
 For sample usage, please refer to [simple_decoder_test.c](test_apps/audio_codec_test/main/simple_decoder_test.c)
+For customized parser and decoder usage refer to [simple_decoder_cust.c](test_apps/audio_codec_test/main/simple_decoder_cust.c)
