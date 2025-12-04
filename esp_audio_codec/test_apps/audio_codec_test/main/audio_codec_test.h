@@ -29,8 +29,9 @@ typedef struct {
     int         sample_rate;      /*!< Sample rate */
     const void *spec_info;        /*!< Specified information for certain audio codec */
     int         spec_info_size;   /*!< Specified information length */
+    bool        no_file_header;   /*!< Whether the audio has file header */
 } audio_info_t;
-
+    
 /**
  * @brief  Read data callback
  */
@@ -72,7 +73,7 @@ int audio_codec_gen_pcm(audio_info_t *info, uint8_t *data, int size);
  *       - 0       On Success
  *       - Others  Fail to do encoder test
  */
-int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info);
+int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info, bool need_reset);
 
 /**
  * @brief  Do decoder test
@@ -85,7 +86,7 @@ int audio_encoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
  *       - 0       On Success
  *       - Others  Fail to do decoder test
  */
-int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info);
+int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info, bool need_reset);
 
 /**
  * @brief  Do simple decoder test
@@ -98,7 +99,7 @@ int audio_decoder_test(esp_audio_type_t type, audio_codec_test_cfg_t *cfg, audio
  *       - 0       On Success
  *       - Others  Fail to do simple decoder test
  */
-int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info);
+int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test_cfg_t *cfg, audio_info_t *info, bool need_reset);
 
 /**
  * @brief  Do simple decoder test, get input data from file
@@ -106,12 +107,14 @@ int audio_simple_decoder_test(esp_audio_simple_dec_type_t type, audio_codec_test
  * @param[in]   file_name  Filename to test
  * @param[in]   writer     Write callback for output pcm data
  * @param[out]  info       Audio information
+ * @param[in]   do_compare Whether to compare the output pcm data
+ * @param[in]   do_reset   Whether to reset the decoder
  *
  * @return
  *       - 0       On Success
  *       - Others  Fail to do simple decoder test
  */
-int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *info);
+int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *info, bool do_compare, bool do_reset);
 
 #ifdef __cplusplus
 }

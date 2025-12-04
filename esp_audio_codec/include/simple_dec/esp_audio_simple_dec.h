@@ -79,6 +79,8 @@ typedef enum {
                                                                                              other cases, support input data with a size of one or multi encoded frame */
     ESP_AUDIO_SIMPLE_DEC_TYPE_ALAC       = ESP_AUDIO_TYPE_ALAC,                         /*!< Simple decoder for ALAC,
                                                                                              only supports input data with a size of one encoded frame */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_VORBIS     = ESP_AUDIO_TYPE_VORBIS,                       /*!< Simple decoder for Vorbis (raw data with no extra header),
+                                                                                             only supports input data with a size of one encoded frame */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM     = 0x1,                                         /*!< Customized simple decoder type start */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM_MAX = 0x10,                                        /*!< Customized simple decoder type end */
 } esp_audio_simple_dec_type_t;
@@ -87,12 +89,15 @@ typedef enum {
  * @brief  Audio simple decoder configuration
  */
 typedef struct {
-    esp_audio_simple_dec_type_t dec_type; /*!< Simple decoder type */
-    void                       *dec_cfg;  /*!< Decoder specified configuration data (check decoder header file for details)
-                                              Ex: When use internal aac decoder can refer `esp_aac_dec.h`
-                                                  If user want to enable AAC_PLUS can set it to pointer to
-                                                  `esp_aac_dec_cfg_t` */
-    int                         cfg_size; /*!< Decoder specified configuration size */
+    esp_audio_simple_dec_type_t dec_type;       /*!< Simple decoder type */
+    void                       *dec_cfg;        /*!< Decoder specified configuration data (check decoder header file for details)
+                                                    Ex: When use internal aac decoder can refer `esp_aac_dec.h`
+                                                        If user want to enable AAC_PLUS can set it to pointer to
+                                                        `esp_aac_dec_cfg_t` */
+    int                         cfg_size;       /*!< Decoder specified configuration size */
+    bool                        use_frame_dec;  /*!< The flag of whether use frame decoder without parse
+                                                     If set to true, means that the input data is a complete frame and can be decoded directly
+                                                     If set to false, for decoders with parser, will parse to obtain the complete frame and then decode it */
 } esp_audio_simple_dec_cfg_t;
 
 /**
@@ -188,6 +193,31 @@ esp_audio_err_t esp_audio_simple_dec_process(esp_audio_simple_dec_handle_t dec_h
  *       - ESP_AUDIO_ERR_NOT_FOUND          Decode information not ready yet
  */
 esp_audio_err_t esp_audio_simple_dec_get_info(esp_audio_simple_dec_handle_t dec_handle, esp_audio_simple_dec_info_t *info);
+
+/**
+ * @brief  Reset audio simple decoder
+ *         Reset action will reset both of the internal parser and decoder to initial state
+ *         It allows the handle to be reused efficiently, avoiding the overhead of closing and recreating the handle
+ *         Typical use cases include:
+ *         - Replay the same audio stream
+ *         - Seek when use frame decoder
+ *
+ * @note   1. This function is not thread-safe. The user must ensure proper call sequencing
+ *            and avoid invoking this function while the process is running
+ *         2. Work as a frame decoder: After calling the `esp_audio_simple_dec_reset`, playback can
+ *            start from any frame of the audio stream. The audio file can be the same or different but keeping
+ *         3. Work as a non-frame decoder: After calling the `esp_audio_simple_dec_reset`,
+ *            playback must starts from the beginning of the audio stream.
+ *            The audio file can be the same or different from the previous one but keeping format unchanged
+ *
+ * @param[in]  dec_handle  Simple decoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_FAIL               Fail to reset
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_audio_simple_dec_reset(esp_audio_simple_dec_handle_t dec_handle);
 
 /**
  * @brief  Close audio simple decoder

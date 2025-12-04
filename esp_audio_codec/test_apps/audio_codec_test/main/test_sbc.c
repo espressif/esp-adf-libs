@@ -25,6 +25,7 @@
 #include "esp_audio_enc_reg.h"
 #include "esp_audio_dec_reg.h"
 #include "esp_audio_simple_dec.h"
+#include "esp_board_manager.h"
 
 #define TAG "TEST_SBC"
 #define AUD_COMPARE
@@ -283,7 +284,7 @@ static void sbc_dec_task2(void *pvParamters)
 
 TEST_CASE("SBC ENC test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     ESP_LOGI(TAG, "SBC_ENC std with mono and cbr");
     char in_name[100];
     char out_name[100];
@@ -322,12 +323,12 @@ TEST_CASE("SBC ENC test", "AUDIO_CODEC")
     sprintf(out_name, "/sdcard/sbc/test_48_2_std_with_vbr.sbc");
     sbc_encoder(in_name, out_name, &enc_cfg, true);
 
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("SBC DEC test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     char in_name[100];
     char out_name[100];
     ESP_LOGI(TAG, "SBC_DEC std with mono cbr");
@@ -362,12 +363,12 @@ TEST_CASE("SBC DEC test", "AUDIO_CODEC")
     sprintf(out_name, "/sdcard/sbc/test_48_2_std_with_vbr.pcm");
     sbc_decoder(in_name, out_name, &dec_cfg, false);
 
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("SBC ENC with multi-task test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     QueueHandle_t xQueue = NULL;
     xQueue = xQueueCreate(2, sizeof(uint32_t));
     xTaskCreatePinnedToCore(sbc_enc_task1, "sbc_enc_task1", 4096, xQueue, 9, NULL, 0);
@@ -381,13 +382,14 @@ TEST_CASE("SBC ENC with multi-task test", "AUDIO_CODEC")
             break;
         }
     }
+    vTaskDelay(4000 / portTICK_PERIOD_MS);
     vQueueDelete(xQueue);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("SBC DEC with multi-task test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     QueueHandle_t xQueue = NULL;
     xQueue = xQueueCreate(2, sizeof(uint32_t));
     xTaskCreatePinnedToCore(sbc_dec_task1, "sbc_dec_task1", 4096, xQueue, 9, NULL, 0);
@@ -401,13 +403,14 @@ TEST_CASE("SBC DEC with multi-task test", "AUDIO_CODEC")
             break;
         }
     }
+    vTaskDelay(4000 / portTICK_PERIOD_MS);
     vQueueDelete(xQueue);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("SBC CODEC with esp_audio_codec interface test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     esp_sbc_enc_register();
     esp_sbc_dec_register();
     FILE *infile = fopen("/sdcard/sbc/thetest48_2.pcm", "rb");
@@ -523,12 +526,12 @@ TEST_CASE("SBC CODEC with esp_audio_codec interface test", "AUDIO_CODEC")
     esp_audio_dec_close(dec_hd);
     esp_audio_enc_unregister(ESP_AUDIO_TYPE_SBC);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_SBC);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("SBC CODEC_PLC_WITH_AUDIO_CODEC_TEST", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     esp_sbc_enc_register();
     esp_sbc_dec_register();
     FILE *infile = fopen("/sdcard/sbc/man2.pcm", "rb");
@@ -634,12 +637,12 @@ TEST_CASE("SBC CODEC_PLC_WITH_AUDIO_CODEC_TEST", "AUDIO_CODEC")
     esp_audio_dec_close(dec_hd);
     esp_audio_enc_unregister(ESP_AUDIO_TYPE_SBC);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_SBC);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("SBC CODEC PLC_WITH_SIMPLE_DEC_TEST", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     esp_sbc_enc_register();
     esp_sbc_dec_register();
     FILE *infile = fopen("/sdcard/sbc/man2.pcm", "rb");
@@ -745,5 +748,5 @@ TEST_CASE("SBC CODEC PLC_WITH_SIMPLE_DEC_TEST", "AUDIO_CODEC")
     esp_audio_simple_dec_close(dec_hd);
     esp_audio_enc_unregister(ESP_AUDIO_TYPE_SBC);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_SBC);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }

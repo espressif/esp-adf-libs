@@ -12,13 +12,7 @@
 #include "driver/sdmmc_host.h"
 #include "esp_log.h"
 
-static sdmmc_card_t *card;
-
 typedef void (*sdcard_scan_cb_t)(void *user_data, char *url);
-
-void audio_codec_sdcard_init();
-
-void audio_codec_sdcard_deinit();
 
 esp_err_t sdcard_scan(sdcard_scan_cb_t cb, const char *path, int depth, const char *file_extension[], int filter_num, void *user_data);
 

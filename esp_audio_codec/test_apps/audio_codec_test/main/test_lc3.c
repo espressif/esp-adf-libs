@@ -24,6 +24,7 @@
 #include "esp_audio_enc_reg.h"
 #include "esp_audio_dec_reg.h"
 #include "esp_audio_simple_dec.h"
+#include "esp_board_manager.h"
 
 #define TAG "TEST_LC3"
 #define AUD_COMPARE
@@ -76,7 +77,6 @@ static int lc3_encoder(char *infile_name, char *expectfile_name, uint8_t enable_
     int inbuf_sz = 0;
     int outbuf_sz = 0;
     esp_lc3_enc_get_frame_size(enc_hd, &inbuf_sz, &outbuf_sz);
-    printf("insize:%d outsize:%d\n", inbuf_sz, outbuf_sz);
     uint8_t *inbuf = calloc(1, inbuf_sz);
     TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
     uint8_t *outbuf = calloc(1, outbuf_sz);
@@ -278,7 +278,7 @@ static void lc3_dec_task2(void *pvParamters)
 
 TEST_CASE("LC3 ENC test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     init_dsp_state();
     char in_name[100];
     char out_name[100];
@@ -336,12 +336,12 @@ TEST_CASE("LC3 ENC test", "AUDIO_CODEC")
     sprintf(out_name, "/sdcard/lc3/test_48_hp_vbr.lc3");
     lc3_encoder(in_name, out_name, true, &enc_cfg2);
 
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("LC3 DEC test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     init_dsp_state();
     char in_name[100];
     char out_name[100];
@@ -391,15 +391,15 @@ TEST_CASE("LC3 DEC test", "AUDIO_CODEC")
     sprintf(out_name, "/sdcard/lc3/test_48_hp_vbr.pcm");
     lc3_decoder(in_name, out_name, &dec_cfg2, false);
 
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("LC3 ENC with multi-task test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     QueueHandle_t xQueue = NULL;
     xQueue = xQueueCreate(2, sizeof(uint32_t));
-    xTaskCreatePinnedToCore(lc3_enc_task1, "lc3_enc_task1", 4096, xQueue, 9, NULL, 0);
+    xTaskCreatePinnedToCore(lc3_enc_task1, "lc3_enc_task1", 4096, xQueue, 10, NULL, 0);
     xTaskCreatePinnedToCore(lc3_enc_task2, "lc3_enc_task2", 4096, xQueue, 10, NULL, 1);
     uint32_t done = 0;
     int cnt = 0;
@@ -410,16 +410,17 @@ TEST_CASE("LC3 ENC with multi-task test", "AUDIO_CODEC")
             break;
         }
     }
+    vTaskDelay(4000 / portTICK_PERIOD_MS);
     vQueueDelete(xQueue);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("LC3 DEC with multi-task test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     QueueHandle_t xQueue = NULL;
     xQueue = xQueueCreate(2, sizeof(uint32_t));
-    xTaskCreatePinnedToCore(lc3_dec_task1, "lc3_dec_task1", 4096, xQueue, 9, NULL, 0);
+    xTaskCreatePinnedToCore(lc3_dec_task1, "lc3_dec_task1", 4096, xQueue, 10, NULL, 0);
     xTaskCreatePinnedToCore(lc3_dec_task2, "lc3_dec_task2", 4096, xQueue, 10, NULL, 1);
     uint32_t done = 0;
     int cnt = 0;
@@ -430,13 +431,14 @@ TEST_CASE("LC3 DEC with multi-task test", "AUDIO_CODEC")
             break;
         }
     }
+    vTaskDelay(4000 / portTICK_PERIOD_MS);
     vQueueDelete(xQueue);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("LC3 CODEC with esp_audio_codec interface test", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     init_dsp_state();
     esp_lc3_enc_register();
     esp_lc3_dec_register();
@@ -539,12 +541,12 @@ TEST_CASE("LC3 CODEC with esp_audio_codec interface test", "AUDIO_CODEC")
     esp_audio_dec_close(dec_hd);
     esp_audio_enc_unregister(ESP_AUDIO_TYPE_LC3);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_LC3);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("LC3 CODEC PLC_WITH_AUDIO_CODEC_TEST", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     init_dsp_state();
     esp_lc3_enc_register();
     esp_lc3_dec_register();
@@ -655,12 +657,12 @@ TEST_CASE("LC3 CODEC PLC_WITH_AUDIO_CODEC_TEST", "AUDIO_CODEC")
     esp_audio_dec_close(dec_hd);
     esp_audio_enc_unregister(ESP_AUDIO_TYPE_LC3);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_LC3);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }
 
 TEST_CASE("LC3 CODEC PLC_WITH_SIMPLE_DEC_TEST", "AUDIO_CODEC")
 {
-    audio_codec_sdcard_init();
+    esp_board_manager_init();
     init_dsp_state();
     esp_lc3_enc_register();
     esp_lc3_dec_register();
@@ -771,5 +773,5 @@ TEST_CASE("LC3 CODEC PLC_WITH_SIMPLE_DEC_TEST", "AUDIO_CODEC")
     esp_audio_simple_dec_close(dec_hd);
     esp_audio_enc_unregister(ESP_AUDIO_TYPE_LC3);
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_LC3);
-    audio_codec_sdcard_deinit();
+    esp_board_manager_deinit();
 }

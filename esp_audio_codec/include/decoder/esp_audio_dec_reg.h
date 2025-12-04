@@ -37,6 +37,7 @@ typedef struct {
     esp_audio_err_t (*open)(void *cfg, uint32_t cfg_sz, void **decoder); /*!< Open decoder */
     esp_audio_err_t (*decode)(void *decoder, esp_audio_dec_in_raw_t *raw, esp_audio_dec_out_frame_t *frame,
                               esp_audio_dec_info_t *info);               /*!< Decode data and get decoder information */
+    esp_audio_err_t (*reset)(void *decoder);                             /*!< Reset decoder */
     esp_audio_err_t (*close)(void *decoder);                             /*!< Close decoder */
 } esp_audio_dec_ops_t;
 

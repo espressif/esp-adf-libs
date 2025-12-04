@@ -32,6 +32,9 @@
 extern "C" {
 #endif
 
+#define ESP_OPUS_BITRATE_AUTO (-1000)  /*!< Instructs the Opus encoder to automatically choose the appropriate bitrate based on 
+                                            the configuration of samplerate, channel and duration */
+
 /**
  * @brief  Enum of OPUS Encoder frame duration choose.
  */
@@ -72,13 +75,13 @@ typedef struct {
     int                           bits_per_sample;    /*!< The bits per sample of OPUS audio.
                                                            This must be 16 */
     int                           bitrate;            /*!< Suggest bitrate(bps) range on mono stream :
-                                                           | frame_duration(ms)|       2.5       |       5         |       10       |       20       |    40    |       60       |       80       |       100      |       120      | 
-                                                           |   samplerate(Hz)  |                 |                 |                |                |          |                |                |                |                |
-                                                           |       8000        | 30000 - 128000  | 20000 - 128000  |  6000 - 128000 |  6000 - 128000 |  6 - 128 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |
-                                                           |       12000       | 30000 - 192000  | 20000 - 192000  |  6000 - 192000 |  6000 - 192000 |  6 - 192 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |
-                                                           |       16000       | 30000 - 256000  | 20000 - 256000  |  6000 - 256000 |  6000 - 256000 |  6 - 256 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |
-                                                           |       24000       | 50000 - 384000  | 40000 - 384000  | 40000 - 384000 | 40000 - 384000 | 40 - 384 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 |
-                                                           |       48000       | 40000 - 510000  | 30000 - 510000  | 30000 - 510000 | 30000 - 510000 | 30 - 510 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 |
+                                                           | frame_duration(ms)|       2.5       |       5         |       10       |       20       |    40          |       60       |       80       |       100      |       120      | 
+                                                           |   samplerate(Hz)  |                 |                 |                |                |                |                |                |                |                |
+                                                           |       8000        | 30000 - 128000  | 20000 - 128000  |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |  6000 - 128000 |
+                                                           |       12000       | 30000 - 192000  | 20000 - 192000  |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |  6000 - 192000 |
+                                                           |       16000       | 30000 - 256000  | 20000 - 256000  |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |  6000 - 256000 |
+                                                           |       24000       | 50000 - 384000  | 40000 - 384000  | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 | 40000 - 384000 |
+                                                           |       48000       | 40000 - 510000  | 30000 - 510000  | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 | 30000 - 510000 |
                                                            Note : 1) This table shows the bitrate range corresponding to each samplerate and frame duration.
                                                                   2) The bitrate range of dual stream is the same that of mono. */
     esp_opus_enc_frame_duration_t frame_duration;     /*!< The duration of one frame.
@@ -206,6 +209,25 @@ esp_audio_err_t esp_opus_enc_process(void *enc_hd, esp_audio_enc_in_frame_t *in_
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_opus_enc_get_info(void *enc_hd, esp_audio_enc_info_t *enc_info);
+
+/**
+ * @brief  Reset of OPUS encoder to its initial state
+ *
+ * @note  Reset mostly do following action:
+ *          - Reset internal processing state
+ *          - Flushing cached input or output buffer
+ *        After reset, user can reuse the handle without re-open which may time consuming
+ *        Typically use cases like: During encoding need to encode different audio stream
+ *        which the audio information (sample rate, channel, bits per sample) is not changed
+ *        This API is not thread-safe, avoid call it during processing
+ *
+ * @param[in]  enc_hd  The OPUS encoder handle
+ *
+ * @return
+ *       - ESP_AUDIO_ERR_OK                 On success
+ *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
+ */
+esp_audio_err_t esp_opus_enc_reset(void *enc_hd);
 
 /**
  * @brief  Deinitialize OPUS encoder handle.

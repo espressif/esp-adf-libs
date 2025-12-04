@@ -1,9 +1,23 @@
 # Changelog
 
-## Un-released
+## v2.4.0
 
-## Features
+### Features
+
+- Added support for `AAC` decoder to decode spliced audio streams
+- Added support for `FLAC` decoder to decode 32-bit audio streams
+- Added extensible format parsing support in `WAV` parser
+- Added `esp_xxx_enc_reset`, `esp_xxx_dec_reset` and `esp_audio_simple_dec_reset` APIs to reset decoders or encoders to initialized state
+- Added `Vorbis` decoder to the simple decoder module
+- Added `ESP_OPUS_BITRATE_AUTO` in `OPUS` encoder
 - Added test code for customized simple decoder cases
+
+### Bug Fixes
+
+- Enhanced `MP3` and `AAC` parsers to inspect additional frames for more reliable frame validation
+- Fixed `FLAC` parser error in getting valid frame size
+- Fixed decoder error toleranced frame count not taking effect in `simple_decoder`
+- Fixed `SBC` decoder reporting an incorrect frame size when returning `ESP_AUDIO_ERR_BUFF_NOT_ENOUGH`
 
 ## v2.3.0
 

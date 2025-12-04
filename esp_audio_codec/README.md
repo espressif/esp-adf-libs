@@ -87,9 +87,9 @@ Details for the supported encoders are as follow:
 - Variable Bit Rate (VBR)
 
 **ALAC**    
-- Encoding sample rates (Hz): 8000, 12000, 16000, 24000, 48000    
-- Encoding channel num: mono, dual    
-- Encoding bits per sample: 16 bits  
+- Encoding sample rates from 1 kHz to 384 kHz     
+- Encoding channel num: [1, 8]  
+- Encoding bits per sample: 16, 24, 32 bits  
 
 **SBC**    
 - Encoding sample rates (Hz): 16000, 32000, 44100, 48000    
@@ -121,13 +121,15 @@ Details for the supported encoders are as follow:
   - VORBIS
   - FLAC
   - ALAC
+  - SBC
+  - LC3
 * Supports operate all decoder through common API see [esp_audio_dec.h](include/encoder/esp_audio_dec.h)
 * Supports customized decoder through `esp_audio_dec_register` or overwrite default decoder
 * Supports register all supported decoder through `esp_audio_dec_register_default` and manager it by menuconfig
 
 Details for the supported decoders are as follow:  
 **AAC**     
-- Supports AAC-LC, AAC-Plus
+- Supports AAC-LC, HE-AAC, HE-AACv2
 - Use can control AAC-Plus decoding behavior, to decrease cpu and memory usage if no need AAC-Plus decoding
 - Supports sample rates (Hz): 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000
 - Supports channel num: mono, dual only
@@ -159,14 +161,14 @@ Details for the supported decoders are as follow:
 - Supports decoding self delimited packet also
 
 **ALAC**    
-- Decoding sample rates (Hz): 8000, 12000, 16000, 24000, 48000    
-- Decoding channel num: mono, dual    
-- Decoding bits per sample: 16 bits 
+- Decoding sample rates (kHz): [1, 384]   
+- Decoding channel num: [1, 8]     
+- Decoding bits per sample: 16, 24, 32 bits 
   
 **FLAC**  
-- Supports sample rates (Hz): 96000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000 
-- Decoding channel num: mono, dual    
-- Decoding bits per sample: 16 bits 
+- Supports sample rates (kHz): [8, 192]   
+- Decoding channel num: [1, 8]
+- Decoding bits per sample: 16, 24, 32 bits 
 
 **VORBIS**  
 - Supports sample rates (Hz): 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000 
@@ -214,6 +216,10 @@ Details for the supported audio containers are as follow:
 |       G711     | Supports G711A, G711U                                       |
 |       SBC      | Supports SBC and MSBC                                       |
 |       LC3      | Supports LC3                                                |
+|       OPUS     | Supports raw opus only                                      |
+|       PCM      | Supports raw pcm only                                       |
+|       ALAC     | Supports raw alac only                                      |
+|       VORBIS   | Supports raw vorbis only                                    |
 
 # Performance
 
@@ -270,16 +276,14 @@ Encoder cpu usage is highly dependent on certain encoding settings (like bitrate
 
 The following table shows the support of ESP_AUDIO_CODEC for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported. 
 
-|Chip         |         v2.0.0     |
-|:-----------:|:------------------:|
-|ESP32        |       &#10004;     |
-|ESP32-S2     |       &#10004;     |
-|ESP32-C3     |       &#10004;     |
-|ESP32-C6     |       &#10004;     |
-|ESP32-S3     |       &#10004;     |
-|ESP32-P4     |       &#10004;     |
-|ESP32-C4     |       &#10004;     |
-|ESP32-H4     |       &#10004;     |
+|Version      |  ESP32   |   ESP32-S2 |   ESP32-S3 |   ESP32-C2 |  ESP32-C3 |  ESP32-C5 |  ESP32-C6 |   ESP32-P4  |   ESP32-H4 |
+|:-----------:|:--------:|:----------:|:----------:|:----------:|:---------:|:---------:|:---------:|:-----------:|:----------:|
+|   v1.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10006;  | &#10004;  | &#10006;  | &#10006;  |  &#10006;   |  &#10006;  |
+|   v2.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10006;  | &#10004;  | &#10006;  | &#10004;  |  &#10004;   |  &#10006;  |
+|   v2.1.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
+|   v2.2.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
+|   v2.3.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |
+|   v2.4.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |
 
 # Usage
 

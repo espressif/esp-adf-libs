@@ -18,6 +18,8 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_es_parse_types.h"
+#include "test_common.h"
+#include "esp_board_manager.h"
 
 extern const char test_mp3_start[] asm("_binary_test_mp3_start");
 extern const char test_mp3_end[] asm("_binary_test_mp3_end");
@@ -38,28 +40,33 @@ typedef enum {
 } decode_state_t;
 
 typedef struct {
-    esp_audio_type_t    type;
-    audio_info_t        info;
-    uint8_t            *wav_pcm;
-    int                 wav_size;
-    RingbufHandle_t     fifo;
-    int                 read_pcm_size;
-    int                 write_pcm_size;
-    decode_state_t      dec_state;
-    float               signal_power;
-    float               noise_power;
-    int                 sample_shift;
-    int                 wav_peak;
-    int                 pcm_peak;
-    bool                use_test_data;
-    esp_es_parse_type_t parse_type;
-    int                 test_send_size;
-    int                 test_file_size;
-    uint8_t            *test_frames;
+    esp_audio_type_t     type;
+    audio_info_t         info;
+    uint8_t             *wav_pcm;
+    int                  wav_size;
+    RingbufHandle_t      fifo;
+    int                  read_pcm_size;
+    int                  write_pcm_size;
+    decode_state_t       dec_state;
+    float                signal_power;
+    float                noise_power;
+    int                  sample_shift;
+    int                  wav_peak;
+    int                  pcm_peak;
+    bool                 use_test_data;
+    esp_es_parse_type_t  parse_type;
+    int                  test_send_size;
+    int                  test_file_size;
+    uint8_t             *test_frames;
+    FILE                *enc_file;
+    FILE                *dec_file;
+    bool                 need_reset;
 } chain_info_t;
 
-static chain_info_t chain;
-static bool         chain_testing = false;
+static chain_info_t           chain;
+static bool                   chain_testing = false;
+static audio_codec_test_cfg_t enc_test_cfg;
+static audio_codec_test_cfg_t dec_test_cfg;
 
 extern esp_es_parse_func_t esp_es_parse_get_default(esp_es_parse_type_t parse_type);
 
@@ -164,13 +171,30 @@ static int write_pcm(uint8_t *data, int size)
     return size;
 }
 
+static int write_pcm_to_file(uint8_t *data, int size)
+{
+    fwrite(data, 1, size, chain.dec_file);
+    chain.write_pcm_size += size;
+    return size;
+}
+
+static int write_pcm_to_compare(uint8_t *data, int size)
+{
+    uint8_t *cmp_buf = calloc(1, size);
+    chain.write_pcm_size += size;
+    fread(cmp_buf, 1, size, chain.dec_file);
+    if (memcmp(cmp_buf, data, size) != 0) {
+        ESP_LOGE(TAG, "Decoded data not match");
+        free(cmp_buf);
+        return -1;
+    }
+    free(cmp_buf);
+    return size;
+}
+
 static void dec_thread(void *arg)
 {
-    audio_codec_test_cfg_t cfg = {
-        .read = read_raw,
-        .write = write_pcm,
-    };
-    if (audio_decoder_test(chain.type, &cfg, &chain.info) != 0) {
+    if (audio_decoder_test(chain.type, &dec_test_cfg, &chain.info, chain.need_reset) != 0) {
         chain.dec_state = DECODE_STATE_ERR;
     } else {
         chain.dec_state = DECODE_STATE_NONE;
@@ -189,13 +213,43 @@ static int write_raw(uint8_t *data, int size)
     return 0;
 }
 
-static int get_test_raw_frame(uint8_t **data, int *size)
+static int write_raw_to_file(uint8_t *data, int size)
+{
+    if (chain.dec_state == DECODE_STATE_NONE) {
+        chain.dec_state = DECODE_STATE_RUNNING;
+        xTaskCreatePinnedToCore(dec_thread, "Decode", 20 * 1024, NULL, 10, NULL, 0);
+    }
+    xRingbufferSend(chain.fifo, (void *)data, size, portMAX_DELAY);
+    fwrite(data, 1, size, chain.enc_file);
+    return 0;
+}
+
+static int write_raw_to_compare(uint8_t *data, int size)
+{
+    if (chain.dec_state == DECODE_STATE_NONE) {
+        chain.dec_state = DECODE_STATE_RUNNING;
+        xTaskCreatePinnedToCore(dec_thread, "Decode", 20 * 1024, NULL, 10, NULL, 0);
+    }
+    uint8_t *cmp_buf = calloc(1, size);
+    xRingbufferSend(chain.fifo, (void *)data, size, portMAX_DELAY);
+    fread(cmp_buf, 1, size, chain.enc_file);
+    if (memcmp(cmp_buf, data, size) != 0) {
+        ESP_LOGE(TAG, "Encoded data not match");
+        free(cmp_buf);
+        return -1;
+    }
+    free(cmp_buf);
+    return 0;
+}
+
+static int get_test_raw_frame(uint8_t **data, int *size, bool is_bos)
 {
     esp_es_parse_func_t parser = esp_es_parse_get_default(chain.parse_type);
     if (parser == NULL) {
         *size = 0;
         return -1;
     }
+REPARSE:
     if (chain.test_send_size >= chain.test_file_size) {
         *size = 0;
         return -1;
@@ -203,16 +257,26 @@ static int get_test_raw_frame(uint8_t **data, int *size)
     esp_es_parse_raw_t raw = {
         .buffer = chain.test_frames + chain.test_send_size,
         .len = chain.test_file_size - chain.test_send_size,
+        .bos = is_bos,
     };
     esp_es_parse_frame_info_t frame_info = {0};
     esp_es_parse_err_t ret = parser(&raw, &frame_info);
-    if (ret != ESP_ES_PARSE_ERR_OK) {
+    if (ret == ESP_ES_PARSE_ERR_OK || ret == ESP_ES_PARSE_ERR_SKIP_ONLY) {
+        if (frame_info.skipped_size > 0) {
+            is_bos = false;
+            chain.test_send_size += frame_info.skipped_size;
+            goto REPARSE;
+        }
+        *size = frame_info.frame_size;
+        *data = raw.buffer;
+        chain.test_send_size += frame_info.frame_size;
+    } else if (ret == ESP_ES_PARSE_ERR_WRONG_HEADER) {
+        chain.test_send_size += 1;
+        goto REPARSE;
+    } else {
         *size = 0;
         return -1;
     }
-    *size = frame_info.frame_size;
-    *data = raw.buffer;
-    chain.test_send_size += frame_info.frame_size;
     return 0;
 }
 
@@ -236,15 +300,21 @@ static bool encoder_use_test_data(esp_audio_type_t type)
     }
 }
 
-static int encoder_to_decoder(esp_audio_type_t type, int sample_rate, uint8_t channel)
+static int encoder_to_decoder(esp_audio_type_t type, int sample_rate, uint8_t channel,
+                              bool need_reset, FILE *enc_file, FILE *dec_file)
 {
     memset(&chain, 0, sizeof(chain_info_t));
     chain.type = type;
     chain.info.sample_rate = sample_rate;
     chain.info.bits_per_sample = 16;
     chain.info.channel = channel;
+    chain.info.no_file_header = true;
+    chain.need_reset = need_reset;
+    chain.enc_file = enc_file;
+    chain.dec_file = dec_file;
     int ret = 0;
     chain.use_test_data = encoder_use_test_data(type);
+    bool is_bos = true;
     do {
         chain.fifo = xRingbufferCreate(RING_FIFO_SIZE, RINGBUF_TYPE_NOSPLIT);
         if (chain.fifo == NULL) {
@@ -257,20 +327,17 @@ static int encoder_to_decoder(esp_audio_type_t type, int sample_rate, uint8_t ch
                 break;
             }
             chain.wav_size = audio_codec_gen_pcm(&chain.info, chain.wav_pcm, MAX_GEN_SIZE);
-            audio_codec_test_cfg_t cfg = {
-                .read = read_pcm,
-                .write = write_raw,
-            };
-            audio_encoder_test(type, &cfg, &chain.info);
+            audio_encoder_test(type, &enc_test_cfg, &chain.info, chain.need_reset);
         } else {
             // Directly read frame data use parser
             while (1) {
                 uint8_t *frame_data = NULL;
                 int frame_size = 0;
-                get_test_raw_frame(&frame_data, &frame_size);
+                get_test_raw_frame(&frame_data, &frame_size, is_bos);
                 if (frame_size == 0) {
                     break;
                 }
+                is_bos = false;
                 write_raw(frame_data, frame_size);
             }
         }
@@ -343,7 +410,134 @@ static void chain_test_thread(void *arg)
         }
         ESP_LOGI(TAG, "Start to do chain test for %s sample_rate %d channel %d", esp_audio_codec_get_name(types[i]),
                  new_sample_rate, new_channel);
-        encoder_to_decoder(types[i], new_sample_rate, new_channel);
+        enc_test_cfg.read = read_pcm;
+        enc_test_cfg.write = write_raw;
+        dec_test_cfg.read = read_raw;
+        dec_test_cfg.write = write_pcm;
+        encoder_to_decoder(types[i], new_sample_rate, new_channel, false, NULL, NULL);
+    }
+    chain_testing = false;
+    vTaskDelete(NULL);
+}
+
+static void chain_reset_test_thread(void *arg)
+{
+    esp_audio_type_t types[] = {
+        ESP_AUDIO_TYPE_AAC,
+        ESP_AUDIO_TYPE_G711A,
+        ESP_AUDIO_TYPE_G711U,
+        ESP_AUDIO_TYPE_AMRNB,
+        ESP_AUDIO_TYPE_AMRWB,
+        ESP_AUDIO_TYPE_ADPCM,
+        ESP_AUDIO_TYPE_OPUS,
+        ESP_AUDIO_TYPE_ALAC,
+        ESP_AUDIO_TYPE_MP3,
+        ESP_AUDIO_TYPE_FLAC,
+        ESP_AUDIO_TYPE_SBC,
+        ESP_AUDIO_TYPE_LC3,
+    };
+    int sample_rate = 48000;
+    uint8_t channel = 2;
+    char enc_file_name[100];
+    char dec_file_name[100];
+    FILE *enc_file = NULL;
+    FILE *dec_file = NULL;
+    for (int i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+        int new_sample_rate = sample_rate;
+        int new_channel = channel;
+        if (types[i] == ESP_AUDIO_TYPE_G711A || types[i] == ESP_AUDIO_TYPE_G711U || types[i] == ESP_AUDIO_TYPE_AMRNB) {
+            new_sample_rate = 8000;
+            new_channel = 1;
+        } else if (types[i] == ESP_AUDIO_TYPE_AMRWB) {
+            new_sample_rate = 16000;
+            new_channel = 1;
+        } else if (types[i] == ESP_AUDIO_TYPE_MP3 || types[i] == ESP_AUDIO_TYPE_FLAC) {
+            new_sample_rate = 44100;
+            new_channel = 2;
+        } else if (types[i] == ESP_AUDIO_TYPE_SBC || types[i] == ESP_AUDIO_TYPE_LC3) {
+            new_sample_rate = 48000;
+            new_channel = 2;
+        }
+        ESP_LOGI(TAG, "Start to do chain test for %s sample_rate %d channel %d", (char *)esp_audio_codec_get_name(types[i]),
+                 new_sample_rate, new_channel);
+        if (types[i] != ESP_AUDIO_TYPE_MP3 && types[i] != ESP_AUDIO_TYPE_FLAC) {
+            snprintf(enc_file_name, sizeof(enc_file_name), "/sdcard/enc_%s.%s",
+                     (char *)esp_audio_codec_get_name(types[i]), (char *)esp_audio_codec_get_name(types[i]));
+            enc_file = fopen(enc_file_name, "wb");
+            if (enc_file == NULL) {
+                ESP_LOGE(TAG, "Fail to open enc file %s", enc_file_name);
+                continue;
+            }
+            snprintf(dec_file_name, sizeof(dec_file_name), "/sdcard/dec_%s.pcm", (char *)esp_audio_codec_get_name(types[i]));
+            dec_file = fopen(dec_file_name, "wb");
+            if (dec_file == NULL) {
+                ESP_LOGE(TAG, "Fail to open dec file %s", dec_file_name);
+                continue;
+            }
+            enc_test_cfg.read = read_pcm;
+            enc_test_cfg.write = write_raw_to_file;
+            dec_test_cfg.read = read_raw;
+            dec_test_cfg.write = write_pcm_to_file;
+        } else {
+            snprintf(dec_file_name, sizeof(dec_file_name), "/sdcard/dec_%s.pcm", (char *)esp_audio_codec_get_name(types[i]));
+            dec_file = fopen(dec_file_name, "wb");
+            if (dec_file == NULL) {
+                ESP_LOGE(TAG, "Fail to open dec file %s", dec_file_name);
+                continue;
+            }
+            dec_test_cfg.read = read_raw;
+            dec_test_cfg.write = write_pcm_to_file;
+        }
+        encoder_to_decoder(types[i], new_sample_rate, new_channel, true, enc_file, dec_file);
+        if (chain.enc_file) {
+            fclose(chain.enc_file);
+            chain.enc_file = NULL;
+            enc_file = NULL;
+        }
+        if (chain.dec_file) {
+            fclose(chain.dec_file);
+            chain.dec_file = NULL;
+            dec_file = NULL;
+        }
+        if (types[i] != ESP_AUDIO_TYPE_MP3 && types[i] != ESP_AUDIO_TYPE_FLAC) {
+            snprintf(enc_file_name, sizeof(enc_file_name), "/sdcard/enc_%s.%s",
+                     (char *)esp_audio_codec_get_name(types[i]), (char *)esp_audio_codec_get_name(types[i]));
+            enc_file = fopen(enc_file_name, "rb");
+            if (enc_file == NULL) {
+                ESP_LOGE(TAG, "Fail to open enc file %s", enc_file_name);
+                continue;
+            }
+            snprintf(dec_file_name, sizeof(dec_file_name), "/sdcard/dec_%s.pcm", (char *)esp_audio_codec_get_name(types[i]));
+            dec_file = fopen(dec_file_name, "rb");
+            if (dec_file == NULL) {
+                ESP_LOGE(TAG, "Fail to open dec file %s", dec_file_name);
+                continue;
+            }
+            enc_test_cfg.read = read_pcm;
+            enc_test_cfg.write = write_raw_to_compare;
+            dec_test_cfg.read = read_raw;
+            dec_test_cfg.write = write_pcm_to_compare;
+        } else {
+            snprintf(dec_file_name, sizeof(dec_file_name), "/sdcard/dec_%s.pcm", (char *)esp_audio_codec_get_name(types[i]));
+            dec_file = fopen(dec_file_name, "rb");
+            if (dec_file == NULL) {
+                ESP_LOGE(TAG, "Fail to open dec file %s", dec_file_name);
+                continue;
+            }
+            dec_test_cfg.read = read_raw;
+            dec_test_cfg.write = write_pcm_to_compare;
+        }
+        encoder_to_decoder(types[i], new_sample_rate, new_channel, false, enc_file, dec_file);
+        if (chain.enc_file) {
+            fclose(chain.enc_file);
+            chain.enc_file = NULL;
+            enc_file = NULL;
+        }
+        if (chain.dec_file) {
+            fclose(chain.dec_file);
+            chain.dec_file = NULL;
+            dec_file = NULL;
+        }
     }
     chain_testing = false;
     vTaskDelete(NULL);
@@ -382,6 +576,18 @@ TEST_CASE("Encode to Decode chain test", CODEC_TEST_MODULE_NAME)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
     vTaskDelay(pdMS_TO_TICKS(100));
+}
+
+TEST_CASE("Encode to Decode chain reset test", CODEC_TEST_MODULE_NAME)
+{
+    esp_board_manager_init();
+    chain_testing = true;
+    xTaskCreatePinnedToCore(chain_reset_test_thread, "Chain_Reset_Test", 40 * 1024, NULL, 20, NULL, 1);
+    while (chain_testing) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_board_manager_deinit();
 }
 
 void setUp(void)

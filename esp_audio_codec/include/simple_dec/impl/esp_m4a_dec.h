@@ -62,6 +62,7 @@ typedef struct {
 #define ESP_M4A_DEC_DEFAULT_OPS() {   \
     .open   = esp_m4a_dec_open,       \
     .decode = esp_m4a_dec_decode,     \
+    .reset  = NULL,                   \
     .close  = esp_m4a_dec_close,      \
 }
 
