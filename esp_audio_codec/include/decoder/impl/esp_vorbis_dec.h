@@ -44,6 +44,18 @@ typedef struct {
 } esp_vorbis_dec_cfg_t;
 
 /**
+ * @brief  Default decoder configuration for VORBIS
+ *
+ * @note  If user want to success decode for VORBIS, `info_header`, `info_size`, `setup_header`, `setup_size` must set
+ */
+#define ESP_VORBIS_DEC_CONFIG_DEFAULT() {  \
+    .info_header  = NULL,                  \
+    .info_size    = 0,                     \
+    .setup_header = NULL,                  \
+    .setup_size   = 0,                     \
+}
+
+/**
  * @brief  Default decoder operations for VORBIS
  */
 #define ESP_VORBIS_DEC_DEFAULT_OPS() {  \

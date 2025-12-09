@@ -39,6 +39,16 @@ typedef struct {
 } esp_alac_dec_cfg_t;
 
 /**
+ * @brief  Default decoder configuration for ALAC
+ *
+ * @note  If user want to success decode for ALAC, `codec_spec_info` and `spec_info_len` must set
+ */
+#define ESP_ALAC_DEC_CONFIG_DEFAULT() {  \
+    .codec_spec_info = NULL,             \
+    .spec_info_len   = 0,                \
+}
+
+/**
  * @brief  Default decoder operations for ALAC
  */
 #define ESP_ALAC_DEC_DEFAULT_OPS() {  \

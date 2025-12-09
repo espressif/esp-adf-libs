@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.4.1
+
+### Features
+
+- Added audio decoder default configuration
+
+### Bug Fixes
+
+- Fixed decoder reset API abnormal for codecs
+- Fixed padding size in `frame_info` of es parser is not clear
+- Fixed `AMR-NB` and `AMR-WB` reset forget to clear some AMR header flags
+- Fixed `FLAC` not reset `info_set` flag which will cause audio information not update
+- Fixed Encoder reset not clear `sample_num`
+- Fixed can not skip decode error frame
+- Fixed dead loop of ts parser when file corrupt in middle
+- Added parse of mp3 padding data size in `Info` tag
+
 ## v2.4.0
 
 ### Features

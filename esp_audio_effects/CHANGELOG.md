@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.1
+
+### Features
+
+- Removed the range limitation of `Mixer` weight
+
+### Bug Fixes
+
+- Fixed rate convert reset have crash when input and output samplerate is same
+
 ## v1.2.0
 
 ### Features

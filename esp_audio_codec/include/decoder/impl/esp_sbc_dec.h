@@ -51,6 +51,18 @@ typedef struct {
     uint8_t        enable_plc : 1; /*!< Enables Packet Loss Concealment (PLC). Set to true to enable PLC and set to false to disable PLC */
 } esp_sbc_dec_cfg_t;
 
+/**
+ * @brief  Default decoder configuration for SBC
+ */
+#define ESP_SBC_DEC_CONFIG_DEFAULT() {  \
+    .sbc_mode   = ESP_SBC_MODE_STD,    \
+    .ch_num     = ESP_AUDIO_DUAL,      \
+    .enable_plc = true,                \
+}
+
+/**
+ * @brief  Default decoder operations for SBC
+ */
 #define ESP_SBC_DEC_DEFAULT_OPS() {  \
     .open   = esp_sbc_dec_open,      \
     .decode = esp_sbc_dec_decode,    \

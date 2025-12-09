@@ -80,11 +80,9 @@ typedef enum {
 typedef struct {
     float    weight1;       /*!< The initial weight of the audio stream.
                                  The weight value maintained under stable conditions
-                                 when MIXER is set to 'ESP_AE_MIXER_MODE_FADE_DOWNWARD' mode.
-                                 The data range of weight1 is [0.0, 1.0] */
+                                 when MIXER is set to 'ESP_AE_MIXER_MODE_FADE_DOWNWARD' mode */
     float    weight2;       /*!< The weight value maintained under stable conditions
-                                 when MIXER is set to 'ESP_AE_MIXER_MODE_FADE_UPWARD' mode.
-                                 The data range of weight2 is [0.0, 1.0] */
+                                 when MIXER is set to 'ESP_AE_MIXER_MODE_FADE_UPWARD' mode */
     uint32_t transit_time;  /*!< Time of change from weight1 to weight2 or weight2 to weight1.
                                  unit: ms */
 } esp_ae_mixer_info_t;

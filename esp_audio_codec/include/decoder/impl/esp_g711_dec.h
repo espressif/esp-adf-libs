@@ -41,6 +41,13 @@ typedef struct {
 } esp_g711_dec_cfg_t;
 
 /**
+ * @brief  Default decoder configuration for G711
+ */
+#define ESP_G711_DEC_CONFIG_DEFAULT() {  \
+    .channel = ESP_AUDIO_MONO,           \
+}
+
+/**
  * @brief  Default decoder operations for G711-Alaw
  */
 #define ESP_G711A_DEC_DEFAULT_OPS() { \
