@@ -1,0 +1,5 @@
+board: midi_keyboard
+chip: esp32s3
+version: 1.0.0
+description: "MIDI Keyboard Board"
+manufacturer: "Vendor"

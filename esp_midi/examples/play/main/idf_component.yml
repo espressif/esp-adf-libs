@@ -1,0 +1,5 @@
+dependencies:
+  espressif/esp_midi:
+    version: "*"
+    override_path: "../../.."
+  espressif/esp32_s3_korvo_2: ^3.0.0

@@ -26,5 +26,6 @@ jobs:
             esp_image_effects;
             esp_media_protocols;
             media_lib_sal;
+            esp_midi;
           namespace: "espressif"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
