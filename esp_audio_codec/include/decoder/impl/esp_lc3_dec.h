@@ -52,17 +52,23 @@ typedef struct {
     uint8_t  enable_plc   : 1; /*!< Enables Packet Loss Concealment (PLC). Set to true to enable PLC and set to false to disable PLC */
 } esp_lc3_dec_cfg_t;
 
-#define ESP_LC3_DEC_CONFIG_DEFAULT() {  \
-    .sample_rate     = 48000,           \
-    .bits_per_sample = 16,              \
-    .channel         = 1,               \
-    .frame_dms       = 100,             \
-    .nbyte           = 120,             \
-    .is_cbr          = true,            \
-    .len_prefixed    = false,           \
-    .enable_plc      = true,            \
+/**
+ * @brief  Default decoder configuration for LC3
+ */
+#define ESP_LC3_DEC_CONFIG_DEFAULT() {             \
+    .sample_rate     = ESP_AUDIO_SAMPLE_RATE_48K,  \
+    .bits_per_sample = ESP_AUDIO_BIT16,            \
+    .channel         = ESP_AUDIO_MONO,             \
+    .frame_dms       = 100,                        \
+    .nbyte           = 120,                        \
+    .is_cbr          = true,                       \
+    .len_prefixed    = false,                      \
+    .enable_plc      = true,                       \
 }
 
+/**
+ * @brief  Default decoder operations for LC3
+ */
 #define ESP_LC3_DEC_DEFAULT_OPS() {  \
     .open   = esp_lc3_dec_open,      \
     .decode = esp_lc3_dec_decode,    \

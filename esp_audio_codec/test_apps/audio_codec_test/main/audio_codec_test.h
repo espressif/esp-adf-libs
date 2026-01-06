@@ -30,6 +30,7 @@ typedef struct {
     const void *spec_info;        /*!< Specified information for certain audio codec */
     int         spec_info_size;   /*!< Specified information length */
     bool        no_file_header;   /*!< Whether the audio has file header */
+    uint32_t    dec_type;         /*!< Decoder type */
 } audio_info_t;
     
 /**

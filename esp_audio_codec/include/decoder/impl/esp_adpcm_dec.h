@@ -43,6 +43,15 @@ typedef struct {
 } esp_adpcm_dec_cfg_t;
 
 /**
+ * @brief  Default decoder configuration for ADPCM
+ */
+#define ESP_ADPCM_DEC_CONFIG_DEFAULT() {           \
+    .sample_rate     = ESP_AUDIO_SAMPLE_RATE_16K,  \
+    .channel         = ESP_AUDIO_MONO,             \
+    .bits_per_sample = ESP_AUDIO_BIT16,            \
+}
+
+/**
  * @brief  Default decoder operations for ADPCM
  */
 #define ESP_ADPCM_DEC_DEFAULT_OPS() {  \

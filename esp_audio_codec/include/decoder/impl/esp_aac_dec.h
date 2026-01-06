@@ -44,6 +44,17 @@ typedef struct {
 } esp_aac_dec_cfg_t;
 
 /**
+ * @brief  Default decoder configuration for AAC
+ */
+#define ESP_AAC_DEC_CONFIG_DEFAULT() {             \
+    .sample_rate     = ESP_AUDIO_SAMPLE_RATE_48K,  \
+    .channel         = ESP_AUDIO_MONO,             \
+    .bits_per_sample = ESP_AUDIO_BIT16,            \
+    .no_adts_header  = false,                      \
+    .aac_plus_enable = false,                      \
+}
+
+/**
  * @brief  Default decoder operations for AAC
  */
 #define ESP_AAC_DEC_DEFAULT_OPS() {  \

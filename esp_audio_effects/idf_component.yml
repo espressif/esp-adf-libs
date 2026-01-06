@@ -2,10 +2,20 @@ description: Espressif audio effects
 issues: https://github.com/espressif/esp-adf/issues
 repository: https://github.com/espressif/esp-adf-libs.git
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_audio_effects
-version: 1.2.0
+version: 1.2.1
 
 tags:
    - "multimedia"
    - "audio_effects"
    - "rate_conversion"
    - "mixer"
+   - "equalizer"
+   - "fade"
+   - "sonic"
+   - "drc"
+   - "mbc"
+   - "alc"
+   - "data_weaver"
+   - "resample"
+   - "channel_conversion"
+   - "bit_conversion"

@@ -37,6 +37,9 @@ typedef union {
     esp_m4a_dec_cfg_t m4a_cfg;
     esp_ts_dec_cfg_t  ts_cfg;
     esp_aac_dec_cfg_t aac_cfg;
+    esp_sbc_dec_cfg_t sbc_cfg;
+    esp_lc3_dec_cfg_t lc3_cfg;
+    esp_opus_dec_cfg_t opus_cfg;
 } simp_dec_all_t;
 
 typedef struct {
@@ -62,25 +65,25 @@ static char                          *cmp_buf;
 static esp_audio_simple_dec_handle_t  simple_dec_hd = NULL;
 
 static char reset_url1[][100] = {
-    "/sdcard/audio_files/ut/test.aac",
-    "/sdcard/audio_files/ut/test.mp3",
-    "/sdcard/audio_files/ut/test.flac",
-    "/sdcard/audio_files/amr/1_8000_1_12801_41.amrnb",
-    "/sdcard/audio_files/amr/3_16000_1_24000_44.amrwb",
-    "/sdcard/audio_files/ut/test.wav",
-    "/sdcard/audio_files/ut/test.m4a",
-    "/sdcard/audio_files/ut/test.ts",
+    "/sdcard/audio_test/test.aac",
+    "/sdcard/audio_test/test.mp3",
+    "/sdcard/audio_test/test.flac",
+    "/sdcard/audio_test/47_月亮代表我的心.amrnb",
+    "/sdcard/audio_test/52_test1.amrwb",
+    "/sdcard/audio_test/test.wav",
+    "/sdcard/audio_test/test.m4a",
+    "/sdcard/audio_test/test.ts",
 };
 
 static char reset_url2[][100] = {
-    "/sdcard/audio_files/aac/2_22050_1_16_61000_256.aac",
-    "/sdcard/audio_files/mp3/0_32000_2_16_88000_45.mp3",
-    "/sdcard/audio_files/flac/0_44100_2_940662_170.flac",
-    "/sdcard/audio_files/amr/2_8000_1_5219_2.amrnb",
-    "/sdcard/audio_files/amr/1_16000_1_24000_56.amrwb",
-    "/sdcard/audio_files/wav/1_48000_1_192000_17.wav",
-    "/sdcard/audio_files/m4a/3_44100_1_192000_3.m4a",
-    "/sdcard/audio_files/ts/1_32000_2_138000_109.ts",
+    "/sdcard/audio_test/26_170407_040700_c2f.aac",
+    "/sdcard/audio_test/2_1雷婷 - 伤心城市.mp3",
+    "/sdcard/audio_test/36_16b-2c-8000hz.flac",
+    "/sdcard/audio_test/1_0509ca83dfbb1a11d58f502ff98d862e.amrnb",
+    "/sdcard/audio_test/53_test5.amrwb",
+    "/sdcard/audio_test/63_g711u.wav",
+    "/sdcard/audio_test/115_M4A_box_have_co64.m4a",
+    "/sdcard/audio_test/1_2257-460-8796.ts",
 };
 
 static esp_audio_simple_dec_type_t get_simple_decoder_type(char *file)
@@ -95,6 +98,12 @@ static esp_audio_simple_dec_type_t get_simple_decoder_type(char *file)
     }
     if (strcasecmp(ext, "mp3") == 0) {
         return ESP_AUDIO_SIMPLE_DEC_TYPE_MP3;
+    }
+    if (strcasecmp(ext, "amrnb") == 0) {
+        return ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB;
+    }
+    if (strcasecmp(ext, "amrwb") == 0) {
+        return ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB;
     }
     if (strcasecmp(ext, "amrnb") == 0) {
         return ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB;
@@ -137,6 +146,36 @@ static void get_simple_decoder_config(esp_audio_simple_dec_cfg_t *cfg)
             esp_ts_dec_cfg_t *ts_cfg = &all_cfg->ts_cfg;
             ts_cfg->aac_plus_enable = true;
             cfg->cfg_size = sizeof(esp_ts_dec_cfg_t);
+            break;
+        }
+        case ESP_AUDIO_SIMPLE_DEC_TYPE_SBC: {
+            esp_sbc_dec_cfg_t *sbc_cfg = &all_cfg->sbc_cfg;
+            sbc_cfg->sbc_mode = ESP_SBC_MODE_STD;
+            sbc_cfg->ch_num = 2;
+            sbc_cfg->enable_plc = false;
+            cfg->cfg_size = sizeof(esp_sbc_dec_cfg_t);
+            break;
+        }
+        case ESP_AUDIO_SIMPLE_DEC_TYPE_LC3: {
+            esp_lc3_dec_cfg_t *lc3_cfg = &all_cfg->lc3_cfg;
+            lc3_cfg->sample_rate = 48000;
+            lc3_cfg->channel = 2;
+            lc3_cfg->bits_per_sample = 16;
+            lc3_cfg->frame_dms = 100;
+            lc3_cfg->nbyte = 120;
+            lc3_cfg->is_cbr = true;
+            lc3_cfg->len_prefixed = false;
+            lc3_cfg->enable_plc = false;
+            cfg->cfg_size = sizeof(esp_lc3_dec_cfg_t);
+            break;
+        }
+        case ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS: {
+            esp_opus_dec_cfg_t *opus_cfg = &all_cfg->opus_cfg;
+            opus_cfg->sample_rate = 48000;
+            opus_cfg->channel = 2;
+            opus_cfg->frame_duration = ESP_OPUS_DEC_FRAME_DURATION_10_MS;
+            opus_cfg->self_delimited = false;
+            cfg->cfg_size = sizeof(esp_opus_dec_cfg_t);
             break;
         }
         default:
@@ -447,8 +486,7 @@ int audio_simple_decoder_test_file(char *in_file, char *out_file, audio_info_t *
 {
     esp_audio_simple_dec_type_t type = get_simple_decoder_type(in_file);
     if (type == ESP_AUDIO_SIMPLE_DEC_TYPE_NONE) {
-        ESP_LOGE(TAG, "Not supported file format %s", in_file);
-        return -1;
+        type = info->dec_type;
     }
     simp_dec_fp = fopen(in_file, "rb");
     if (simp_dec_fp == NULL) {
@@ -525,8 +563,8 @@ TEST_CASE("Specific music file test", CODEC_TEST_MODULE_NAME)
     esp_board_manager_init();
     void *playlist = {0};
     sdcard_list_create(&playlist);
-    sdcard_scan(sdcard_url_save_cb, "/sdcard/audio_files",
-                1, (const char *[]) {"mp3", "m4a", "flac", "amrnb", "amrwb", "ts", "aac", "wav"}, 8, playlist);
+    sdcard_scan(sdcard_url_save_cb, "/sdcard/audio_test",
+                0, (const char *[]) {"mp3", "m4a", "flac", "amr", "ts", "aac", "wav"}, 7, playlist);
     audio_info_t aud_info = {0};
     int file_num = sdcard_list_get_url_num(playlist);
     char outname[100] = {0};
@@ -725,7 +763,7 @@ TEST_CASE("AAC simple decoder with frame test", CODEC_TEST_MODULE_NAME)
     esp_audio_simple_dec_cfg_t dec_cfg = {
         .dec_type = ESP_AUDIO_SIMPLE_DEC_TYPE_AAC,
         .dec_cfg = &all_cfg,
-        .cfg_size = sizeof(all_cfg),
+        .cfg_size = sizeof(esp_aac_dec_cfg_t),
         .use_frame_dec = true,
     };
     esp_audio_simple_dec_handle_t decoder = NULL;
@@ -762,4 +800,49 @@ TEST_CASE("AAC simple decoder with frame test", CODEC_TEST_MODULE_NAME)
     free(pcm_data);
     free(raw_data);
     free(decode_data);
+}
+
+TEST_CASE("Simple decoder decode with error data test", CODEC_TEST_MODULE_NAME)
+{
+    esp_audio_simple_dec_type_t types[] = {
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AAC,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_MP3,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_M4A,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_TS,
+    };
+    esp_audio_simple_dec_type_t frame_dec_type[] = {
+        ESP_AUDIO_SIMPLE_DEC_TYPE_SBC,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_LC3,
+        ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS,
+    };
+    const char *file_name[] = {
+        "/sdcard/error_file/test.aac",
+        "/sdcard/error_file/test.mp3",
+        "/sdcard/error_file/test.flac",
+        "/sdcard/error_file/test.amrnb",
+        "/sdcard/error_file/test.amrwb",
+        "/sdcard/error_file/test.m4a",
+        "/sdcard/error_file/test.ts",
+    };
+    audio_info_t aud_info = {0};
+    esp_board_manager_init();
+    for (int i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+        aud_info.dec_type = types[i];
+        ESP_LOGI(TAG, "Testing simple decoder decode with error data for type %d", types[i]);
+        audio_simple_decoder_test_file("/sdcard/error_file/test.unknown", "/sdcard/test1.pcm", &aud_info, false, false);
+    }
+    for (int i = 0; i < sizeof(frame_dec_type) / sizeof(frame_dec_type[0]); i++) {
+        aud_info.dec_type = frame_dec_type[i];
+        ESP_LOGI(TAG, "Testing simple decoder decode with error data for type %d", frame_dec_type[i]);
+        audio_simple_decoder_test_file("/sdcard/error_file/test.unknown", "/sdcard/test1.pcm", &aud_info, false, false);
+    }
+    for (int i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+        aud_info.dec_type = types[i];
+        ESP_LOGI(TAG, "Testing simple decoder decode with error data for type %d", types[i]);
+        audio_simple_decoder_test_file((char *)file_name[i], "/sdcard/test1.pcm", &aud_info, false, false);
+    }
+    esp_board_manager_deinit();
 }

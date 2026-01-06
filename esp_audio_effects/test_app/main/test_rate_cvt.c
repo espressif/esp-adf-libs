@@ -197,6 +197,59 @@ static void test_rate_cvt_consistency(uint32_t src_rate, uint32_t dest_rate, uin
     free(deinterlv_out_cmp);
 }
 
+static void test_rate_convert_reset(uint32_t srate_in, uint32_t srate_out)
+{
+    uint8_t ch_num = 2;
+    uint8_t bits_per_sample = 16;
+    uint32_t duration_ms = 1000;
+    uint32_t num_samples = duration_ms * srate_in / 1000;
+    esp_ae_err_t ret = ESP_AE_ERR_OK;
+
+    esp_ae_rate_cvt_cfg_t config = {
+        .src_rate = srate_in,
+        .dest_rate = srate_out,
+        .channel = ch_num,
+        .bits_per_sample = bits_per_sample,
+        .complexity = 2,
+        .perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED};
+
+    void *rate_cvt_handle = NULL;
+    ret = esp_ae_rate_cvt_open(&config, &rate_cvt_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_NOT_NULL(rate_cvt_handle);
+    uint32_t out_size = 0;
+    uint8_t *input_buffer = (uint8_t *)calloc(num_samples * ch_num, bits_per_sample >> 3);
+    esp_ae_rate_cvt_get_max_out_sample_num(rate_cvt_handle, num_samples, &out_size);
+    uint8_t *output_buffer = (uint8_t *)calloc(out_size * ch_num, bits_per_sample >> 3);
+    uint8_t *output_buffer_reset = (uint8_t *)calloc(out_size * ch_num, bits_per_sample >> 3);
+    TEST_ASSERT_NOT_NULL(input_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer);
+    TEST_ASSERT_NOT_NULL(output_buffer_reset);
+
+    ae_test_generate_sweep_signal(input_buffer, duration_ms, srate_in, -6.0f, bits_per_sample, ch_num);
+    uint32_t out_samples = out_size;
+    uint32_t half_samples = num_samples / 2;
+    ret = esp_ae_rate_cvt_process(rate_cvt_handle, (esp_ae_sample_t)input_buffer + half_samples * ch_num * (bits_per_sample >> 3),
+                                  half_samples, (esp_ae_sample_t)output_buffer, &out_samples);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    ret = esp_ae_rate_cvt_reset(rate_cvt_handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    uint32_t out_samples_reset = out_size;
+    ret = esp_ae_rate_cvt_process(rate_cvt_handle, (esp_ae_sample_t)input_buffer + half_samples * ch_num * (bits_per_sample >> 3),
+                                  half_samples, (esp_ae_sample_t)output_buffer_reset, &out_samples_reset);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    TEST_ASSERT_EQUAL(out_samples, out_samples_reset);
+    TEST_ASSERT_EQUAL_MEMORY(output_buffer, output_buffer_reset, out_samples * ch_num * (bits_per_sample >> 3));
+
+    esp_ae_rate_cvt_close(rate_cvt_handle);
+    free(input_buffer);
+    free(output_buffer);
+    free(output_buffer_reset);
+}
+
 TEST_CASE("Rate Convert branch test", "AUDIO_EFFECT")
 {
     esp_ae_rate_cvt_cfg_t config;
@@ -322,57 +375,11 @@ TEST_CASE("Rate Convert branch test", "AUDIO_EFFECT")
 
 TEST_CASE("Rate Convert reset test", "AUDIO_EFFECT")
 {
-    uint32_t srate_in = 44100;
-    uint32_t srate_out = 48000;
-    uint8_t ch_num = 2;
-    uint8_t bits_per_sample = 16;
-    uint32_t duration_ms = 1000;
-    uint32_t num_samples = duration_ms * srate_in / 1000;
-    esp_ae_err_t ret = ESP_AE_ERR_OK;
-
-    esp_ae_rate_cvt_cfg_t config = {
-        .src_rate = srate_in,
-        .dest_rate = srate_out,
-        .channel = ch_num,
-        .bits_per_sample = bits_per_sample,
-        .complexity = 2,
-        .perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED};
-
-    void *rate_cvt_handle = NULL;
-    ret = esp_ae_rate_cvt_open(&config, &rate_cvt_handle);
-    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
-    TEST_ASSERT_NOT_NULL(rate_cvt_handle);
-    uint32_t out_size = 0;
-    uint8_t *input_buffer = (uint8_t *)calloc(num_samples * ch_num, bits_per_sample >> 3);
-    esp_ae_rate_cvt_get_max_out_sample_num(rate_cvt_handle, num_samples, &out_size);
-    uint8_t *output_buffer = (uint8_t *)calloc(out_size * ch_num, bits_per_sample >> 3);
-    uint8_t *output_buffer_reset = (uint8_t *)calloc(out_size * ch_num, bits_per_sample >> 3);
-    TEST_ASSERT_NOT_NULL(input_buffer);
-    TEST_ASSERT_NOT_NULL(output_buffer);
-    TEST_ASSERT_NOT_NULL(output_buffer_reset);
-
-    ae_test_generate_sweep_signal(input_buffer, duration_ms, srate_in, -6.0f, bits_per_sample, ch_num);
-    uint32_t out_samples = out_size;
-    uint32_t half_samples = num_samples / 2;
-    ret = esp_ae_rate_cvt_process(rate_cvt_handle, (esp_ae_sample_t)input_buffer + half_samples * ch_num * (bits_per_sample >> 3),
-                                  half_samples, (esp_ae_sample_t)output_buffer, &out_samples);
-    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
-
-    ret = esp_ae_rate_cvt_reset(rate_cvt_handle);
-    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
-
-    uint32_t out_samples_reset = out_size;
-    ret = esp_ae_rate_cvt_process(rate_cvt_handle, (esp_ae_sample_t)input_buffer + half_samples * ch_num * (bits_per_sample >> 3),
-                                  half_samples, (esp_ae_sample_t)output_buffer_reset, &out_samples_reset);
-    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
-
-    TEST_ASSERT_EQUAL(out_samples, out_samples_reset);
-    TEST_ASSERT_EQUAL_MEMORY(output_buffer, output_buffer_reset, out_samples * ch_num * (bits_per_sample >> 3));
-
-    esp_ae_rate_cvt_close(rate_cvt_handle);
-    free(input_buffer);
-    free(output_buffer);
-    free(output_buffer_reset);
+    test_rate_convert_reset(44100, 48000);
+    test_rate_convert_reset(48000, 44100);
+    test_rate_convert_reset(48000, 48000);
+    test_rate_convert_reset(16000, 8000);
+    test_rate_convert_reset(8000, 16000);
 }
 
 TEST_CASE("Rate Convert HTTP download and upload test", "AUDIO_EFFECT")
