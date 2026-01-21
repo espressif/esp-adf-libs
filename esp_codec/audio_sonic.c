@@ -131,12 +131,12 @@ static esp_err_t sonic_open(audio_element_handle_t self)
     };
     sonic->sonic_tick_handle = codec_tick_init(tick_config, 4);
 #endif
-    sonic->inbuf = (short *)calloc(sizeof(short), BUF_SIZE);
+    sonic->inbuf = (short *)calloc(BUF_SIZE, sizeof(short));
     if (sonic->inbuf == NULL) {
         ESP_LOGE(TAG, "Failed to allocate input buffer");
         return ESP_ERR_NO_MEM;
     }
-    sonic->outbuf = (short *)calloc(sizeof(short), BUF_SIZE);
+    sonic->outbuf = (short *)calloc(BUF_SIZE, sizeof(short));
     if (sonic->outbuf == NULL) {
         ESP_LOGE(TAG, "Failed to allocate output buffer");
         return ESP_ERR_NO_MEM;
