@@ -67,14 +67,23 @@ static media_lib_tls_handle_t _tls_new(const char *hostname, int hostlen, int po
     esp_tls_t* tls = esp_tls_init();
     if (tls == NULL ||
         esp_tls_conn_new_sync(hostname, strlen(hostname), port, &tls_cfg, tls) < 0) {
-        esp_tls_conn_delete(tls);
-        free(tls_lib);
         ESP_LOGE(TAG, "Fail to connect client");
-        return NULL;
+        goto error_out;
+    }
+    esp_tls_error_handle_t error_handle;
+    if (esp_tls_get_error_handle(tls, &error_handle) == ESP_OK &&
+        error_handle->last_error == ESP_ERR_ESP_TLS_CONNECTION_TIMEOUT) {
+        ESP_LOGE(TAG, "Connect timeout over %d ms", cfg->timeout_ms);
+        goto error_out;
     }
 #endif
     tls_lib->tls = tls;
     return (media_lib_tls_handle_t)tls_lib;
+
+error_out:
+    esp_tls_conn_delete(tls);
+    free(tls_lib);
+    return NULL;
 }
 
 static media_lib_tls_handle_t _tls_new_server(int fd, const media_lib_tls_server_cfg_t *cfg)
