@@ -115,6 +115,8 @@ typedef struct {
     bool                        use_public_addr;     /*!< Use the public IP address returned by the server (RFC3581) */
     bool                        send_options;        /*!< Use 'OPTIONS' messages replace keep-alive to server for keep NAT hole opened */
     int                         keepalive;           /*!< Send keep-alive or 'OPTIONS' messages interval in seconds (defaults is 30s) */
+    int                         rw_timeout_ms;       /*!< Read/Write transport timeout setting, in milliseconds (defaults to 3s) */
+    int                         connect_timeout_ms;  /*!< Connection timeout setting, in milliseconds (defaults to 3s) */
     const char                  *cert_pem;           /*!< SSL server certification, PEM format as string, if the client requires to verify server */
     const char                  *client_cert_pem;    /*!< SSL client certification, PEM format as string, if the server requires to verify client */
     const char                  *client_key_pem;     /*!< SSL client key, PEM format as string, if the server requires to verify client */
@@ -125,6 +127,7 @@ typedef struct {
     const char                  *user_agent;         /*!< Set user agent field (defaults is "ESP32 SIP/2.0") */
     int                         fixed_local_port;    /*!< Set fixed local port (defaults is 0) */
     bool                        p2p_mode;            /*!< When work in P2P mode it will skip register step and do invite or accept invite directly from peer */
+    const char                  *domain;             /*!< Set domain(optional), this domain constructs the host of SIP URIs, supports a single server divided into multiple domains */
 } esp_rtc_config_t;
 
 /**
