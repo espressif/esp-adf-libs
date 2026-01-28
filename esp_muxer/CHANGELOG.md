@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.1.3
+
+### Features
+
+- Added FourCC codec support
+- Added file pattern with context support
+- Added dynamic register to list instead of fixed array
+- Added `esp_muxer_default.h` for default registration and un-registration
+- Added basic unit test for audio muxer support
+
+## Bug Fixes
+
+- Fixed crash when open file to write failed
+- Fixed OGG OPUS PTS generate not correct
+
 ## v1.1.2
 
 ### Features
