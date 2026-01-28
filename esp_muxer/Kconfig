@@ -1,0 +1,39 @@
+menu "ESP_Muxer Configuration"
+
+    config ESP_MUXER_MP4_SUPPORT
+        bool "Support MP4 Muxer"
+        default y
+        help
+            Enable this option to register MP4 muxer
+
+    config ESP_MUXER_TS_SUPPORT
+        bool "Support TS Muxer"
+        default y
+        help
+            Enable this option to register TS muxer
+
+    config ESP_MUXER_OGG_SUPPORT
+        bool "Support OGG Muxer"
+        default y
+        help
+            Enable this option to register OGG muxer
+
+    config ESP_MUXER_WAV_SUPPORT
+        bool "Support WAV Muxer"
+        default y
+        help
+            Enable this option to register WAV muxer
+
+    config ESP_MUXER_FLV_SUPPORT
+        bool "Support FLV Muxer"
+        default y
+        help
+            Enable this option to register FLV muxer
+
+    config ESP_MUXER_CAF_SUPPORT
+        bool "Support CAF Muxer"
+        default y
+        help
+            Enable this option to register CAF muxer
+
+endmenu

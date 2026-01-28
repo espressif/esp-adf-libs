@@ -1,0 +1,8 @@
+description: Muxer Test
+
+dependencies:
+  esp_audio_codec:
+    path: ../../../../esp_audio_codec
+  esp_muxer:
+    path: ../../../../esp_muxer
+  espressif/esp_board_manager: '~0.5'
