@@ -165,13 +165,13 @@ static esp_err_t sonic_open(audio_element_handle_t self)
     esp_sonic_set_quality(sonic->sonic_handle, sonic->quality);
 
 #ifdef DEBUG_SONIC_ENC_ISSUE
-    char fileName1[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '1', '.', 'p', 'c', 'm', '\0'};
+    char fileName1[100] = {'/', 's', 'd', 'c', 'a', 'r', 'd', '/', 't', 'e', 's', 't', '1', '.', 'p', 'c', 'm', '\0'};
     inone = fopen(fileName1, "rb");
     if (!inone) {
         perror(fileName1);
         return ESP_FAIL;
     }
-    char fileName[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', '.', 'p', 'c', 'm', '\0'};
+    char fileName[100] = {'/', 's', 'd', 'c', 'a', 'r', 'd', '/', 't', '.', 'p', 'c', 'm', '\0'};
     outone = fopen(fileName, "w");
     if (!outone) {
         perror(fileName);

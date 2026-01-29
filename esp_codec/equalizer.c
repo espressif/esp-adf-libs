@@ -178,7 +178,7 @@ static esp_err_t equalizer_open(audio_element_handle_t self)
     }
 
 #ifdef DEBUG_EQUALIZER_ENC_ISSUE
-    char fileName[100] = {'//', 's', 'd', 'c', 'a', 'r', 'd', '//', 't', 'e', 's', 't', '.', 'p', 'c', 'm', '\0'};
+    char fileName[100] = {'/', 's', 'd', 'c', 'a', 'r', 'd', '/', 't', 'e', 's', 't', '.', 'p', 'c', 'm', '\0'};
     infile = fopen(fileName, "rb");
     if (!infile) {
         perror(fileName);
