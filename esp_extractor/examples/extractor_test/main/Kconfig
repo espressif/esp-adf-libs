@@ -1,0 +1,9 @@
+menu "Extractor Helper Configuration"
+    config EXTRACTOR_HELPER_FILE_IO_CACHE_SIZE
+        int "File IO cache size setting for better read performance"
+        range 1024 64000
+        default 1024
+        help
+            When read use unaligned address will cause file read performance poor.
+            Aligned cache setting for `setvbuf` can achieve high read speed.
+ endmenu
