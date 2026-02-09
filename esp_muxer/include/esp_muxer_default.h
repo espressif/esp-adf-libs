@@ -13,6 +13,7 @@
 #include "ts_muxer.h"
 #include "wav_muxer.h"
 #include "ogg_muxer.h"
+#include "avi_muxer.h"
 
 #ifdef __cplusplus
 extern "C" {
