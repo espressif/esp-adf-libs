@@ -5,7 +5,7 @@
 ESP_Muxer is a module for muxing audio and video data to container files or direct stream output.
 
 ## Features
-   
+
 - Muxing both audio and video data
 - Support for multiple audio and video tracks if supported in containers
 - Compatible with common video and audio formats
@@ -18,33 +18,39 @@ It is suitable for applications such as personal video recorder, HLS media segme
 
 ## Supported Containers and Codecs
 
-|           | MP4  | TS   | FLV  | WAV  | CAF  | OGG  |
-| :-------- | :--- | :--- | :--- | :--- | :--- | :--- |
-| PCM       | Y    | N    | Y    | Y    | Y    | N    |
-| AAC       | Y    | Y    | Y    | Y    | Y    | N    |
-| MP3       | Y    | Y    | Y    | Y    | N    | N    |
-| ADPCM     | N    | N    | N    | Y    | Y    | N    |
-| G711 Alaw | N    | N    | N    | Y    | Y    | N    |
-| G711 Ulaw | N    | N    | N    | Y    | Y    | N    |
-| AMR-NB    | N    | N    | N    | Y    | N    | N    |
-| AMR-WB    | N    | N    | N    | Y    | N    | N    |
-| OPUS      | N    | N    | N    | N    | N    | Y    |
-| ALAC      | N    | N    | N    | N    | Y    | N    |
-| H264      | Y    | Y    | Y    | N    | N    | N    |
-| MJPEG     | Y    | Y    | Y    | N    | N    | N    |
+|           | MP4  | TS   | FLV  | WAV  | CAF  | OGG  | AVI  |
+| :-------- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Audio** |      |      |      |      |      |      |      |
+| PCM       | Y    | N    | Y    | Y    | Y    | N    | Y    |
+| AAC       | Y    | Y    | Y    | Y    | Y    | N    | Y    |
+| MP3       | Y    | Y    | Y    | Y    | N    | N    | Y    |
+| ADPCM     | N    | N    | N    | Y    | Y    | N    | N    |
+| G711 Alaw | N    | N    | N    | Y    | Y    | N    | N    |
+| G711 Ulaw | N    | N    | N    | Y    | Y    | N    | N    |
+| AMR-NB    | N    | N    | N    | Y    | N    | N    | N    |
+| AMR-WB    | N    | N    | N    | Y    | N    | N    | N    |
+| OPUS      | N    | N    | N    | N    | N    | Y    | Y    |
+| ALAC      | Y    | N    | N    | N    | Y    | N    | N    |
+| **Video** |      |      |      |      |      |      |      |
+| H.264     | Y    | Y    | Y    | N    | N    | N    | Y    |
+| MJPEG     | Y    | Y    | Y    | N    | N    | N    | Y    |
 
 Notes:
     Since TS and FLV do not officially support MJPEG, MJPEG support for TS and FLV is added using the following methods:
   - FLV uses codec ID 1 for the MJPEG codec.
   - TS uses stream ID 6 for the MJPEG codec.
 
-    You can check [ffmpeg_mjpeg.patch](ffmpeg_mjpeg.patch) for technical details and patch it to support them in FFmpeg.  
+    You can check [ffmpeg_mjpeg.patch](ffmpeg_mjpeg.patch) for technical details and patch it to support them in FFmpeg.
     Since the MP4 and WAV container header sizes can vary depending on their data size, please do not use them for streaming out data.
- 
+
+  - Currently only the `esp32p4` target supports hardware encoding for MJPEG and H.264. For encoder capabilities and supported targets, see the codec documentation: [H.264](https://components.espressif.com/components/espressif/esp_h264), [esp_new_jpeg](https://components.espressif.com/components/espressif/esp_new_jpeg).
+
 
 ## Usage
 
-The following example demonstrates how to mux AAC audio data from a file to all the supported containers.
+The following example demonstrates how to mux AAC audio data from a file to the supported containers.
+For more convinent usage to mux real audio data from codec and video data from camera, check [video_muxer](examples/video_muxer/README.md) for details.
+
 ```c
 #include "esp_muxer.h"
 #include "flv_muxer.h"

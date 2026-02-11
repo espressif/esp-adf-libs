@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.2.0
+
+### Features
+
+- Added AVI muxer with support for:
+  - Video: H.264, MJPEG
+  - Audio: AAC, MP3, PCM
+  - Index table (idx1) placement: none, file start, or file end
+- Added `video_muxer` example that uses `esp_capture` to simplify muxer usage for realtime media
+
+## Bug Fixes
+
+- Fixed build failed on path with whitespace
+
 ## v1.1.3
 
 ### Features

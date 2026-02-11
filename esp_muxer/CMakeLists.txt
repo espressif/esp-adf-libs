@@ -11,5 +11,5 @@ add_prebuilt_library(esp_muxer "${CMAKE_CURRENT_SOURCE_DIR}/lib/${CONFIG_IDF_TAR
                      PRIV_REQUIRES ${BASE_DIR})
 set(TARGET_LIB_NAME esp_muxer)
 
-target_link_libraries(${COMPONENT_LIB}  PRIVATE "-L ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CONFIG_IDF_TARGET}")
+target_link_libraries(${COMPONENT_LIB}  PRIVATE "-L\"${CMAKE_CURRENT_SOURCE_DIR}/lib/${CONFIG_IDF_TARGET}\"")
 target_link_libraries(${COMPONENT_LIB}  PRIVATE ${TARGET_LIB_NAME})

@@ -38,6 +38,7 @@ typedef enum {
     ESP_MUXER_TYPE_WAV = ESP_MUXER_FOURCC('W', 'A', 'V', ' '), /*!< Muxer to WAV */
     ESP_MUXER_TYPE_CAF = ESP_MUXER_FOURCC('C', 'A', 'F', ' '), /*!< Muxer to CAF */
     ESP_MUXER_TYPE_OGG = ESP_MUXER_FOURCC('O', 'G', 'G', ' '), /*!< Muxer to OGG */
+    ESP_MUXER_TYPE_AVI = ESP_MUXER_FOURCC('A', 'V', 'I', ' '), /*!< Muxer to AVI */
     ESP_MUXER_TYPE_MAX,
 } esp_muxer_type_t;
 

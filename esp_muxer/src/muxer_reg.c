@@ -54,6 +54,13 @@ esp_muxer_err_t esp_muxer_register_default(void)
     }
 #endif  /* CONFIG_ESP_MUXER_CAF_SUPPORT */
 
+#ifdef CONFIG_ESP_MUXER_AVI_SUPPORT
+    ret = avi_muxer_register();
+    if (ret != ESP_MUXER_ERR_OK) {
+        return ret;
+    }
+#endif  /* CONFIG_ESP_MUXER_AVI_SUPPORT */
+
     return ret;
 }
 
@@ -82,4 +89,8 @@ void esp_muxer_unregister_default(void)
 #ifdef CONFIG_ESP_MUXER_CAF_SUPPORT
     esp_muxer_unreg(ESP_MUXER_TYPE_CAF);
 #endif  /* CONFIG_ESP_MUXER_CAF_SUPPORT */
+
+#ifdef CONFIG_ESP_MUXER_AVI_SUPPORT
+    esp_muxer_unreg(ESP_MUXER_TYPE_AVI);
+#endif  /* CONFIG_ESP_MUXER_AVI_SUPPORT */
 }
