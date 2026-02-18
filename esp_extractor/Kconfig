@@ -1,0 +1,63 @@
+menu "Espressif Extractor Configuration"
+    config EXTRACTOR_CUSTOM_SUPPORT
+        bool "Support customized Extractor"
+        default y
+        help
+            Enable this option to export customized API to user
+
+    config WAV_EXTRACTOR_SUPPORT
+        bool "Support WAV Extractor"
+        default y
+        help
+            Enable this option to register WAV Extractor
+
+    config MP4_EXTRACTOR_SUPPORT
+        bool "Support MP4 Extractor"
+        default y
+        help
+            Enable this option to register MP4 Extractor
+
+    config TS_EXTRACTOR_SUPPORT
+        bool "Support TS Extractor"
+        default y
+        help
+            Enable this option to register TS Extractor
+
+    config OGG_EXTRACTOR_SUPPORT
+        bool "Support OGG Extractor"
+        default y
+        help
+            Enable this option to register OGG extractor
+
+    config AVI_EXTRACTOR_SUPPORT
+        bool "Support AVI Extractor"
+        default y
+        help
+            Enable this option to register AVI Extractor
+
+    config AUDIO_ES_EXTRACTOR_SUPPORT
+        bool "Support Audio ES Extractor"
+        default y
+        help
+            Enable this option to register (aac, mp3, flac, amr etc) Extractor
+
+    config CAF_EXTRACTOR_SUPPORT
+        bool "Support CAF Extractor"
+        default y
+        help
+            Enable this option to register CAF Extractor
+
+    config FLV_EXTRACTOR_SUPPORT
+        bool "Support FLV Extractor"
+        default y
+        help
+            Enable this option to register FLV Extractor
+
+    config EXTRACTOR_HELPER_FILE_IO_CACHE_SIZE
+        int "File IO cache size setting for better read peformance"
+        range 1024 64000
+        default 1024
+        help
+            When read use unaligned address will cause file read peformance poor.
+            Aligned cache setting for `setvbuf` can achieve high read speed.
+ endmenu

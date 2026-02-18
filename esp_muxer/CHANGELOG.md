@@ -1,5 +1,34 @@
 # Changelog
 
+## v1.2.0
+
+### Features
+
+- Added AVI muxer with support for:
+  - Video: H.264, MJPEG
+  - Audio: AAC, MP3, PCM
+  - Index table (idx1) placement: none, file start, or file end
+- Added `video_muxer` example that uses `esp_capture` to simplify muxer usage for realtime media
+
+## Bug Fixes
+
+- Fixed build failed on path with whitespace
+
+## v1.1.3
+
+### Features
+
+- Added FourCC codec support
+- Added file pattern with context support
+- Added dynamic register to list instead of fixed array
+- Added `esp_muxer_default.h` for default registration and un-registration
+- Added basic unit test for audio muxer support
+
+## Bug Fixes
+
+- Fixed crash when open file to write failed
+- Fixed OGG OPUS PTS generate not correct
+
 ## v1.1.2
 
 ### Features

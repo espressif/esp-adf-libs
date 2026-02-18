@@ -1,25 +1,8 @@
 /*
- * ESPRESSIF MIT License
+ * SPDX-FileCopyrightText: 2026 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
- * Copyright (c) 2022 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
- *
- * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
- * it is free of charge, to any person obtaining a copy of this software and associated
- * documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * See LICENSE file for details.
  */
 
 #ifndef ESP_MUXER_H
@@ -33,20 +16,29 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Muxer maximum slice duration
+ */
 #define ESP_MUXER_MAX_SLICE_DURATION (0xFFFFFFFF)
+
+/**
+ * @brief FourCC representation for muxer
+ */
+#define ESP_MUXER_FOURCC(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b << 8)) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
 typedef void* esp_muxer_handle_t;
 
 /**
- * @brief Muxer container type
+ * @brief  Muxer container type
  */
 typedef enum {
-    ESP_MUXER_TYPE_TS,  /*!< Muxer to TS */
-    ESP_MUXER_TYPE_MP4, /*!< Muxer to MP4 */
-    ESP_MUXER_TYPE_FLV, /*!< Muxer to FLV */
-    ESP_MUXER_TYPE_WAV, /*!< Muxer to WAV */
-    ESP_MUXER_TYPE_CAF, /*!< Muxer to CAF */
-    ESP_MUXER_TYPE_OGG, /*!< Muxer to OGG */
+    ESP_MUXER_TYPE_TS  = ESP_MUXER_FOURCC('T', 'S', ' ', ' '), /*!< Muxer to TS */
+    ESP_MUXER_TYPE_MP4 = ESP_MUXER_FOURCC('M', 'P', '4', ' '), /*!< Muxer to MP4 */
+    ESP_MUXER_TYPE_FLV = ESP_MUXER_FOURCC('F', 'L', 'V', ' '), /*!< Muxer to FLV */
+    ESP_MUXER_TYPE_WAV = ESP_MUXER_FOURCC('W', 'A', 'V', ' '), /*!< Muxer to WAV */
+    ESP_MUXER_TYPE_CAF = ESP_MUXER_FOURCC('C', 'A', 'F', ' '), /*!< Muxer to CAF */
+    ESP_MUXER_TYPE_OGG = ESP_MUXER_FOURCC('O', 'G', 'G', ' '), /*!< Muxer to OGG */
+    ESP_MUXER_TYPE_AVI = ESP_MUXER_FOURCC('A', 'V', 'I', ' '), /*!< Muxer to AVI */
     ESP_MUXER_TYPE_MAX,
 } esp_muxer_type_t;
 
@@ -57,6 +49,29 @@ typedef enum {
  * @param         slice_idx: File slice index start from 0
  */
 typedef int (*muxer_url_pattern)(char* file_path, int len, int slice_idx);
+
+/**
+ * @brief  File slice information
+ */
+typedef struct {
+    char *file_path;    /*!< File path to store slice of mux data (output) */
+    int   len;          /*!< File path limit length */
+    int   slice_index;  /*!< File slice index (start from 0) */
+} esp_muxer_slice_info_t;
+
+/**
+ * @brief  File pattern callback for getting file slice save path
+ *
+ * @note  Make sure full file path not over the given len
+ *
+ * @param[in/out]  info  File slice information
+ * @param          ctx   User context
+ *W
+ * @return
+ *       - 0       On success
+ *       - Others  Failed to get file slice path
+ */
+typedef int (*muxer_url_pattern_ex)(esp_muxer_slice_info_t *info, void* ctx);
 
 /**
  * @brief Struct for callback data
@@ -77,54 +92,55 @@ typedef int (*muxer_data_callback)(esp_muxer_data_info_t* data, void* ctx);
  *        Ex: when use MP4 muxer should use `mp4_muxer_config_t` instead
  */
 typedef struct {
-    esp_muxer_type_t    muxer_type;          /*!< Muxer container type */
-    uint32_t            slice_duration;      /*!< Muxer file segment duration, unit millisecond */
-    muxer_url_pattern   url_pattern;         /*!< Muxer file path pattern callback for each segment */
-    muxer_data_callback data_cb;             /*!< Muxer output callback can be coexist with url pattern.
+    esp_muxer_type_t     muxer_type;          /*!< Muxer container type */
+    uint32_t             slice_duration;      /*!< Muxer file segment duration, unit millisecond */
+    muxer_url_pattern    url_pattern;         /*!< Muxer file path pattern callback for each segment */
+    muxer_url_pattern_ex url_pattern_ex;      /*!< Extra file pattern with user context */
+    muxer_data_callback  data_cb;             /*!< Muxer output callback can be coexist with url pattern.
                                                   It is suitable for living stream scenario.
                                                   When use MP4 muxer, please do not set. */
-    void*               ctx;                 /*!< Muxer output callback context */
-    uint32_t            ram_cache_size;      /*!< The file system has better performance when writing with aligned internal RAM.
-                                                  Whereas typically provided stream data can't meet this requirement, so extra RAM cache is imported
-                                                  Optimized cache size setting differs with different card, recommend to use 16K or above.
-                                                  To finetune it, user can do speed test firstly (take `README.md` for reference) */
-    bool                no_key_frame_verify; /*!< Whether disable internal logic to verify video packet is key frame or not
-                                                  Internal parse logic is used to correct the `key_frame` flag when not set by user */                                          
+    void*                ctx;                 /*!< Muxer output callback context, used for `data_cb` and `url_pattern_ex` both */
+    uint32_t             ram_cache_size;      /*!< The file system has better performance when writing with aligned internal RAM.
+                                                   Whereas typically provided stream data can't meet this requirement, so extra RAM cache is imported
+                                                   Optimized cache size setting differs with different card, recommend to use 16K or above.
+                                                   To finetune it, user can do speed test firstly (take `README.md` for reference) */
+    bool                 no_key_frame_verify; /*!< Whether disable internal logic to verify video packet is key frame or not
+                                                   Internal parse logic is used to correct the `key_frame` flag when not set by user */
 } esp_muxer_config_t;
 
 /**
  * @brief Muxer stream type
  */
 typedef enum {
-    ESP_MUXER_STREAM_TYPE_NONE,
-    ESP_MUXER_STREAM_TYPE_AUDIO,  /*!< Audio stream type */
-    ESP_MUXER_STREAM_TYPE_VIDEO,  /*!< Video stream type */
+    ESP_MUXER_STREAM_TYPE_NONE  = 0,
+    ESP_MUXER_STREAM_TYPE_AUDIO = 1,  /*!< Audio stream type */
+    ESP_MUXER_STREAM_TYPE_VIDEO = 2,  /*!< Video stream type */
 } esp_muxer_stream_type_t;
 
 /**
  * @brief Muxer video codec type
  */
 typedef enum {
-    ESP_MUXER_VDEC_NONE,
-    ESP_MUXER_VDEC_MJPEG, /*!< Motion JPEG video type */
-    ESP_MUXER_VDEC_H264,  /*!< H264 video type */
+    ESP_MUXER_VDEC_NONE  = 0,
+    ESP_MUXER_VDEC_MJPEG = ESP_MUXER_FOURCC('M', 'J', 'P', 'G'), /*!< Motion JPEG video type */
+    ESP_MUXER_VDEC_H264  = ESP_MUXER_FOURCC('H', '2', '6', '4'),  /*!< H264 video type */
 } esp_muxer_video_codec_t;
 
 /**
  * @brief Muxer audio codec type
  */
 typedef enum {
-    ESP_MUXER_ADEC_NONE,
-    ESP_MUXER_ADEC_AAC,    /*!< AAC audio type */
-    ESP_MUXER_ADEC_PCM,    /*!< PCM audio type, only support little endian */
-    ESP_MUXER_ADEC_MP3,    /*!< MP3 audio type */
-    ESP_MUXER_ADEC_ADPCM,  /*!< ADPCM audio type */
-    ESP_MUXER_ADEC_G711_A, /*!< G711 alaw audio type */
-    ESP_MUXER_ADEC_G711_U, /*!< G711 ulaw audio type */
-    ESP_MUXER_ADEC_AMR_NB, /*!< AMR-NB audio type */
-    ESP_MUXER_ADEC_AMR_WB, /*!< AMR-WB audio type */
-    ESP_MUXER_ADEC_ALAC,   /*!< ALAC audio type */
-    ESP_MUXER_ADEC_OPUS,   /*!< OPUS audio type */
+    ESP_MUXER_ADEC_NONE    = 0,
+    ESP_MUXER_ADEC_AAC     = ESP_MUXER_FOURCC('A', 'A', 'C', ' '),  /*!< AAC audio type */
+    ESP_MUXER_ADEC_PCM     = ESP_MUXER_FOURCC('P', 'C', 'M', ' '),  /*!< PCM audio type, only support little endian */
+    ESP_MUXER_ADEC_MP3     = ESP_MUXER_FOURCC('M', 'P', '3', ' '),  /*!< MP3 audio type */
+    ESP_MUXER_ADEC_ADPCM   = ESP_MUXER_FOURCC('A', 'D', 'P', 'C'),  /*!< ADPCM audio type */
+    ESP_MUXER_ADEC_G711_A  = ESP_MUXER_FOURCC('A', 'L', 'A', 'W'),  /*!< G711 alaw audio type */
+    ESP_MUXER_ADEC_G711_U  = ESP_MUXER_FOURCC('U', 'L', 'A', 'W'),  /*!< G711 ulaw audio type */
+    ESP_MUXER_ADEC_AMR_NB  = ESP_MUXER_FOURCC('A', 'M', 'R', 'N'),  /*!< AMR-NB audio type */
+    ESP_MUXER_ADEC_AMR_WB  = ESP_MUXER_FOURCC('A', 'M', 'R', 'W'),  /*!< AMR-WB audio type */
+    ESP_MUXER_ADEC_ALAC    = ESP_MUXER_FOURCC('A', 'L', 'A', 'C'),  /*!< ALAC audio type */
+    ESP_MUXER_ADEC_OPUS    = ESP_MUXER_FOURCC('O', 'P', 'U', 'S'),  /*!< OPUS audio type */
 } esp_muxer_audio_codec_t;
 
 /**
@@ -185,7 +201,7 @@ typedef struct {
 typedef struct {
     void* (*on_open)(char* path);               /*!< Function pointer for file open */
     int (*on_write)(void* writer, void* buffer,
-                    int len);                   /*!< Function pointer for file write need return bytes wrote */
+                    int len);                   /*!< Function pointer for file write need return bytes wrote or error */
     int (*on_seek)(void* writer, uint64_t pos); /*!< Function pointer for file seek, return 0 means ok */
     int (*on_close)(void* writer);              /*!< Function pointer for file close, return 0 means ok */
 } esp_muxer_file_writer_t;
@@ -214,6 +230,11 @@ typedef struct {
  *      - ESP_MUXER_ERR_NO_MEM: Memory not enough
  */
 esp_muxer_err_t esp_muxer_reg(esp_muxer_type_t type, esp_muxer_reg_info_t* reg_info);
+
+/**
+ * @brief Unregister for specified container type
+ */
+void esp_muxer_unreg(esp_muxer_type_t type);
 
 /**
  * @brief Unregister for all container type

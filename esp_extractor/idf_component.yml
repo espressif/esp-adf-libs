@@ -1,0 +1,14 @@
+version: "1.0.0"
+description: Espressif Extractor is a module for extracting audio and video frame data from container
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_extractor
+documentation: "https://github.com/espressif/esp-adf-libs/tree/master/esp_extractor/README.md"
+issues: "https://github.com/espressif/esp-gmf/issues"
+
+tags:
+   - "multimedia"
+   - "extractor"
+   - "container"
+   - "demuxer"
+
+examples:
+  - path: examples/extractor_test
