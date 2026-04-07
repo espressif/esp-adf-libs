@@ -1,0 +1,18 @@
+dependencies:
+  espressif/esp_audio_simple_player:
+    version: "~0.9"
+  espressif/gmf_core:
+    version: "~0.8"
+  espressif/gmf_io:
+     version: "~0.8"
+  espressif/gmf_audio:
+     version: "~0.8"
+  espressif/esp_board_manager:
+     version: "~0.5"
+  esp_hls_stream:
+    version: "~1.0.0"
+    override_path: "../../../../esp_hls_stream"
+  espressif/esp_wifi_remote:
+    version: "~0.14.3"
+    rules:
+      - if: "target in [esp32p4]"
