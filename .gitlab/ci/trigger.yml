@@ -1,10 +1,23 @@
+# Trigger downstream UT pipeline only for MRs targeting the legacy ADF 2.x
+# release branch. The new component-manager layout on `master` is not
+# supported by `adf/adf-libs-ut`.
 trigger_adf_libs_ut_ci_pipeline:
-  extends:
-    - .rules:build:only-open-merge-request
   stage: trigger
   variables:
     ESP_ADF_MODULES: "{\"esp-adf-libs\":\"$CI_COMMIT_SHA\"}"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^release\/v2\./'
   trigger:
     project: "adf/adf-libs-ut"
     branch: "master"
     strategy: depend
+
+# TEMPORARY: placeholder to keep MRs targeting `master` green.
+# TODO: remove once a real CI pipeline for the new component layout is added.
+noop_master_mr:
+  stage: trigger
+  image: $CI_DOCKER_REGISTRY/esp32-ci-env
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+  script:
+    - echo "[TEMPORARY] Placeholder job for master MR; remove when real CI is in place."
