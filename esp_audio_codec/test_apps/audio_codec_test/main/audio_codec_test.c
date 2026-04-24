@@ -106,6 +106,7 @@ static bool has_phase_shift(esp_audio_type_t type)
         case ESP_AUDIO_TYPE_SBC:
         case ESP_AUDIO_TYPE_LC3:
         case ESP_AUDIO_TYPE_ALAC:
+        case ESP_AUDIO_TYPE_G722:
             return true;
         default:
             break;
@@ -377,6 +378,7 @@ static int encoder_to_decoder(esp_audio_type_t type, int sample_rate, uint8_t ch
 static void chain_test_thread(void *arg)
 {
     esp_audio_type_t types[] = {
+        ESP_AUDIO_TYPE_G722,
         ESP_AUDIO_TYPE_AAC,
         ESP_AUDIO_TYPE_G711A,
         ESP_AUDIO_TYPE_G711U,
@@ -398,7 +400,7 @@ static void chain_test_thread(void *arg)
         if (types[i] == ESP_AUDIO_TYPE_G711A || types[i] == ESP_AUDIO_TYPE_G711U || types[i] == ESP_AUDIO_TYPE_AMRNB) {
             new_sample_rate = 8000;
             new_channel = 1;
-        } else if (types[i] == ESP_AUDIO_TYPE_AMRWB) {
+        } else if (types[i] == ESP_AUDIO_TYPE_AMRWB || types[i] == ESP_AUDIO_TYPE_G722) {
             new_sample_rate = 16000;
             new_channel = 1;
         } else if (types[i] == ESP_AUDIO_TYPE_MP3 || types[i] == ESP_AUDIO_TYPE_FLAC) {
@@ -423,6 +425,7 @@ static void chain_test_thread(void *arg)
 static void chain_reset_test_thread(void *arg)
 {
     esp_audio_type_t types[] = {
+        ESP_AUDIO_TYPE_G722,
         ESP_AUDIO_TYPE_AAC,
         ESP_AUDIO_TYPE_G711A,
         ESP_AUDIO_TYPE_G711U,
@@ -448,7 +451,7 @@ static void chain_reset_test_thread(void *arg)
         if (types[i] == ESP_AUDIO_TYPE_G711A || types[i] == ESP_AUDIO_TYPE_G711U || types[i] == ESP_AUDIO_TYPE_AMRNB) {
             new_sample_rate = 8000;
             new_channel = 1;
-        } else if (types[i] == ESP_AUDIO_TYPE_AMRWB) {
+        } else if (types[i] == ESP_AUDIO_TYPE_AMRWB || types[i] == ESP_AUDIO_TYPE_G722) {
             new_sample_rate = 16000;
             new_channel = 1;
         } else if (types[i] == ESP_AUDIO_TYPE_MP3 || types[i] == ESP_AUDIO_TYPE_FLAC) {

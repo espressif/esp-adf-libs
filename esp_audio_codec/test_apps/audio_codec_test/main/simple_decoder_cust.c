@@ -13,7 +13,6 @@
 #include "esp_audio_dec_default.h"
 #include "esp_audio_simple_dec_default.h"
 #include "unity.h"
-#include "test_utils.h"
 #include "esp_log.h"
 
 #define TAG "SIMP_DEC_CUST"

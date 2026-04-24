@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.5.0
+
+### Features
+
+- Added OGG container support for simple decoder
+- Added G722 encoder and decoder support
+- Added helper API `esp_audio_simple_dec_get_name` for simple decoder
+- Supported build for IDFv6.0
+
+### Bug Fixes
+
+- Improved SBC bitpool calculation accuracy when setting bitrate
+
 ## v2.4.1
 
 ### Features

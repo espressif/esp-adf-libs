@@ -44,7 +44,7 @@ typedef struct {
     .sample_rate       = ESP_AUDIO_SAMPLE_RATE_8K, \
     .channel           = ESP_AUDIO_MONO,           \
     .bits_per_sample   = ESP_AUDIO_BIT16,          \
-    .frame_duration    = 10,                       \
+    .frame_duration    = 20,                       \
 }
 
 /**

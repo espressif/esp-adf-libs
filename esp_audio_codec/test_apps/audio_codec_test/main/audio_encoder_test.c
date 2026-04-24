@@ -9,7 +9,6 @@
 #include <string.h>
 #include "sdkconfig.h"
 #include "unity.h"
-#include "test_utils.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -34,6 +33,7 @@ typedef union {
     esp_opus_enc_config_t  opus_cfg;
     esp_sbc_enc_config_t   sbc_cfg;
     esp_lc3_enc_config_t   lc3_cfg;
+    esp_g722_enc_config_t  g722_cfg;
 } enc_all_cfg_t;
 
 #define ASSIGN_BASIC_CFG(cfg) {                    \
@@ -120,6 +120,15 @@ static int get_encoder_config(esp_audio_type_t type, esp_audio_enc_config_t *enc
             cfg->nbyte = 120;
             cfg->len_prefixed = false;
             enc_cfg->cfg_sz = sizeof(esp_lc3_enc_config_t);
+            break;
+        }
+        case ESP_AUDIO_TYPE_G722: {
+            esp_g722_enc_config_t *cfg = &all_cfg->g722_cfg;
+            ASSIGN_BASIC_CFG(cfg);
+            cfg->bitrate = 64000;
+            cfg->packed = true;
+            cfg->frame_duration = 20;
+            enc_cfg->cfg_sz = sizeof(esp_g722_enc_config_t);
             break;
         }
         default:
@@ -374,6 +383,7 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     void *enc_hd = NULL;
     int in_size = 0;
     int out_size = 0;
+    int prev_out_size = 0;
     esp_audio_enc_frame_info_t frame_info = {0};
     esp_audio_enc_get_frame_info_by_cfg(&enc_cfg, &frame_info);
     esp_audio_enc_open(&enc_cfg, &enc_hd);
@@ -416,6 +426,10 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     esp_amrnb_enc_get_frame_size(enc_hd, &in_size, &out_size);
     TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    prev_out_size = out_size;
+    TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_amrnb_enc_set_bitrate(enc_hd, 7400));
+    esp_amrnb_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_NOT_EQUAL(prev_out_size, out_size);
     esp_amrnb_enc_close(enc_hd);
 
     // test amrwb
@@ -425,6 +439,10 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     esp_amrwb_enc_get_frame_size(enc_hd, &in_size, &out_size);
     TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    prev_out_size = out_size;
+    TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_amrwb_enc_set_bitrate(enc_hd, 23050));
+    esp_amrwb_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_NOT_EQUAL(prev_out_size, out_size);
     esp_amrwb_enc_close(enc_hd);
 
     // test g711
@@ -443,6 +461,10 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     esp_opus_enc_get_frame_size(enc_hd, &in_size, &out_size);
     TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    prev_out_size = out_size;
+    TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_opus_enc_set_bitrate(enc_hd, 60000));
+    esp_opus_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_NOT_EQUAL(prev_out_size, out_size);
     esp_opus_enc_close(enc_hd);
 
     // test pcm
@@ -461,6 +483,10 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     esp_sbc_enc_get_frame_size(enc_hd, &in_size, &out_size);
     TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    prev_out_size = out_size;
+    TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_sbc_enc_set_bitrate(enc_hd, 200000));
+    esp_sbc_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_NOT_EQUAL(prev_out_size, out_size);
     esp_sbc_enc_close(enc_hd);
 
     // test lc3
@@ -470,7 +496,24 @@ TEST_CASE("Encoder query frame information test", CODEC_TEST_MODULE_NAME)
     esp_lc3_enc_get_frame_size(enc_hd, &in_size, &out_size);
     TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
     TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    prev_out_size = out_size;
+    TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_lc3_enc_set_bitrate(enc_hd, 64000));
+    esp_lc3_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_NOT_EQUAL(prev_out_size, out_size);
     esp_lc3_enc_close(enc_hd);
+
+    // test g722
+    esp_g722_enc_config_t g722_cfg = ESP_G722_ENC_CONFIG_DEFAULT();
+    esp_g722_enc_get_frame_info_by_cfg(&g722_cfg, &frame_info);
+    esp_g722_enc_open(&g722_cfg, sizeof(esp_g722_enc_config_t), &enc_hd);
+    esp_g722_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.in_frame_size, in_size);
+    TEST_ASSERT_EQUAL_INT(frame_info.out_frame_size, out_size);
+    prev_out_size = out_size;
+    TEST_ASSERT_EQUAL(ESP_AUDIO_ERR_OK, esp_g722_enc_set_bitrate(enc_hd, 48000));
+    esp_g722_enc_get_frame_size(enc_hd, &in_size, &out_size);
+    TEST_ASSERT_NOT_EQUAL(prev_out_size, out_size);
+    esp_g722_enc_close(enc_hd);
 
     esp_audio_enc_unregister_default();
 }
@@ -536,9 +579,8 @@ TEST_CASE("Encoder bitrate test", CODEC_TEST_MODULE_NAME)
     esp_sbc_enc_config_t sbc_cfg = ESP_SBC_STD_ENC_CONFIG_DEFAULT();
     esp_sbc_enc_open(&sbc_cfg, sizeof(esp_sbc_enc_config_t), &enc_hd);
     TEST_ASSERT_NOT_NULL(enc_hd);
-    TEST_ASSERT_EQUAL(esp_sbc_enc_set_bitrate(enc_hd, 50000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_sbc_enc_set_bitrate(enc_hd, 90000), ESP_AUDIO_ERR_OK);
     TEST_ASSERT_EQUAL(esp_sbc_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
-    TEST_ASSERT_EQUAL(enc_info.bitrate, 50000);
     esp_sbc_enc_close(enc_hd);
 
     esp_lc3_enc_config_t lc3_cfg = ESP_LC3_ENC_CONFIG_DEFAULT();
@@ -548,6 +590,14 @@ TEST_CASE("Encoder bitrate test", CODEC_TEST_MODULE_NAME)
     TEST_ASSERT_EQUAL(esp_lc3_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
     TEST_ASSERT_EQUAL(enc_info.bitrate, 50000);
     esp_lc3_enc_close(enc_hd);
+
+    esp_g722_enc_config_t g722_cfg = ESP_G722_ENC_CONFIG_DEFAULT();
+    esp_g722_enc_open(&g722_cfg, sizeof(esp_g722_enc_config_t), &enc_hd);
+    TEST_ASSERT_NOT_NULL(enc_hd);
+    TEST_ASSERT_EQUAL(esp_g722_enc_set_bitrate(enc_hd, 56000), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(esp_g722_enc_get_info(enc_hd, &enc_info), ESP_AUDIO_ERR_OK);
+    TEST_ASSERT_EQUAL(enc_info.bitrate, 56000);
+    esp_g722_enc_close(enc_hd);
 
     esp_audio_enc_unregister_default();
 }

@@ -53,7 +53,6 @@ static int sbc_encoder(char *infile_name, char *expectfile_name, esp_sbc_enc_con
     int inbuf_sz = 0;
     int outbuf_sz = 0;
     esp_sbc_enc_get_frame_size(enc_hd, &inbuf_sz, &outbuf_sz);
-    printf("insize:%d outsize:%d\n", inbuf_sz, outbuf_sz);
     uint8_t *inbuf = calloc(1, inbuf_sz);
     TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
     uint8_t *outbuf = calloc(1, outbuf_sz);
@@ -63,7 +62,7 @@ static int sbc_encoder(char *infile_name, char *expectfile_name, esp_sbc_enc_con
     esp_audio_enc_out_frame_t out_frame = {0};
     int inread = 0;
     int cnt = 0;
-    int bitrate = 60000;
+    int bitrate = 100000;
     while ((inread = fread(inbuf, 1, inbuf_sz, infile)) > 0) {
         /* code */
         if (inread < inbuf_sz) {
@@ -202,12 +201,39 @@ static int sbc_decoder(char *infile_name, char *expectfile_name, esp_sbc_dec_cfg
 static int sbc_calcu_bitpool(esp_sbc_enc_config_t *enc_cfg, int bitrate)
 {
     int bitpool = 0;
-    int bitnum_per_subband = bitrate * enc_cfg->sub_bands_num / enc_cfg->sample_rate;
-    int channel = ((enc_cfg->ch_mode == ESP_SBC_CH_MODE_MONO) ? (1) : (2));
-    if ((enc_cfg->ch_mode == ESP_SBC_CH_MODE_STEREO) || (enc_cfg->ch_mode == ESP_SBC_CH_MODE_JOINT_STEREO)) {
-        bitpool = bitnum_per_subband - ((32 + (enc_cfg->sub_bands_num * channel << 2) + ((enc_cfg->ch_mode - 2) * enc_cfg->sub_bands_num)) / enc_cfg->block_length);
+    int sample_rate = enc_cfg->sample_rate;
+    int num_subbands = enc_cfg->sub_bands_num;
+    int num_blocks = enc_cfg->block_length;
+    int channel_mode = enc_cfg->ch_mode;
+    int num_channels = (channel_mode == ESP_SBC_CH_MODE_MONO) ? 1 : 2;
+    if ((channel_mode == ESP_SBC_CH_MODE_STEREO) || (channel_mode == ESP_SBC_CH_MODE_JOINT_STEREO)) {
+        bitpool = (bitrate * num_subbands) / sample_rate
+                  - ((32 + 4 * num_subbands * num_channels + ((channel_mode - 2) * num_subbands)) / num_blocks);
+        /* frame length and actual bitrate check to avoid overshoot */
+        int frame_len = 4 + (4 * num_subbands * num_channels) / 8
+                        + (((channel_mode - 2) * num_subbands) + num_blocks * bitpool) / 8;
+        int actual_bitrate = (8 * frame_len * sample_rate) / (num_subbands * num_blocks);
+        /* Reduce bitpool by one step if computed bitrate overshoots the target bitrate. */
+        if (actual_bitrate > bitrate) {
+            bitpool--;
+        }
+        /* Clamp bitpool to the SBC spec range: max 255 for 8 subbands, max 128 for 4 subbands. */
+        if (num_subbands == 8) {
+            if (bitpool > 255) {
+                bitpool = 255;
+            }
+        } else {
+            if (bitpool > 128) {
+                bitpool = 128;
+            }
+        }
     } else {
-        bitpool = bitnum_per_subband - ((32 + (enc_cfg->sub_bands_num << 2)) / enc_cfg->block_length);
+        bitpool = ((num_subbands * bitrate) / (sample_rate * num_channels))
+                  - (((32 / num_channels) + (4 * num_subbands)) / num_blocks);
+        int max_bitpool = 16 * num_subbands;
+        if (bitpool > max_bitpool) {
+            bitpool = max_bitpool;
+        }
     }
     return bitpool;
 }
@@ -461,7 +487,6 @@ TEST_CASE("SBC CODEC with esp_audio_codec interface test", "AUDIO_CODEC")
     int inbuf_sz = 0;
     int outbuf_sz = 0;
     esp_audio_enc_get_frame_size(enc_hd, &inbuf_sz, &outbuf_sz);
-    printf("insize:%d outsize:%d\n", inbuf_sz, outbuf_sz);
     uint8_t *inbuf = calloc(1, inbuf_sz);
     TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
     uint8_t *tmp = calloc(1, outbuf_sz);
@@ -573,7 +598,6 @@ TEST_CASE("SBC CODEC_PLC_WITH_AUDIO_CODEC_TEST", "AUDIO_CODEC")
     int inbuf_sz = 0;
     int outbuf_sz = 0;
     esp_audio_enc_get_frame_size(enc_hd, &inbuf_sz, &outbuf_sz);
-    printf("insize:%d outsize:%d\n", inbuf_sz, outbuf_sz);
     uint8_t *inbuf = calloc(1, inbuf_sz);
     TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
     uint8_t *tmp = calloc(1, outbuf_sz);
@@ -684,7 +708,6 @@ TEST_CASE("SBC CODEC PLC_WITH_SIMPLE_DEC_TEST", "AUDIO_CODEC")
     int inbuf_sz = 0;
     int outbuf_sz = 0;
     esp_audio_enc_get_frame_size(enc_hd, &inbuf_sz, &outbuf_sz);
-    printf("insize:%d outsize:%d\n", inbuf_sz, outbuf_sz);
     uint8_t *inbuf = calloc(1, inbuf_sz);
     TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
     uint8_t *tmp = calloc(1, outbuf_sz);

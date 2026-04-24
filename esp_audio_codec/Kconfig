@@ -73,6 +73,11 @@ menu "Audio Codec Configuration"
             default y
             help
                 Enable this option to register LC3 decoder
+        config AUDIO_DECODER_G722_SUPPORT
+            bool "Support G722 Decoder"
+            default y
+            help
+                Enable this option to register G722 decoder
     endmenu
 
     menu "Audio Simple Decoder Configuration"
@@ -93,6 +98,12 @@ menu "Audio Codec Configuration"
             default y
             help
                 Support decode audio frame from TS container
+        
+        config AUDIO_SIMPLE_DEC_OGG_SUPPORT
+            bool "Support OGG Container"
+            default y
+            help
+                Support decode audio frame from OGG container
     endmenu
 
     menu "Audio Encoder Configuration"
@@ -151,6 +162,11 @@ menu "Audio Codec Configuration"
             default y
             help
                 Enable this option to register LC3 encoder
+        config AUDIO_ENCODER_G722_SUPPORT
+            bool "Support G722 Encoder"
+            default y
+            help
+                Enable this option to register G722 encoder
     endmenu
     
  endmenu

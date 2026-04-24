@@ -64,7 +64,8 @@ typedef enum {
     ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC       = ESP_AUDIO_TYPE_FLAC,                         /*!< Simple decoder for FLAC, support input data of any size */
     ESP_AUDIO_SIMPLE_DEC_TYPE_WAV        = ESP_AUDIO_FOURCC_TO_INT('W', 'A', 'V', ' '), /*!< Simple decoder for WAV, support input data of any size */
     ESP_AUDIO_SIMPLE_DEC_TYPE_M4A        = ESP_AUDIO_FOURCC_TO_INT('M', '4', 'A', 'A'), /*!< Simple decoder for M4A, support input data of any size */
-    ESP_AUDIO_SIMPLE_DEC_TYPE_TS         = ESP_AUDIO_FOURCC_TO_INT('M', '2', 'T', 'S'), /*!< Simple decoder for TS, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_TS         = ESP_AUDIO_FOURCC_TO_INT('T', 'S', ' ', ' '), /*!< Simple decoder for TS, support input data of any size */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_OGG        = ESP_AUDIO_FOURCC_TO_INT('O', 'G', 'G', ' '), /*!< Simple decoder for OGG, support input data of any size */
     ESP_AUDIO_SIMPLE_DEC_TYPE_RAW_OPUS   = ESP_AUDIO_TYPE_OPUS,                         /*!< Simple decoder for OPUS (raw data with no extra header),
                                                                                              only supports input data with a size of one encoded frame */
     ESP_AUDIO_SIMPLE_DEC_TYPE_G711A      = ESP_AUDIO_TYPE_G711A,                        /*!< Simple decoder for G711A, support input data of any size */
@@ -80,6 +81,8 @@ typedef enum {
     ESP_AUDIO_SIMPLE_DEC_TYPE_ALAC       = ESP_AUDIO_TYPE_ALAC,                         /*!< Simple decoder for ALAC,
                                                                                              only supports input data with a size of one encoded frame */
     ESP_AUDIO_SIMPLE_DEC_TYPE_VORBIS     = ESP_AUDIO_TYPE_VORBIS,                       /*!< Simple decoder for Vorbis (raw data with no extra header),
+                                                                                             only supports input data with a size of one encoded frame */
+    ESP_AUDIO_SIMPLE_DEC_TYPE_G722       = ESP_AUDIO_TYPE_G722,                         /*!< Simple decoder for G722,
                                                                                              only supports input data with a size of one encoded frame */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM     = 0x1,                                         /*!< Customized simple decoder type start */
     ESP_AUDIO_SIMPLE_DEC_TYPE_CUSTOM_MAX = 0x10,                                        /*!< Customized simple decoder type end */
@@ -218,6 +221,17 @@ esp_audio_err_t esp_audio_simple_dec_get_info(esp_audio_simple_dec_handle_t dec_
  *       - ESP_AUDIO_ERR_INVALID_PARAMETER  Invalid parameter
  */
 esp_audio_err_t esp_audio_simple_dec_reset(esp_audio_simple_dec_handle_t dec_handle);
+
+/**
+ * @brief  Get audio codec type stringify name
+ *
+ * @param[in]  dec_type  Audio codec type
+ *
+ * @return
+ *       - "NONE"  Invalid codec type
+ *       - Others  Codec stringify name
+ */
+const char *esp_audio_simple_dec_get_name(esp_audio_simple_dec_type_t dec_type);
 
 /**
  * @brief  Close audio simple decoder

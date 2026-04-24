@@ -35,6 +35,7 @@
 #include "esp_pcm_enc.h"
 #include "esp_sbc_enc.h"
 #include "esp_lc3_enc.h"
+#include "esp_g722_enc.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -40,6 +40,7 @@ The ESP Audio Codec supports the following features:
   - OPUS
   - LC3
   - SBC
+  - G722
 * Supports operate all encoder through common API see [esp_audio_enc.h](include/encoder/esp_audio_enc.h)
 * Supports customized encoder through `esp_audio_enc_register` or overwrite default encoder
 * Supports register all supported encoder through `esp_audio_enc_register_default` and manager it by menuconfig
@@ -109,6 +110,14 @@ Details for the supported encoders are as follow:
 - Encoding nbyte range: 20 to 400
 - Support 2-byte length prefix before each encoded frame
 
+**G722**    
+- Encoding sample rates (Hz): 8000, 16000    
+- Encoding channel num: mono    
+- Encoding bits per sample: 16 bits    
+- Encoding bitrate (bps): 48000, 56000, 64000
+- Support packed mode for 48 kbps and 56 kbps
+- Configurable frame duration
+
 ## Decoder   
 
 * Following decoders are supported:
@@ -123,6 +132,7 @@ Details for the supported encoders are as follow:
   - ALAC
   - SBC
   - LC3
+  - G722
 * Supports operate all decoder through common API see [esp_audio_dec.h](include/encoder/esp_audio_dec.h)
 * Supports customized decoder through `esp_audio_dec_register` or overwrite default decoder
 * Supports register all supported decoder through `esp_audio_dec_register_default` and manager it by menuconfig
@@ -193,6 +203,13 @@ Details for the supported decoders are as follow:
 - Support decoding of 2-byte length-prefixed frame data
 - Packet Loss Concealment (PLC)
 
+**G722**    
+- Decoding sample rates (Hz): 8000, 16000    
+- Decoding channel num: mono    
+- Decoding bits per sample: 16 bits    
+- Decoding bitrate (bps): 48000, 56000, 64000
+- Support packed mode decoding
+
 ## Simple Decoder   
 
 * Supports audio frame finding and decoding
@@ -219,6 +236,7 @@ Details for the supported audio containers are as follow:
 |       OPUS     | Supports raw opus only                                      |
 |       PCM      | Supports raw pcm only                                       |
 |       ALAC     | Supports raw alac only                                      |
+|       OGG      | Supports VORBIS, OPUS                                       |
 |       VORBIS   | Supports raw vorbis only                                    |
 
 # Performance
@@ -244,6 +262,7 @@ To get performance under other sample rate, channel or complexity, please change
 | OPUS          | 48000            | 2       | 29.4        | 24.9            |
 | SBC           | 48000            | 2       | 1.85        | 9.55            |
 | LC3           | 48000            | 2       | 3.67        | 46.57           |
+| G722          | 16000            | 1       | 20.8        | 9.74            |
 
 **Notes:**   
 Encoder cpu usage is highly dependent on certain encoding settings (like bitrate or complexity)  
@@ -266,6 +285,7 @@ Encoder cpu usage is highly dependent on certain encoding settings (like bitrate
 | FLAC          | 44100            | 2       | 89.4        | 8.0             |
 | SBC           | 48000            | 2       | 0.21        | 8.14            |
 | LC3           | 48000            | 2       | 1.36        | 17.5            |
+| G722          | 16000            | 1       | 0.55        | 9.21            |
 
 **Notes:** 
  1) MP3 and FLAC decoders are tested with real audio data. All other codes are tested with encoded data from sin wav PCM. 
@@ -276,14 +296,15 @@ Encoder cpu usage is highly dependent on certain encoding settings (like bitrate
 
 The following table shows the support of ESP_AUDIO_CODEC for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported. 
 
-|Version      |  ESP32   |   ESP32-S2 |   ESP32-S3 |   ESP32-C2 |  ESP32-C3 |  ESP32-C5 |  ESP32-C6 |   ESP32-P4  |   ESP32-H4 |
-|:-----------:|:--------:|:----------:|:----------:|:----------:|:---------:|:---------:|:---------:|:-----------:|:----------:|
-|   v1.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10006;  | &#10004;  | &#10006;  | &#10006;  |  &#10006;   |  &#10006;  |
-|   v2.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10006;  | &#10004;  | &#10006;  | &#10004;  |  &#10004;   |  &#10006;  |
-|   v2.1.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
-|   v2.2.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
-|   v2.3.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |
-|   v2.4.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |
+|Version      |  ESP32   |   ESP32-S2 |   ESP32-S3 |   ESP32-C2 |  ESP32-C3 |  ESP32-C5 |  ESP32-C6 |   ESP32-P4  |   ESP32-H4 |  ESP32-S31 |
+|:-----------:|:--------:|:----------:|:----------:|:----------:|:---------:|:---------:|:---------:|:-----------:|:----------:|:----------:|
+|   v1.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10006;  | &#10004;  | &#10006;  | &#10006;  |  &#10006;   |  &#10006;  |  &#10006;  |
+|   v2.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10006;  | &#10004;  | &#10006;  | &#10004;  |  &#10004;   |  &#10006;  |  &#10006;  |
+|   v2.1.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |  &#10006;  |
+|   v2.2.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |  &#10006;  |
+|   v2.3.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |  &#10006;  |
+|   v2.4.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |  &#10006;  |
+|   v2.5.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |  &#10004;  |
 
 # Usage
 

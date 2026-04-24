@@ -74,6 +74,7 @@ typedef enum {
     ESP_AUDIO_TYPE_ALAC           = ESP_AUDIO_FOURCC_TO_INT('A', 'L', 'A', 'C'),
     ESP_AUDIO_TYPE_SBC            = ESP_AUDIO_FOURCC_TO_INT('S', 'B', 'C', ' '),
     ESP_AUDIO_TYPE_LC3            = ESP_AUDIO_FOURCC_TO_INT('L', 'C', '3', '0'),
+    ESP_AUDIO_TYPE_G722           = ESP_AUDIO_FOURCC_TO_INT('G', '7', '2', '2'),
     ESP_AUDIO_TYPE_CUSTOMIZED     = 0x20,
     ESP_AUDIO_TYPE_CUSTOMIZED_MAX = 0x40,
 } esp_audio_type_t;
