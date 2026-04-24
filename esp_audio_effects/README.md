@@ -2,7 +2,7 @@
 
 - [中文版](./README_CN.md)
 
-Espressif Audio Effects (ESP_AUDIO_EFFECTS) is the official audio processing module developed by Espressif Systems for SoCs. The ESP Audio Effects module offers a range of professional, high-performance audio processing algorithms that can be used to modify, enhance, or alter the characteristics of audio signals. The supported modules include Automatic Level Control (ALC), Sample Rate Conversion, Bit Depth Conversion, Channel Conversion, Equalization, Data Weaving, Mixing, Fading, Sonic，Dynamic Range Control (DRC) and Multi-band Compressor (MBC) Processing.
+Espressif Audio Effects (ESP_AUDIO_EFFECTS) is the official audio processing module developed by Espressif Systems for SoCs. The ESP Audio Effects module offers a range of professional, high-performance audio processing algorithms that can be used to modify, enhance, or alter the characteristics of audio signals. The supported modules include Automatic Level Control (ALC), Sample Rate Conversion, Bit Depth Conversion, Channel Conversion, Equalization, Data Weaving, Mixing, Fading, Sonic, Dynamic Range Control (DRC), Multi-band Compressor (MBC), and Howling Suppression (HOWL).
 
 # Detailed Introduction of Each Module
 
@@ -21,15 +21,17 @@ The following table listed the sample_rate, channels and bits_per_sample support
 | [SONIC](docs/README_SONIC.md)              |4-192 kHz, and integer multiples of 4000 or 11025|Full range|  s16, s24, s32      |       Interleave          |           v1.0.0          |
 | [DRC](docs/README_DRC.md)                  |       Full range                                |Full range|  s16, s24, s32      |Interleave and Deinterleave|           v1.2.0          |
 | [MBC](docs/README_MBC.md)                  |       Full range                                |Full range|  s16, s24, s32      |Interleave and Deinterleave|           v1.2.0          |
+| [HOWL](docs/README_HOWL.md)                |8000, 16000, 24000, 32000, 44100, 48000 Hz      |Full range|  s16, s24, s32      |Interleave and Deinterleave|           v1.3.0          |
 
 #  Audio Effects Release and SoC Compatibility
 
 The following table shows the support of ESP_AUDIO_CODEC for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported. 
 
-|Version      |  ESP32   |   ESP32-S2 |   ESP32-S3 |   ESP32-C2 |  ESP32-C3 |  ESP32-C5 |  ESP32-C6 |   ESP32-P4  |   ESP32-H4 |
-|:-----------:|:--------:|:----------:|:----------:|:----------:|:---------:|:---------:|:---------:|:-----------:|:----------:|
-|   v1.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
-|   v1.0.1    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
-|   v1.0.2    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |
-|   v1.1.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |
-|   v1.2.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |
+|Version      |  ESP32   |   ESP32-S2 |   ESP32-S3 |   ESP32-C2 |  ESP32-C3 |  ESP32-C5 |  ESP32-C6 |   ESP32-P4  |   ESP32-H4 |   ESP32-S31 |
+|:-----------:|:--------:|:----------:|:----------:|:----------:|:---------:|:---------:|:---------:|:-----------:|:----------:|:----------:|
+|   v1.0.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |  &#10006;  |
+|   v1.0.1    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |  &#10006;  |
+|   v1.0.2    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10006;  |  &#10006;  |
+|   v1.1.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |  &#10006;  |
+|   v1.2.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |  &#10006;  |
+|   v1.3.0    | &#10004; |  &#10004;  |  &#10004;  |  &#10004;  | &#10004;  | &#10004;  | &#10004;  |  &#10004;   |  &#10004;  |  &#10004;  |

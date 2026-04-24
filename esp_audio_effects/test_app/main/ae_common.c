@@ -327,33 +327,3 @@ int32_t ae_test_read_sample(void *sample_ptr, uint8_t bits)
     }
     return value;
 }
-
-int16_t ae_test_saturate_16(int32_t val)
-{
-    if (val > AE_TEST_MAX_S16) {
-        val = AE_TEST_MAX_S16;
-    } else if (val < AE_TEST_MIN_S16) {
-        val = AE_TEST_MIN_S16;
-    }
-    return ((int16_t)val);
-}
-
-int32_t ae_test_saturate_24(int32_t val)
-{
-    if (val > AE_TEST_MAX_S24) {
-        val = AE_TEST_MAX_S24;
-    } else if (val < AE_TEST_MIN_S24) {
-        val = AE_TEST_MIN_S24;
-    }
-    return ((int32_t)val);
-}
-
-int32_t ae_test_saturate_32(int64_t val)
-{
-    if (val > AE_TEST_MAX_S32) {
-        val = AE_TEST_MAX_S32;
-    } else if (val < AE_TEST_MIN_S32) {
-        val = AE_TEST_MIN_S32;
-    }
-    return ((int32_t)val);
-}

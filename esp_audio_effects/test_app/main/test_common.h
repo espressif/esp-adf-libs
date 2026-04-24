@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Espressif Systems (Shanghai) CO., LTD
+ * SPDX-FileCopyrightText: 2025-2026 Espressif Systems (Shanghai) CO., LTD
  * SPDX-License-Identifier: LicenseRef-Espressif-Modified-MIT
  *
  * See LICENSE file for details.
@@ -8,7 +8,9 @@
 #pragma once
 
 #include <stdbool.h>
-#include "esp_http_client.h"
+#include <stdint.h>
+#include <stdio.h>
+#include "esp_err.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,92 +26,53 @@ typedef struct {
 } ae_audio_info_t;
 
 /**
- * @brief  HTTP context structure for audio data transfer
- */
-typedef struct {
-    esp_http_client_handle_t  client;       /*!< HTTP client handle */
-    char                     *buffer;       /*!< Buffer for HTTP data */
-    size_t                    buffer_size;  /*!< Size of the buffer */
-    size_t                    buffer_pos;   /*!< Current position in buffer */
-    size_t                    total_size;   /*!< Total size of data to transfer */
-    size_t                    current_pos;  /*!< Current position in overall transfer */
-    bool                      is_upload;    /*!< Flag indicating if this is an upload operation */
-} ae_http_context_t;
-
-/**
- * @brief  Initialize HTTP download operation
+ * @brief  Ensure wifi_fs is connected and mounted
  *
- * @param[in]  ctx           HTTP context
- * @param[in]  filename      Name of file to download
- * @param[in]  download_url  Base URL for download
+ * @param[in]  mount_point  VFS mount point (e.g. "/sdcard")
  *
  * @return
- *       - ESP_OK    on success
- *       - ESP_FAIL  on error
+ *       - ESP_OK    Already ready or just mounted
+ *       - ESP_FAIL  Wi-Fi connect or mount failed
  */
-esp_err_t ae_http_download_init(ae_http_context_t *ctx, const char *filename, char *download_url);
+esp_err_t ae_test_ensure_wifi_fs_ready(const char *mount_point);
 
 /**
- * @brief  Initialize HTTP upload operation
+ * @brief  Unmount wifi_fs and disconnect Wi-Fi
  *
- * @param[in]  ctx         HTTP context
- * @param[in]  filename    Name of file to upload
- * @param[in]  audio_info  Audio information structure
- * @param[in]  upload_url  URL for upload
+ * @param[in]  mount_point  VFS mount point used in ae_test_ensure_wifi_fs_ready
  *
  * @return
- *       - ESP_OK    on success
- *       - ESP_FAIL  on error
+ *       - ESP_OK    Unmounted successfully
+ *       - ESP_FAIL  Unmount failed
  */
-esp_err_t ae_http_upload_init(ae_http_context_t *ctx, const char *filename, ae_audio_info_t *audio_info, char *upload_url);
+esp_err_t ae_test_wifi_fs_cleanup(const char *mount_point);
 
 /**
- * @brief  Read data from HTTP connection
+ * @brief  Parse a WAV file header and extract audio info
  *
- * @param[out]  ptr    Buffer to store read data
- * @param[in]   size   Size of each element to read
- * @param[in]   count  Number of elements to read
- * @param[in]   ctx    HTTP context
+ * @param[in]   fp          Opened file pointer (positioned at start)
+ * @param[out]  audio_info  Parsed audio parameters
+ * @param[out]  data_size   Size of the "data" chunk in bytes
  *
  * @return
- *       - Number of elements read on success
- *       - -1 on error
+ *       - true   Success
+ *       - false  Parse error
  */
-int ae_http_read(void *ptr, size_t size, size_t count, ae_http_context_t *ctx);
+bool ae_test_parse_wav_header(FILE *fp, ae_audio_info_t *audio_info, uint32_t *data_size);
 
 /**
- * @brief  Write data to HTTP connection
+ * @brief  Write (or overwrite) a WAV file header
  *
- * @param[in]  ptr        Data to write
- * @param[in]  size       Size of each element to write
- * @param[in]  count      Number of elements to write
- * @param[in]  is_finish  Flag indicating if this is the final write
- * @param[in]  ctx        HTTP context
+ * @param[in]  fp          Opened file pointer
+ * @param[in]  audio_info  Audio parameters to write
+ * @param[in]  data_size   Size of the PCM data that follows
  *
  * @return
- *       - Number of elements written on success
- *       - -1 on error
+ *       - true   Success
+ *       - false  Write error
  */
-int ae_http_write(const void *ptr, size_t size, size_t count, bool is_finish, ae_http_context_t *ctx);
+bool ae_test_write_wav_header(FILE *fp, const ae_audio_info_t *audio_info, uint32_t data_size);
 
-/**
- * @brief  Deinitialize HTTP context
- *
- * @param[in]  ctx  HTTP context to deinitialize
- */
-void ae_http_deinit(ae_http_context_t *ctx);
-
-/**
- * @brief  Parse WAV header from HTTP data
- *
- * @param[in]   ctx              HTTP context
- * @param[out]  sample_rate      Sample rate from WAV header
- * @param[out]  channels         Number of channels from WAV header
- * @param[out]  bits_per_sample  Bits per sample from WAV header
- * @param[out]  data_offset      Offset to audio data in WAV file
- */
-void ae_http_parse_wav_header(ae_http_context_t *ctx, int *sample_rate, int *channels,
-                              int *bits_per_sample, long *data_offset, uint32_t *data_size);
 #ifdef __cplusplus
 }
 #endif  /* __cplusplus */

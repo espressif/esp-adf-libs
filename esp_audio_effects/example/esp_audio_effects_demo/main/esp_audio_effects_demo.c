@@ -893,7 +893,6 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to get audio codec device");
         return;
     }
-    esp_codec_dev_close(audio_codec_handle->codec_dev);
     esp_codec_dev_sample_info_t fs = {
         .sample_rate = SAMPLE_RATE,
         .channel = CHANNELS,
@@ -933,6 +932,9 @@ void app_main(void)
     ESP_LOGI(TAG, "Running Basic Audio Info Convert demo...");
     demo_basic_audio_info_cvt_process();
 #endif  /* defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_ALC) */
+    if (audio_codec_handle != NULL && audio_codec_handle->codec_dev != NULL) {
+        esp_codec_dev_close(audio_codec_handle->codec_dev);
+    }
     esp_board_device_deinit(ESP_BOARD_DEVICE_NAME_AUDIO_DAC);
     ESP_LOGI(TAG, "Demo finished.");
 }

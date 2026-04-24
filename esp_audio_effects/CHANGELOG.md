@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.0
+
+### Features
+
+- Added `howl` (howling suppression) effect to detect and suppress acoustic-feedback howling
+- Supported `esp-audio-effects` for `esp32s31`
+- Replaced server-based test data read/write with `wifi_fs` I/O to host PC folder over Wi-Fi
+
 ## v1.2.1
 
 ### Features

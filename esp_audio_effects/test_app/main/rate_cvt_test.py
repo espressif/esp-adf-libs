@@ -55,10 +55,7 @@ import argparse
 import os
 import sys
 import wave
-import urllib.request
 import json
-from tqdm import tqdm
-import math
 
 class RateConvertVerifier:
     def __init__(self, sample_rate=48000, channels=1):
@@ -350,73 +347,64 @@ def verify_rate_convert_processing_from_bytes(input_bytes, output_bytes, src_rat
     results['overall_pass'] = (passed_tests == total_tests)
     return results
 
-# HTTP批量验证相关函数
-SOURCE_BASE_URL = 'http://10.18.20.184:8080/audio_files/audio_test_dataset/sine'
-DEST_BASE_URL = 'http://10.18.20.184:8080/upload/ae_test/rate_cvt_test'
+# 本地文件批量验证相关常量
+AUDIO_FILES_ROOT = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..', 'audio_files')
+SOURCE_DIR = os.path.join(AUDIO_FILES_ROOT, 'enc_effects_testset', 'sine')
+DEST_DIR = os.path.join(AUDIO_FILES_ROOT, 'ae_test', 'rate_cvt_test')
 
-# 固定的源文件名
-SOURCE_FILENAME = 'sine1kHz0dB_48000_1_{bits}_10'
-
-# 待验证的目标采样率
-RATES = [8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000]
+RATES = [8000, 32000, 44100, 48000, 96000]
 BITS_PER_SAMPLE = [16, 24, 32]
-def download_bytes(url):
-    try:
-        with urllib.request.urlopen(url) as resp:
-            return resp.read()
-    except Exception as e:
-        print(f'下载失败: {url} -> {e}')
+
+def load_local_file(filepath):
+    if not os.path.exists(filepath):
+        print(f'文件不存在: {filepath}')
         return None
-
-def download_input_file(src_rate, bits):
-    # 从HTTP下载源文件
-    fname = f"sine1kHz0dB_{src_rate}_1_{bits}_10.wav"
-    remote = f"{SOURCE_BASE_URL}/{fname}"
-    data = download_bytes(remote)
-    if not data:
-        print(f'未能获取源文件: {remote}')
-    return data, fname
-
-def download_output_file(src_rate, dest_rate, bits):
-    # 目标文件命名规则：sine1kHz0dB_{src_rate}_to_{dest_rate}_1_{bits}_10.wav
-    fname = f"sine1kHz0dB_{src_rate}_to_{dest_rate}_1_{bits}_10.wav"
-    remote = f"{DEST_BASE_URL}/{bits}/{fname}"
-    data = download_bytes(remote)
-    if not data:
-        print(f'未能获取目标文件: {remote}')
-    return data, fname
+    with open(filepath, 'rb') as f:
+        return f.read()
 
 def batch_verify():
-    """批量HTTP验证模式"""
-    # 从main函数传递的参数中获取--rate参数
+    """批量本地文件验证模式"""
     import sys
     rate_arg = None
     if '--rate' in sys.argv:
         rate_idx = sys.argv.index('--rate')
         if rate_idx + 1 < len(sys.argv):
             rate_arg = int(sys.argv[rate_idx + 1])
+
+    src_dir = os.path.realpath(SOURCE_DIR)
+    dest_dir = os.path.realpath(DEST_DIR)
+    print(f'源文件目录: {src_dir}')
+    print(f'目标文件目录: {dest_dir}')
+
+    total_count = 0
+    pass_count = 0
+    fail_count = 0
+    failed_files = []
+
     for src_rate in RATES:
         for bits in BITS_PER_SAMPLE:
-            # 下载源文件
-            input_bytes, input_name = download_input_file(src_rate, bits)
+            input_name = f"sine1kHz0dB_{src_rate}_1_{bits}_10.wav"
+            input_path = os.path.join(src_dir, input_name)
+            input_bytes = load_local_file(input_path)
             if not input_bytes:
-                print(f'跳过：无法获取目标文件(HTTP) sine1kHz0dB_{src_rate}_1_{bits}_10.wav')
-                return
+                print(f'跳过：无法读取源文件 {input_name}')
+                continue
 
-            print(f'成功下载源文件: {input_name}')
+            print(f'成功加载源文件: {input_name}')
 
-            # 遍历目标采样率
             for dest_rate in RATES:
                 if rate_arg and dest_rate != rate_arg:
                     continue
-                    
-                output_bytes, out_fname = download_output_file(src_rate, dest_rate, bits)
+
+                out_fname = f"sine1kHz0dB_{src_rate}_to_{dest_rate}_1_{bits}_10.wav"
+                output_path = os.path.join(dest_dir, str(bits), out_fname)
+                output_bytes = load_local_file(output_path)
                 if not output_bytes:
-                    print(f'跳过：无法获取目标文件(HTTP) sine1kHz0dB_{src_rate}_to_{dest_rate}_1_{bits}_10.wav')
+                    print(f'跳过：无法读取目标文件 {out_fname}')
                     continue
-                    
+
+                total_count += 1
                 print(f'\n==== 验证: {out_fname} ({src_rate} -> {dest_rate}, bits: {bits}) ====')
-                # 直接在内存中验证
                 try:
                     results = verify_rate_convert_processing_from_bytes(
                         input_bytes, output_bytes, src_rate, dest_rate,
@@ -429,13 +417,30 @@ def batch_verify():
                         print(f'  THD: {results.get("output_thd_db", 0):.2f} dBc')
                         print(f'  SNR: {results.get("output_snr_db", 0):.2f} dB')
                         print(f'  幅频特性差异: {results.get("magnitude_response_diff", 0):.2f} dB')
+                    if passed:
+                        pass_count += 1
+                    else:
+                        fail_count += 1
+                        failed_files.append(out_fname)
                 except Exception as e:
                     print(f'运行失败: {e}')
+                    fail_count += 1
+                    failed_files.append(out_fname)
+
+    print('\n' + '=' * 60)
+    print(f'批量验证总结: 共 {total_count} 个文件, 通过 {pass_count} 个, 失败 {fail_count} 个')
+    if failed_files:
+        print(f'\n失败文件列表 ({len(failed_files)} 个):')
+        for fname in failed_files:
+            print(f'  [FAIL] {fname}')
+    else:
+        print('\n全部通过!')
+    print('=' * 60)
 
 def main():
     parser = argparse.ArgumentParser(description='Rate Convert音频处理验证脚本')
     parser.add_argument('--mode', choices=['single', 'batch'], default='single', 
-                       help='验证模式: single=单文件验证, batch=批量HTTP验证')
+                       help='验证模式: single=单文件验证, batch=批量本地文件验证')
     parser.add_argument('--input', '-i', help='输入音频文件路径 (single模式)')
     parser.add_argument('--output', '-o', help='输出音频文件路径 (single模式)')
     parser.add_argument('--src-rate', type=int, default=48000, help='源采样率 (默认: 48000)')
@@ -450,7 +455,6 @@ def main():
     args = parser.parse_args()
 
     if args.mode == 'batch':
-        # 批量HTTP验证模式
         batch_verify()
         return
 

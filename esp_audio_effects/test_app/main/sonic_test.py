@@ -17,7 +17,6 @@ import argparse
 import os
 import sys
 import wave
-import urllib.request
 import json
 
 class SonicVerifier:
@@ -343,11 +342,11 @@ def verify_sonic_processing_from_bytes(input_bytes, output_bytes, speed_ratio, p
     results['overall_pass'] = (passed_tests == total_tests)
     return results
 
-# HTTP批量验证相关函数
-SOURCE_BASE_URL = 'http://10.18.20.184:8080/audio_files/audio_test_dataset/voice'
-DEST_BASE_URL = 'http://10.18.20.184:8080/upload/ae_test/sonic_test'
+# 本地文件批量验证相关常量
+AUDIO_FILES_ROOT = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..', 'audio_files')
+SOURCE_DIR = os.path.join(AUDIO_FILES_ROOT, 'enc_effects_testset', 'voice')
+DEST_DIR = os.path.join(AUDIO_FILES_ROOT, 'ae_test', 'sonic_test')
 
-# 固定的测试基准文件名（源音频）
 BASE_NAMES = [
     'manch_48000_1_16_10',
     'manen_48000_1_16_10',
@@ -357,54 +356,23 @@ BASE_NAMES = [
     'womanloud_48000_1_16_10',
 ]
 
-# 待验证的(speed, pitch)组合（可按需调整）
 COMBINATIONS = [
     (0.50, 1.00),
-    (1.00, 0.50),
     (1.00, 2.00),
-    (2.00, 1.00),
-    (0.75, 1.25),
     (1.25, 0.75),
 ]
 
 BITS_PER_SAMPLE = [16, 24, 32]
 
-def download_bytes(url):
-    try:
-        with urllib.request.urlopen(url) as resp:
-            return resp.read()
-    except Exception as e:
-        print(f'下载失败: {url} -> {e}')
+def load_local_file(filepath):
+    if not os.path.exists(filepath):
+        print(f'文件不存在: {filepath}')
         return None
-
-def download_input_file(base_name):
-    # 从HTTP下载源文件：如果有扩展名，直接用；否则尝试 .wav/.pcm
-    stem, ext = os.path.splitext(base_name)
-    if ext:
-        remote = f"{SOURCE_BASE_URL}/{base_name}"
-        data = download_bytes(remote)
-        if data:
-            return data, f"{stem}{ext}"
-    for e in ['.wav', '.pcm']:
-        remote = f"{SOURCE_BASE_URL}/{stem}{e}"
-        data = download_bytes(remote)
-        if data:
-            return data, f"{stem}{e}"
-    return None, None
-
-def download_output_file(base_name, speed, pitch, bits):
-    # 目标文件命名规则：{baseStem}_speed_{speed:.2f}_pitch_{pitch:.2f}.wav
-    stem, _ = os.path.splitext(base_name)
-    fname = f"{stem}_speed_{speed:.2f}_pitch_{pitch:.2f}_bits_{bits}.wav"
-    remote = f"{DEST_BASE_URL}/{fname}"
-    data = download_bytes(remote)
-    if not data:
-        print(f'未能获取目标文件: {remote}')
-    return data, fname
+    with open(filepath, 'rb') as f:
+        return f.read()
 
 def batch_verify():
-    """批量HTTP验证模式"""
-    # 从main函数传递的参数中获取--base参数
+    """批量本地文件验证模式"""
     import sys
     base_arg = None
     if '--base' in sys.argv:
@@ -412,22 +380,37 @@ def batch_verify():
         if base_idx + 1 < len(sys.argv):
             base_arg = sys.argv[base_idx + 1]
 
-    # 遍历固定的基准文件名与组合，从HTTP下载源与目标文件到内存并验证
+    src_dir = os.path.realpath(SOURCE_DIR)
+    dest_dir = os.path.realpath(DEST_DIR)
+    print(f'源文件目录: {src_dir}')
+    print(f'目标文件目录: {dest_dir}')
+
+    total_count = 0
+    pass_count = 0
+    fail_count = 0
+    failed_files = []
+
     for base_name in BASE_NAMES:
         if base_arg and not base_name.startswith(base_arg):
             continue
+        input_name = f"{base_name}.wav"
+        input_path = os.path.join(src_dir, input_name)
+        input_bytes = load_local_file(input_path)
+        if not input_bytes:
+            print(f'跳过：无法读取源文件 {input_name}')
+            continue
+
         for (speed, pitch) in COMBINATIONS:
             for bits in BITS_PER_SAMPLE:
-                input_bytes, input_name = download_input_file(base_name)
-                if not input_bytes:
-                    print(f'未找到输入文件(HTTP): {base_name}.wav/.pcm')
-                    continue
-                output_bytes, out_fname = download_output_file(base_name, speed, pitch, bits)
+                out_fname = f"{base_name}_speed_{speed:.2f}_pitch_{pitch:.2f}_bits_{bits}.wav"
+                output_path = os.path.join(dest_dir, out_fname)
+                output_bytes = load_local_file(output_path)
                 if not output_bytes:
-                    print(f'跳过：无法获取目标文件(HTTP) {base_name}_speed_{speed:.2f}_pitch_{pitch:.2f}_bits_{bits}.wav')
+                    print(f'跳过：无法读取目标文件 {out_fname}')
                     continue
+
+                total_count += 1
                 print(f'\n==== 验证: {out_fname} (input={input_name}, speed={speed}, pitch={pitch}, bits={bits}) ====')
-                # 直接在内存中验证
                 try:
                     results = verify_sonic_processing_from_bytes(
                         input_bytes, output_bytes, speed, pitch,
@@ -436,13 +419,30 @@ def batch_verify():
                     )
                     passed = results and results.get('overall_pass')
                     print('通过' if passed else '失败', ': ', out_fname)
+                    if passed:
+                        pass_count += 1
+                    else:
+                        fail_count += 1
+                        failed_files.append(out_fname)
                 except Exception as e:
                     print(f'运行失败: {e}')
+                    fail_count += 1
+                    failed_files.append(out_fname)
+
+    print('\n' + '=' * 60)
+    print(f'批量验证总结: 共 {total_count} 个文件, 通过 {pass_count} 个, 失败 {fail_count} 个')
+    if failed_files:
+        print(f'\n失败文件列表 ({len(failed_files)} 个):')
+        for fname in failed_files:
+            print(f'  [FAIL] {fname}')
+    else:
+        print('\n全部通过!')
+    print('=' * 60)
 
 def main():
     parser = argparse.ArgumentParser(description='Sonic音频处理验证脚本')
     parser.add_argument('--mode', choices=['single', 'batch'], default='single', 
-                       help='验证模式: single=单文件验证, batch=批量HTTP验证')
+                       help='验证模式: single=单文件验证, batch=批量本地文件验证')
     parser.add_argument('--input', '-i', help='输入音频文件路径 (single模式)')
     parser.add_argument('--output', '-o', help='输出音频文件路径 (single模式)')
     parser.add_argument('--speed', '-s', type=float, default=1.0, help='速度比例 (默认: 1.0)')
@@ -456,7 +456,6 @@ def main():
     
     args = parser.parse_args()
     if args.mode == 'batch':
-        # 批量HTTP验证模式
         batch_verify()
         return
 

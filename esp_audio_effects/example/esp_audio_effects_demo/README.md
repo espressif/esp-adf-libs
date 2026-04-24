@@ -46,9 +46,38 @@ Here are the simplified build steps:
 
 2. **Setup Basic Environment**
 
-   Modify the `install.sh` file according to your target chip and development board
+- Install `esp-bmgr-assist` on Linux:
+
    ```bash
-   sh ./install.sh
+   pip install esp-bmgr-assist
+   pip install --upgrade esp-bmgr-assist
+   ```
+
+- List supported boards:
+
+   ```bash
+   idf.py bmgr -l
+   ```
+
+Output example:
+
+   ```text
+   ℹ️  Main Boards:
+   [1] dual_eyes_board_v1_0
+   [2] esp32_c3_lyra
+   [3] esp32_c5_spot
+   [4] esp32_p4_function_ev
+   [5] esp32_s3_korvo2_v3
+   [6] esp32_s3_korvo2l
+   [7] esp_box_3
+   [8] esp_box_lite
+   [9] esp_hi
+   ```
+
+- Select a development board (replace `number` with the index from the list above):
+
+   ```bash
+   idf.py bmgr -b number
    ```
 
 3. **Configure Example**

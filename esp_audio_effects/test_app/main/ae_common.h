@@ -13,9 +13,6 @@
 extern "C" {
 #endif  /* __cplusplus */
 
-#define AE_TEST_CLAMPS(val, bits) \
-    ((bits) == ESP_AE_BIT16 ? ae_test_saturate_16(val) : ((bits) == ESP_AE_BIT24 ? ae_test_saturate_24(val) : ae_test_saturate_32(val)))
-
 #define MAX_RMS_DIFF_DIFF    0.2f
 #define MAX_PEAK_DIFF_DIFF   0.2f
 #define MAX_DC_OFFSET_CHANGE 0.3f
@@ -30,30 +27,6 @@ typedef struct {
     double  max_abs;        /*!< Maximum absolute sample value */
     int     total_samples;  /*!< Total number of samples processed */
 } ae_test_stats_accumulator_t;
-
-/**
- * @brief  Saturate a 32-bit value to 16-bit range
- *
- * @param[in]  val  Input 32-bit value
- * @return
- */
-int16_t ae_test_saturate_16(int32_t val);
-
-/**
- * @brief  Saturate a 32-bit value to 24-bit range
- *
- * @param[in]  val  Input 32-bit value
- * @return
- */
-int32_t ae_test_saturate_24(int32_t val);
-
-/**
- * @brief  Saturate a 64-bit value to 32-bit range
- *
- * @param[in]  val  Input 64-bit value
- * @return
- */
-int32_t ae_test_saturate_32(int64_t val);
 
 /**
  * @brief  Normalize audio sample value based on bits per sample
