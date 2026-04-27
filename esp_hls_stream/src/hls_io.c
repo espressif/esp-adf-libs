@@ -6,6 +6,7 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 #include "esp_gmf_new_databus.h"
 #include "media_lib_os.h"
 #include "esp_hls_io.h"
@@ -27,6 +28,7 @@ typedef struct _hls_io_t {
     esp_gmf_io_handle_t   io;
     esp_gmf_db_handle_t   data_bus;
     char                 *prev_io_tag;
+    uint32_t              media_remain;  // Remaining bytes of the current media chunk on data_bus
 } hls_io_t;
 
 typedef struct {
@@ -289,55 +291,135 @@ static int checksum(uint8_t *buf, int size)
     return sum;
 }
 
+static esp_gmf_err_io_t _hls_pull_next_meta(hls_io_t *hls_io, int block_ticks, uint32_t *out_remain)
+{
+    const int meta_hdr_bytes = (int)sizeof(hls_meta_info_t);
+    esp_gmf_data_bus_block_t head_blk = {};
+    hls_meta_info_t meta_info = {};
+
+    while (true) {
+        esp_gmf_err_io_t ret = esp_gmf_db_acquire_read(hls_io->base.data_bus, &head_blk, meta_hdr_bytes, block_ticks);
+        if (ret != ESP_GMF_IO_OK) {
+            return ret;
+        }
+        memcpy(&meta_info, head_blk.buf, sizeof(meta_info));
+        esp_gmf_io_update_pos((esp_gmf_io_handle_t)hls_io, head_blk.valid_size);
+        esp_gmf_db_release_read(hls_io->base.data_bus, &head_blk, 0);
+
+        if (meta_info.bos) {
+            esp_hls_io_cfg_t *cfg = (esp_hls_io_cfg_t *)OBJ_GET_CFG(hls_io);
+            if (cfg->file_seg_cb) {
+                esp_hls_file_seg_info_t seg_info = {
+                    .format = meta_info.format,
+                };
+                cfg->file_seg_cb(&seg_info, cfg->ctx);
+            }
+        }
+        if (meta_info.valid_size > HLS_READ_BLOCK_SIZE) {
+            ESP_LOGE(TAG, "Invalid meta data size %u", (unsigned)meta_info.valid_size);
+            return ESP_GMF_IO_FAIL;
+        }
+        if (meta_info.valid_size == 0) {
+            continue;  /* skip empty slot, wait for next meta */
+        }
+        *out_remain = meta_info.valid_size;
+        return ESP_GMF_IO_OK;
+    }
+}
+
 static esp_gmf_err_t _hls_user_read_filter(esp_gmf_io_handle_t handle, void *payload, uint32_t wanted_size, int block_ticks)
 {
     hls_io_t *hls_io = (hls_io_t *)handle;
+    esp_gmf_payload_t *load = (esp_gmf_payload_t *)payload;
     if (hls_io == NULL || hls_io->hls_fetcher == NULL) {
         return ESP_GMF_IO_FAIL;
     }
-    // Read meta info and send media data callback
-    esp_gmf_data_bus_block_t head_blk = {};
-    int size = sizeof(hls_meta_info_t);
-    hls_meta_info_t meta_info = {};
-
-RETRY:
-    esp_gmf_err_io_t ret = esp_gmf_db_acquire_read(hls_io->base.data_bus, &head_blk, size, block_ticks);
-    if (ret != ESP_GMF_IO_OK) {
-        return ret;
+    if (wanted_size == 0) {
+        load->valid_size = 0;
+        return ESP_GMF_IO_OK;
     }
-    memcpy(&meta_info, head_blk.buf, sizeof(meta_info));
-    esp_gmf_io_update_pos(handle, head_blk.valid_size);
-    esp_gmf_db_release_read(hls_io->base.data_bus, &head_blk, 0);
-    // Callback meta data in read callback so that do format change correctly
-    if (meta_info.bos) {
-        esp_hls_io_cfg_t *cfg = (esp_hls_io_cfg_t *)OBJ_GET_CFG(hls_io);;
-        if (cfg->file_seg_cb) {
-            esp_hls_file_seg_info_t seg_info = {
-                .format = meta_info.format,
-            };
-            cfg->file_seg_cb(&seg_info, cfg->ctx);
+
+    uint32_t max_copy = wanted_size;
+    if (load->buf_length > 0 && max_copy > load->buf_length) {
+        max_copy = load->buf_length;
+    }
+
+    // Mode 1: payload has buffer (copy mode)
+    if (load->buf != NULL) {
+        uint8_t *dst_buf = (uint8_t *)load->buf;
+        uint32_t total_copied = 0;
+        bool any_is_done = false;
+        esp_gmf_err_io_t ret = ESP_GMF_IO_OK;
+
+        while (total_copied < max_copy) {
+            if (hls_io->media_remain == 0) {
+                ret = _hls_pull_next_meta(hls_io, block_ticks, &hls_io->media_remain);
+                if (ret != ESP_GMF_IO_OK) {
+                    /* Nothing more we can pull; report what we've already got. */
+                    if (total_copied == 0) {
+                        return ret;
+                    }
+                    break;
+                }
+            }
+
+            uint32_t request_len = max_copy - total_copied;
+            if (request_len > hls_io->media_remain) {
+                request_len = hls_io->media_remain;
+            }
+
+            esp_gmf_data_bus_block_t piece = {};
+            ret = esp_gmf_db_acquire_read(hls_io->base.data_bus, &piece, request_len, block_ticks);
+            if (ret != ESP_GMF_IO_OK) {
+                if (total_copied == 0) {
+                    return ret;
+                }
+                break;
+            }
+
+            uint32_t got = piece.valid_size;
+            if (got > hls_io->media_remain) {
+                got = hls_io->media_remain;
+            }
+            memcpy(dst_buf + total_copied, piece.buf, got);
+            total_copied += got;
+            hls_io->media_remain -= got;
+            bool segment_end = (hls_io->media_remain == 0) && piece.is_last;
+            any_is_done = any_is_done || segment_end;
+            bool filled_enough = segment_end || (total_copied >= max_copy);
+            esp_gmf_db_release_read(hls_io->base.data_bus, &piece, 0);
+            if (filled_enough) {
+                break;
+            }
+        }
+
+        memset(&hls_io->base.db_block, 0, sizeof(hls_io->base.db_block));
+        load->valid_size = total_copied;
+        load->is_done = any_is_done;
+        return ESP_GMF_IO_OK;
+    }
+
+    // Mode 2: payload has no buffer (zero-copy mode)
+    if (hls_io->media_remain == 0) {
+        esp_gmf_err_io_t ret = _hls_pull_next_meta(hls_io, block_ticks, &hls_io->media_remain);
+        if (ret != ESP_GMF_IO_OK) {
+            return ret;
         }
     }
-    if (meta_info.valid_size > HLS_READ_BLOCK_SIZE) {
-        ESP_LOGE(TAG, "Invalid meta data size %u", (unsigned)meta_info.valid_size);
-        return ESP_GMF_IO_FAIL;
-    }
-    // Skip 0 size of data
-    wanted_size = meta_info.valid_size;
-    if (wanted_size == 0) {
-        goto RETRY;
-    }
-    ret = esp_gmf_db_acquire_read(hls_io->base.data_bus, payload, wanted_size, block_ticks);
+
+    esp_gmf_err_io_t ret = esp_gmf_db_acquire_read(hls_io->base.data_bus, payload, hls_io->media_remain, block_ticks);
     if (ret != ESP_GMF_IO_OK) {
         return ret;
     }
-    esp_gmf_data_bus_block_t *new_blk = (esp_gmf_data_bus_block_t *)payload;
-    hls_io->base.db_block = *new_blk;  // Workaround save to db_block to avoid can not release
-
-    if (meta_info.bos) {
-        ESP_LOGD(TAG, "R %02x %02x cs:%d", new_blk->buf[0], new_blk->buf[1],
-               checksum(new_blk->buf, new_blk->valid_size));
+    esp_gmf_data_bus_block_t *data_blk = (esp_gmf_data_bus_block_t *)payload;
+    uint32_t copied = data_blk->valid_size;
+    if (copied > hls_io->media_remain) {
+        copied = hls_io->media_remain;
     }
+    load->valid_size = copied;
+    hls_io->media_remain -= copied;
+    load->is_done = (hls_io->media_remain == 0) && data_blk->is_last;
+    hls_io->base.db_block = *data_blk;
     return ret;
 }
 
@@ -351,7 +433,14 @@ static esp_gmf_err_io_t _hls_acquire_read(esp_gmf_io_handle_t handle, void *payl
     hls_fetch_stream_data_t stream_data = {};
     int ret = 0;
     stream_data.data = payload_info->buf + sizeof(hls_meta_info_t);
+    const uint32_t meta_sz = (uint32_t)sizeof(hls_meta_info_t);
     stream_data.size = HLS_READ_BLOCK_SIZE;
+    if (payload_info->buf_length > meta_sz) {
+        uint32_t media_room = payload_info->buf_length - meta_sz;
+        if (media_room < stream_data.size) {
+            stream_data.size = media_room;
+        }
+    }
     int retry_count = HLS_MAX_RETRY_COUNT;
 RETRY:
     ret = hls_fetcher_read_data(hls_io->hls_fetcher, ESP_EXTRACTOR_STREAM_TYPE_AUDIO,
@@ -406,12 +495,17 @@ static esp_gmf_err_t _hls_seek(esp_gmf_io_handle_t io, uint64_t seek_time)
     }
     ESP_LOGI(TAG, "Seek to time %d", (int)seek_time);
     int ret = hls_fetcher_seek(hls_io->hls_fetcher, (uint32_t)seek_time);
-    return (ret == ESP_EXTRACTOR_ERR_OK) ? ESP_GMF_ERR_OK : ESP_GMF_ERR_FAIL;
+    if (ret == ESP_EXTRACTOR_ERR_OK) {
+        hls_io->media_remain = 0;
+        return ESP_GMF_ERR_OK;
+    }
+    return ESP_GMF_ERR_FAIL;
 }
 
 static esp_gmf_err_t _hls_reset(esp_gmf_io_handle_t io)
 {
     hls_io_t *hls_io = (hls_io_t *)io;
+    hls_io->media_remain = 0;
     if (hls_io->base.data_bus) {
         esp_gmf_db_reset(hls_io->base.data_bus);
     }
@@ -424,6 +518,7 @@ static esp_gmf_err_t _hls_close(esp_gmf_io_handle_t io)
     if (hls_io == NULL || hls_io->hls_fetcher == NULL) {
         return ESP_GMF_IO_FAIL;
     }
+    hls_io->media_remain = 0;
     hls_fetcher_close(hls_io->hls_fetcher);
     hls_io->hls_fetcher = NULL;
     hls_io->prev_io_tag = NULL;
