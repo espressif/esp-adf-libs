@@ -39,6 +39,7 @@
 #include "esp_pcm_dec.h"
 #include "esp_sbc_dec.h"
 #include "esp_lc3_dec.h"
+#include "esp_g722_dec.h"
 
 #ifdef __cplusplus
 extern "C" {

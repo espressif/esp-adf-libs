@@ -9,7 +9,6 @@
 #include <string.h>
 #include "sdkconfig.h"
 #include "unity.h"
-#include "test_utils.h"
 #include "esp_err.h"
 #include "esp_system.h"
 #include "audio_codec_test.h"
@@ -28,6 +27,7 @@ typedef union {
     esp_g711_dec_cfg_t  g711_cfg;
     esp_sbc_dec_cfg_t   sbc_cfg;
     esp_lc3_dec_cfg_t   lc3_cfg;
+    esp_g722_dec_cfg_t  g722_cfg;
 } dec_all_cfg_t;
 
 typedef struct {
@@ -107,6 +107,14 @@ static int get_decoder_cfg(esp_audio_dec_cfg_t *dec_cfg, audio_info_t *info)
             lc3_cfg->enable_plc = false;
             dec_cfg->cfg = lc3_cfg;
             dec_cfg->cfg_sz = sizeof(esp_lc3_dec_cfg_t);
+        } break;
+        case ESP_AUDIO_TYPE_G722: {
+            esp_g722_dec_cfg_t *g722_cfg = &cfg->g722_cfg;
+            g722_cfg->sample_rate = info->sample_rate;
+            g722_cfg->bitrate = 64000;
+            g722_cfg->packed = true;
+            dec_cfg->cfg = g722_cfg;
+            dec_cfg->cfg_sz = sizeof(esp_g722_dec_cfg_t);
         } break;
         default:
             dec_cfg->cfg = NULL;

@@ -63,6 +63,10 @@ esp_audio_err_t esp_audio_dec_register_default(void)
 #ifdef CONFIG_AUDIO_DECODER_LC3_SUPPORT
     ret |= esp_lc3_dec_register();
 #endif /* CONFIG_AUDIO_DECODER_LC3_SUPPORT */
+
+#ifdef CONFIG_AUDIO_DECODER_G722_SUPPORT
+    ret |= esp_g722_dec_register();
+#endif /* CONFIG_AUDIO_DECODER_G722_SUPPORT */
     return ret;
 }
 
@@ -120,4 +124,8 @@ void esp_audio_dec_unregister_default(void)
 #ifdef CONFIG_AUDIO_DECODER_LC3_SUPPORT
     esp_audio_dec_unregister(ESP_AUDIO_TYPE_LC3);
 #endif /* CONFIG_AUDIO_DECODER_LC3_SUPPORT */
+
+#ifdef CONFIG_AUDIO_DECODER_G722_SUPPORT
+    esp_audio_dec_unregister(ESP_AUDIO_TYPE_G722);
+#endif /* CONFIG_AUDIO_DECODER_G722_SUPPORT */
 }

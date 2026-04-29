@@ -31,6 +31,8 @@
 #include "impl/esp_m4a_parse.h"
 #include "impl/esp_ts_dec.h"
 #include "impl/esp_ts_parse.h"
+#include "impl/esp_ogg_dec.h"
+#include "impl/esp_ogg_parse.h"
 #include "esp_audio_simple_dec_reg.h"
 
 #ifdef __cplusplus

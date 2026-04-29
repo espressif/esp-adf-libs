@@ -9,7 +9,6 @@
 #include <string.h>
 #include "sdkconfig.h"
 #include "unity.h"
-#include "test_utils.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -73,6 +72,8 @@ static char reset_url1[][100] = {
     "/sdcard/audio_test/test.wav",
     "/sdcard/audio_test/test.m4a",
     "/sdcard/audio_test/test.ts",
+    "/sdcard/audio_test/test.ogg",
+    "/sdcard/audio_test/test.opus",
 };
 
 static char reset_url2[][100] = {
@@ -84,6 +85,8 @@ static char reset_url2[][100] = {
     "/sdcard/audio_test/63_g711u.wav",
     "/sdcard/audio_test/115_M4A_box_have_co64.m4a",
     "/sdcard/audio_test/1_2257-460-8796.ts",
+    "/sdcard/audio_test/9_1kL44.ogg",
+    "/sdcard/audio_test/1_128.opus",
 };
 
 static esp_audio_simple_dec_type_t get_simple_decoder_type(char *file)
@@ -122,6 +125,9 @@ static esp_audio_simple_dec_type_t get_simple_decoder_type(char *file)
     }
     if (strcasecmp(ext, "ts") == 0) {
         return ESP_AUDIO_SIMPLE_DEC_TYPE_TS;
+    }
+    if (strcasecmp(ext, "ogg") == 0 || strcasecmp(ext, "opus") == 0) {
+        return ESP_AUDIO_SIMPLE_DEC_TYPE_OGG;
     }
     return ESP_AUDIO_SIMPLE_DEC_TYPE_NONE;
 }
@@ -564,17 +570,25 @@ TEST_CASE("Specific music file test", CODEC_TEST_MODULE_NAME)
     void *playlist = {0};
     sdcard_list_create(&playlist);
     sdcard_scan(sdcard_url_save_cb, "/sdcard/audio_test",
-                0, (const char *[]) {"mp3", "m4a", "flac", "amr", "ts", "aac", "wav"}, 7, playlist);
+                0, (const char *[]) {"mp3", "m4a", "flac", "amr", "ts", "aac", "wav", "ogg", "opus"}, 9, playlist);
     audio_info_t aud_info = {0};
     int file_num = sdcard_list_get_url_num(playlist);
     char outname[100] = {0};
     for (int i = 0; i < file_num; i++) {
         char *inname = NULL;
         sdcard_list_choose(playlist, i, &inname);
+        const char *rel_path = &inname[6];
+        const char *base = strrchr(rel_path, '/');
+        base = base ? base + 1 : rel_path;
+        /* Skip files explicitly named test.<ext> or "test" (avoid decoding placeholder test assets) */
+        if (strncmp(base, "test.", 5) == 0 || strcmp(base, "test") == 0) {
+            ESP_LOGI(TAG, "skip test-named file: %s", rel_path);
+            continue;
+        }
         memset(outname, 0, sizeof(outname));
-        ESP_LOGI(TAG, "inname: %s", &inname[6]);
-        change_extension_to_pcm(&inname[6], outname, strlen(inname) - 6);
-        audio_simple_decoder_test_file(&inname[6], outname, &aud_info, true, false);
+        ESP_LOGI(TAG, "inname: %s", rel_path);
+        change_extension_to_pcm(rel_path, outname, strlen(inname) - 6);
+        audio_simple_decoder_test_file((char *)rel_path, outname, &aud_info, true, false);
     }
     sdcard_list_destroy(playlist);
     esp_board_manager_deinit();
@@ -707,20 +721,9 @@ TEST_CASE("Simple decoder reset with same stream test", CODEC_TEST_MODULE_NAME)
 
 TEST_CASE("Simple decoder reset with file test", CODEC_TEST_MODULE_NAME)
 {
-    esp_audio_simple_dec_type_t types[] = {
-        ESP_AUDIO_SIMPLE_DEC_TYPE_AAC,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_MP3,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_FLAC,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRNB,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_AMRWB,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_WAV,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_M4A,
-        ESP_AUDIO_SIMPLE_DEC_TYPE_TS,
-    };
     esp_board_manager_init();
     audio_info_t aud_info = {0};
-    for (int i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
-        ESP_LOGI(TAG, "Testing simple decoder reset for type %s", esp_audio_codec_get_name(types[i]));
+    for (int i = 0; i < sizeof(reset_url1) / sizeof(reset_url1[0]); i++) {
         audio_simple_decoder_test_file(reset_url1[i], "/sdcard/test1.pcm", &aud_info, false, true);
         audio_simple_decoder_test_file(reset_url2[i], "/sdcard/test2.pcm", &aud_info, false, true);
         audio_simple_decoder_test_file(reset_url1[i], "/sdcard/test3.pcm", &aud_info, false, true);

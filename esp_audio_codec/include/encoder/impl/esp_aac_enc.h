@@ -54,8 +54,11 @@ typedef struct {
                               |    64000     |    65000 - 160000       |
                               |    88200     |    67000 - 160000       |
                               |    96000     |    70000 - 160000       | 
-                              Note : 1) This table shows the bitrate range corresponding to each samplerate.
-                                     2) The bitrate range of dual stream is twice that of mono. */
+                              Note : 1) This table shows the bitrate range corresponding to each samplerate
+                                     2) The bitrate range of dual stream is twice that of mono
+                                     3) If bitrate is set to 0, the encoder operates in unconstrained VBR,
+                                        the output bitrate is not limited and will vary dynamically according to
+                                        the complexity of the input audio content */
     bool adts_used;      /*!< Whether write ADTS header: true - add ADTS header, false - raw aac data only */
 } esp_aac_enc_config_t;
 
