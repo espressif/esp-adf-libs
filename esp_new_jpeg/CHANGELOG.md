@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.1
+
+### Features
+
+- Supported IDF6.0
+- Supported ESP32-S31, ESP32-H4, ESP32-C61
+
+### Bug Fixes
+
+- Fixed build error in test_app
+
 ## v1.0.0
 
 ### Features

@@ -1,4 +1,4 @@
-// Copyright 2025 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2026 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #pragma once
@@ -7,10 +7,10 @@
 extern "C" {
 #endif  /* __cplusplus */
 
-#define ESP_JPEG_VERION "1.0.0"
+#define ESP_JPEG_VERION "1.0.1"
 
 /**
- * @version 1.0.0:
+ * @version 1.0.1:
  *    Features:
  *      Encoder:
  *          - Support variety of width and height to encoder

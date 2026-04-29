@@ -1,4 +1,4 @@
-// Copyright 2024 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2026 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #include <stdio.h>
@@ -32,7 +32,7 @@ TEST_CASE("test_system_heap", "[sys]")
 
 TEST_CASE("test_decoder_once", "[dec]")
 {
-    unsigned char *input_buffer = test_jpeg_data;
+    unsigned char *input_buffer = (unsigned char *)test_jpeg_data;
     int input_len = sizeof(test_jpeg_data);
     unsigned char *output_buffer = NULL;
     int output_len = 0;
@@ -90,7 +90,7 @@ TEST_CASE("test_decoder_once", "[dec]")
 
 TEST_CASE("test_decoder_block", "[dec]")
 {
-    unsigned char *input_buffer = test_jpeg_data;
+    unsigned char *input_buffer = (unsigned char *)test_jpeg_data;
     int input_len = sizeof(test_jpeg_data);
 
 #if TEST_USE_SDCARD
@@ -107,7 +107,7 @@ TEST_CASE("test_decoder_block", "[dec]")
 
 TEST_CASE("test_decoder_stream", "[dec]")
 {
-    unsigned char *input_buffer = test_jpeg_data;
+    unsigned char *input_buffer = (unsigned char *)test_jpeg_data;
     int input_len = sizeof(test_jpeg_data);
     unsigned char *output_buffer = NULL;
     int output_len = 0;

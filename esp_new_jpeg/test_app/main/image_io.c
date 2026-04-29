@@ -1,4 +1,4 @@
-// Copyright 2024 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2026 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #include <string.h>
@@ -152,8 +152,6 @@ void mount_sd(void)
 
 void unmount_sd(void)
 {
-    esp_err_t ret;
-
     // All done, unmount partition and disable SPI peripheral
     esp_vfs_fat_sdcard_unmount(mount_point, card);
     printf("Card unmounted\n");
@@ -163,7 +161,7 @@ void unmount_sd(void)
 
     // Deinitialize the power control driver if it was used
 #if SD_PWR_CTRL_LDO_INTERNAL_ENABLE
-    ret = sd_pwr_ctrl_del_on_chip_ldo(pwr_ctrl_handle);
+    esp_err_t ret = sd_pwr_ctrl_del_on_chip_ldo(pwr_ctrl_handle);
     if (ret != ESP_OK) {
         printf("Failed to delete the on-chip LDO power control driver");
         return;

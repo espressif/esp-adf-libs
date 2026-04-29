@@ -1,4 +1,4 @@
-// Copyright 2024 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2026 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #include <time.h>
@@ -103,7 +103,9 @@ jpeg_error_t esp_jpeg_decode_one_picture_block(unsigned char *input_buf, int len
     jpeg_error_t ret = JPEG_ERR_OK;
     jpeg_dec_io_t *jpeg_io = NULL;
     jpeg_dec_header_info_t *out_info = NULL;
+#if TEST_USE_SDCARD
     FILE *f_out = NULL;
+#endif  /* TEST_USE_SDCARD */
 
     // Generate default configuration
     jpeg_dec_config_t config = DEFAULT_JPEG_DEC_CONFIG();

@@ -1,8 +1,9 @@
-// Copyright 2024 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2026 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #pragma once
 
+#include <stdint.h>
 #include <stdbool.h>
 #include "esp_jpeg_common.h"
 

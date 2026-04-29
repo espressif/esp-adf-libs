@@ -1,4 +1,4 @@
-// Copyright 2024 Espressif Systems (Shanghai) CO., LTD.
+// Copyright 2026 Espressif Systems (Shanghai) CO., LTD.
 // All rights reserved.
 
 #include <time.h>
@@ -24,13 +24,12 @@ jpeg_error_t esp_jpeg_encode_one_picture(void)
     jpeg_enc_cfg.hfm_task_core = 1;
 
     jpeg_error_t ret = JPEG_ERR_OK;
-    uint8_t *inbuf = test_rgb888_data;
+    const uint8_t *inbuf = test_rgb888_data;
     int image_size = jpeg_enc_cfg.width * jpeg_enc_cfg.height * 3;
     uint8_t *outbuf = NULL;
     int outbuf_size = 100 * 1024;
     int out_len = 0;
     jpeg_enc_handle_t jpeg_enc = NULL;
-    FILE *out = NULL;
 
     // open
     ret = jpeg_enc_open(&jpeg_enc_cfg, &jpeg_enc);
@@ -52,6 +51,7 @@ jpeg_error_t esp_jpeg_encode_one_picture(void)
     }
 
 #if TEST_USE_SDCARD
+    FILE *out = NULL;
     out = fopen("/sdcard/esp_jpeg_encode_one_picture.jpg", "wb");
     if (out == NULL) {
         goto jpeg_example_exit;
@@ -92,7 +92,6 @@ jpeg_error_t esp_jpeg_encode_one_picture_block(void)
     int outbuf_size = 100 * 1024;
     int out_len = 0;
     jpeg_enc_handle_t jpeg_enc = NULL;
-    FILE *out = NULL;
 
     // open
     ret = jpeg_enc_open(&jpeg_enc_cfg, &jpeg_enc);
@@ -129,6 +128,7 @@ jpeg_error_t esp_jpeg_encode_one_picture_block(void)
 
 jpeg_example_exit:
 #if TEST_USE_SDCARD
+    FILE *out = NULL;
     out = fopen("/sdcard/esp_jpeg_encode_one_picture_block.jpg", "wb");
     if (out != NULL) {
         fwrite(outbuf, 1, out_len, out);

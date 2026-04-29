@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.0.1"
 description: Espressif JPEG encoder and decoder
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_new_jpeg
 repository: https://github.com/espressif/esp-adf-libs.git
@@ -8,11 +8,14 @@ targets:
   - esp32
   - esp32s2
   - esp32s3
+  - esp32s31
   - esp32p4
   - esp32c2
   - esp32c3
   - esp32c5
   - esp32c6
+  - esp32c61
+  - esp32h4
 
 tags:
   - "multimedia"
