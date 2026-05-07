@@ -12,6 +12,7 @@
 #include "media_lib_os.h"
 #include "esp_tls.h"
 #include "esp_log.h"
+#include "lwip/sockets.h"
 
 #if __has_include("esp_idf_version.h")
 #include "esp_idf_version.h"
@@ -29,7 +30,23 @@
 typedef struct {
     esp_tls_t* tls;
     bool       is_server;
+    int        sockfd;
 } media_lib_tls_inst_t;
+
+static void _tls_abort_socket(int fd, bool close_fd)
+{
+    if (fd >= 0) {
+        struct linger linger = {
+            .l_onoff = 1,
+            .l_linger = 0,
+        };
+        setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger));
+        shutdown(fd, SHUT_RDWR);
+        if (close_fd) {
+            close(fd);
+        }
+    }
+}
 
 static media_lib_tls_handle_t _tls_new(const char *hostname, int hostlen, int port, const media_lib_tls_cfg_t *cfg)
 {
@@ -56,6 +73,7 @@ static media_lib_tls_handle_t _tls_new(const char *hostname, int hostlen, int po
         ESP_LOGE(TAG, "No memory for instance");
         return NULL;
     }
+    tls_lib->sockfd = -1;
 #if (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 0, 0))
     esp_tls_t * tls = esp_tls_conn_new(hostname, strlen(hostname), port, &tls_cfg);
     if (tls == NULL) {
@@ -88,7 +106,7 @@ error_out:
 
 static media_lib_tls_handle_t _tls_new_server(int fd, const media_lib_tls_server_cfg_t *cfg)
 {
-#ifndef CONFIG_ESP_TLS_SERVER
+#if !defined(CONFIG_ESP_TLS_SERVER) && !defined(CONFIG_MBEDTLS_TLS_SERVER)
     ESP_LOGE(TAG, "Please enable macro CONFIG_ESP_TLS_SERVER");
     return NULL;
 #else
@@ -107,11 +125,12 @@ static media_lib_tls_handle_t _tls_new_server(int fd, const media_lib_tls_server
         ESP_LOGE(TAG, "No memory for instance");
         return NULL;
     }
+    tls_lib->sockfd = fd;
     esp_tls_t* tls = esp_tls_init();
     if (tls == NULL ||
         esp_tls_server_session_create(&server_cfg, fd, tls) < 0) {
         ESP_LOGE(TAG, "Fail to create server session");
-        if (tls) { 
+        if (tls) {
             free(tls);
         }
         free(tls_lib);
@@ -164,10 +183,13 @@ static int _tls_delete(media_lib_tls_handle_t tls)
     if (tls) {
         media_lib_tls_inst_t *tls_lib = (media_lib_tls_inst_t *)tls;
         if (tls_lib->is_server) {
-#ifdef CONFIG_ESP_TLS_SERVER
+            _tls_abort_socket(tls_lib->sockfd, false);
+#if defined(CONFIG_ESP_TLS_SERVER) || defined(CONFIG_MBEDTLS_TLS_SERVER)
             esp_tls_server_session_delete(tls_lib->tls);
 #endif
+            _tls_abort_socket(tls_lib->sockfd, true);
         } else {
+            _tls_abort_socket(_tls_getsockfd(tls), false);
             esp_tls_conn_delete(tls_lib->tls);
         }
         free(tls);

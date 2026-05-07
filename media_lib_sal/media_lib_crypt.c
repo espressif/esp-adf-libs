@@ -110,7 +110,7 @@ void media_lib_aes_free(media_lib_aes_handle_t ctx)
 int media_lib_aes_set_key(media_lib_aes_handle_t ctx, uint8_t *key, uint8_t key_bits)
 {
     if (media_crypt_lib.aes_set_key) {
-        media_crypt_lib.aes_set_key(ctx, key, key_bits);
+        return media_crypt_lib.aes_set_key(ctx, key, key_bits);
     }
     return ESP_ERR_NOT_SUPPORTED;
 }
@@ -118,7 +118,7 @@ int media_lib_aes_set_key(media_lib_aes_handle_t ctx, uint8_t *key, uint8_t key_
 int media_lib_aes_crypt_cbc(media_lib_aes_handle_t ctx, bool decrypt_mode, uint8_t iv[16], uint8_t *input, size_t size, uint8_t *output)
 {
     if (media_crypt_lib.aes_crypt_cbc) {
-        media_crypt_lib.aes_crypt_cbc(ctx, decrypt_mode, iv, input, size, output);
+        return media_crypt_lib.aes_crypt_cbc(ctx, decrypt_mode, iv, input, size, output);
     }
     return ESP_ERR_NOT_SUPPORTED;
 }

@@ -226,7 +226,7 @@ int media_lib_mutex_lock(media_lib_mutex_handle_t mutex, uint32_t timeout)
     return ESP_ERR_NOT_SUPPORTED;
 }
 
-int media_lib_mutex_unlock(media_lib_mutex_handle_t mutex) 
+int media_lib_mutex_unlock(media_lib_mutex_handle_t mutex)
 {
     if (media_os_lib.mutex_unlock) {
         return media_os_lib.mutex_unlock(mutex);
@@ -244,8 +244,8 @@ int media_lib_mutex_destroy(media_lib_mutex_handle_t mutex)
 
 int media_lib_enter_critical_section(void)
 {
-    if (media_os_lib.leave_critical) {
-        return media_os_lib.leave_critical();
+    if (media_os_lib.enter_critical) {
+        return media_os_lib.enter_critical();
     }
     return ESP_ERR_NOT_SUPPORTED;
 }
@@ -282,7 +282,7 @@ uint32_t media_lib_event_group_clr_bits(media_lib_event_grp_handle_t event_group
 }
 
 uint32_t media_lib_event_group_wait_bits(media_lib_event_grp_handle_t event_group,
-                                uint32_t bits, uint32_t timeout)
+                                         uint32_t bits, uint32_t timeout)
 {
     if (media_os_lib.group_wait_bits) {
         return media_os_lib.group_wait_bits(event_group, bits, timeout);

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.9.2
+
+### Features
+
+- Enhanced test app to cover more cases
+- Added support for IDFv6.x
+
 ## v0.9.1
 
 ### Bugfix
