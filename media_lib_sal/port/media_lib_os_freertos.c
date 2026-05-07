@@ -19,8 +19,14 @@
 #include "media_lib_os.h"
 #include "esp_idf_version.h"
 
-#if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
-#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0))
+#if defined(CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT) || (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+#define MEDIA_LIB_TASK_SNAPSHOT_SUPPORT
+#endif
+
+#ifdef MEDIA_LIB_TASK_SNAPSHOT_SUPPORT
+#if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0))
+#include "freertos/freertos_debug.h"
+#elif (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0))
 #include "esp_private/freertos_debug.h"
 #else
 #include "freertos/task_snapshot.h"
@@ -245,7 +251,7 @@ static int _mutex_lock_timeout(media_lib_mutex_handle_t mutex, uint32_t timeout)
     if (timeout != portMAX_DELAY) {
         timeout /= portTICK_PERIOD_MS;
     }
-    return xSemaphoreTakeRecursive(mutex, timeout);
+    return xSemaphoreTakeRecursive(mutex, timeout) ? ESP_OK : ESP_FAIL;
 }
 
 static int _sema_lock_timeout(media_lib_sema_handle_t sema, uint32_t timeout)
@@ -263,7 +269,7 @@ static int _os_unlock(void *lock)
 static int _mutex_unlock(media_lib_mutex_handle_t mutex)
 {
     RETURN_ON_NULL_HANDLE(mutex);
-    return xSemaphoreGiveRecursive(mutex);
+    return xSemaphoreGiveRecursive(mutex) ? ESP_OK : ESP_FAIL;
 }
 
 static int _sema_unlock(media_lib_sema_handle_t sema)
@@ -340,7 +346,7 @@ static int _event_group_destroy(media_lib_event_grp_handle_t group)
 static int _get_stack_frame(void** addr, int n)
 {
     int filled = 0;;
-#if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
+#ifdef MEDIA_LIB_TASK_SNAPSHOT_SUPPORT
     esp_backtrace_frame_t frame = {};
     TaskSnapshot_t snap_shot;
     TaskHandle_t cur_task = xTaskGetCurrentTaskHandle();
@@ -366,6 +372,7 @@ static int _get_stack_frame(void** addr, int n)
 
 #else
 
+#ifdef MEDIA_LIB_TASK_SNAPSHOT_SUPPORT
 /**
  * @brief   Get reserved stack size of a function from `addi` instruction before `ret`
  *          Limitation: not support dynamic array on stack
@@ -408,11 +415,12 @@ static int get_addi_size(uint32_t addi)
     }
     return 0;
 }
+#endif
 
 static int _get_stack_frame(void** addr, int n)
 {
     int fill = 0;
-#if CONFIG_FREERTOS_ENABLE_TASK_SNAPSHOT
+#ifdef MEDIA_LIB_TASK_SNAPSHOT_SUPPORT
     uint32_t pc, sp;
     TaskSnapshot_t snap_shot;
     TaskHandle_t cur_task = xTaskGetCurrentTaskHandle();
