@@ -58,13 +58,16 @@ For more details on API usage, please refer to the `example` and `test_apps/test
 ## Supported Chips
 
 
-| Chip     | v1.0.0   |
+| Chip     | Supported|
 |----------|----------|
 | ESP32    | &#10004; |
 | ESP32-S2 | &#10004; |
 | ESP32-S3 | &#10004; |
+| ESP32-S31| &#10004; |
 | ESP32-P4 | &#10004; |
 | ESP32-C2 | &#10004; |
 | ESP32-C3 | &#10004; |
 | ESP32-C5 | &#10004; |
 | ESP32-C6 | &#10004; |
+| ESP32-C61| &#10004; |
+| ESP32-H4 | &#10004; |
