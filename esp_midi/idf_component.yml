@@ -3,7 +3,7 @@ description: Espressif MIDI
 issues: https://github.com/espressif/esp-adf/issues
 repository: https://github.com/espressif/esp-adf-libs.git
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_midi
-version: "1.0.0"
+version: "1.1.0"
 tags:
   - multimedia
   - MIDI
