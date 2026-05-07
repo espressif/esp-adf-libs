@@ -1,3 +1,10 @@
+# Changelog
+
+## v1.0.1
+
+### Features
+
+- Added support for `esp32s31` target
 
 ## v1.0.0
 
