@@ -1,0 +1,8 @@
+description: ESP media protocols unit tests
+dependencies:
+  esp_media_protocols:
+    version: "*"
+    override_path: "../../"
+  espressif/media_lib_sal:
+    version: "*"
+    override_path: "../../../media_lib_sal"

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.1
+
+### Features
+
+- Added support for `esp32s31`, `esp32h4` target
+- Added test_apps for compilation verification
+
 ## v0.6.0
 
 ### Features
