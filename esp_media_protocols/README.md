@@ -116,13 +116,15 @@ Universal Plug and Play with DLNA compliance for seamless media sharing and devi
 
 The following table shows the support of ESP_MEDIA_PROTOCOLS for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported.
 
-|Chip         |      v0.5.0      |
+|Chip         |     Supported    |
 |:-----------:|:----------------:|
 |ESP32        |     &#10004;     |
 |ESP32-S2     |     &#10004;     |
 |ESP32-S3     |     &#10004;     |
+|ESP32-S31    |     &#10004;     |
 |ESP32-C2     |     &#10004;     |
 |ESP32-C3     |     &#10004;     |
 |ESP32-C5     |     &#10004;     |
 |ESP32-C6     |     &#10004;     |
 |ESP32-P4     |     &#10004;     |
+|ESP32-H4     |     &#10004;     |
