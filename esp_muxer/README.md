@@ -24,12 +24,12 @@ It is suitable for applications such as personal video recorder, HLS media segme
 | PCM       | Y    | N    | Y    | Y    | Y    | N    | Y    |
 | AAC       | Y    | Y    | Y    | Y    | Y    | N    | Y    |
 | MP3       | Y    | Y    | Y    | Y    | N    | N    | Y    |
-| ADPCM     | N    | N    | N    | Y    | Y    | N    | N    |
-| G711 Alaw | N    | N    | N    | Y    | Y    | N    | N    |
-| G711 Ulaw | N    | N    | N    | Y    | Y    | N    | N    |
+| ADPCM     | N    | N    | N    | Y    | Y    | N    | Y    |
+| G711 Alaw | N    | N    | N    | Y    | Y    | N    | Y    |
+| G711 Ulaw | N    | N    | N    | Y    | Y    | N    | Y    |
 | AMR-NB    | N    | N    | N    | Y    | N    | N    | N    |
 | AMR-WB    | N    | N    | N    | Y    | N    | N    | N    |
-| OPUS      | N    | N    | N    | N    | N    | Y    | Y    |
+| OPUS      | N    | N    | N    | N    | N    | Y    | N    |
 | ALAC      | Y    | N    | N    | N    | Y    | N    | N    |
 | **Video** |      |      |      |      |      |      |      |
 | H.264     | Y    | Y    | Y    | N    | N    | N    | Y    |

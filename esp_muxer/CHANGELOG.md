@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.1
+
+### Features
+
+- Added support for `esp32s31`, `esp32h4` target
+- Fixed document error for `AVI`
+
+## Bug Fixes
+
+- Fixed test app build error on IDFv6.x
+
 ## v1.2.0
 
 ### Features
