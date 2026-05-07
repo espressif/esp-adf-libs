@@ -67,10 +67,6 @@ static int hls_media_type_cb(esp_hls_file_seg_info_t *info, void *ctx)
         };
         music_info.format_id = info->format;
         esp_gmf_pipeline_get_el_by_name(pipeline, "aud_dec", &dec_el);
-        // Old simple player use M2TS instead of TS
-        if (info->format == ESP_FOURCC_TO_INT('T', 'S', ' ', ' ')) {
-            music_info.format_id = ESP_FOURCC_M2TS;
-        }
         esp_gmf_audio_dec_reconfig_by_sound_info(dec_el, &music_info);
         ESP_LOGI(TAG, "Detect file format %s", ESP_FOURCC_TO_STR(info->format));
     }
