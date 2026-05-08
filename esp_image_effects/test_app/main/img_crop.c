@@ -1,6 +1,10 @@
 #include "img_crop.h"
 #include "esp_imgfx_crop.h"
+#include "rgb_image_gen.h"
 
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
 #include "unity.h"
 #include "esp_imgfx_crop.h"
 
@@ -183,12 +187,83 @@ void print_crop_cfg(esp_imgfx_crop_cfg_t *cfg)
 {
     printf("cfg.in_res.width: %d \n", cfg->in_res.width);
     printf("cfg.in_res.height: %d \n", cfg->in_res.height);
-    printf("cfg.in_pixel_fmt: %d \n", cfg->in_pixel_fmt);
+    printf("cfg.in_pixel_fmt: " ESP_IMGFX_FOURCC_FMT "\n", ESP_IMGFX_FOURCC_ARG(cfg->in_pixel_fmt));
     printf("cfg.cropped_res.width: %d \n", cfg->cropped_res.width);
     printf("cfg.cropped_res.height: %d \n", cfg->cropped_res.height);
     printf("cfg.x_pos: %d \n", cfg->x_pos);
     printf("cfg.y_pos: %d \n", cfg->y_pos);
 }
+
+void img_crop_process_gen_print(void)
+{
+    esp_imgfx_pixel_fmt_t fmts[] = {
+        ESP_IMGFX_PIXEL_FMT_Y,
+        ESP_IMGFX_PIXEL_FMT_RGB565_LE,
+        ESP_IMGFX_PIXEL_FMT_BGR565_LE,
+        ESP_IMGFX_PIXEL_FMT_RGB565_BE,
+        ESP_IMGFX_PIXEL_FMT_BGR565_BE,
+        ESP_IMGFX_PIXEL_FMT_RGB888,
+        ESP_IMGFX_PIXEL_FMT_BGR888,
+        ESP_IMGFX_PIXEL_FMT_YUYV,
+        ESP_IMGFX_PIXEL_FMT_UYVY,
+        ESP_IMGFX_PIXEL_FMT_YUV_PACKET,
+        ESP_IMGFX_PIXEL_FMT_ARGB888,
+        ESP_IMGFX_PIXEL_FMT_ABGR888,
+    };
+    for (size_t i = 0; i < sizeof(fmts) / sizeof(fmts[0]); i++) {
+        esp_imgfx_crop_cfg_t cfg = {
+            .in_res = {16, 8},
+            .in_pixel_fmt = fmts[i],
+            .cropped_res = {8, 4},
+            .x_pos = 4,
+            .y_pos = 2,
+        };
+        esp_imgfx_crop_handle_t handle = NULL;
+        esp_imgfx_data_t in_image = {0};
+        esp_imgfx_data_t out_image = {0};
+        esp_imgfx_err_t ret = esp_imgfx_crop_open(&cfg, &handle);
+        if (ret != ESP_IMGFX_ERR_OK) {
+            printf("%s: crop_open failed for " ESP_IMGFX_FOURCC_FMT ": %d\n", __func__, ESP_IMGFX_FOURCC_ARG(cfg.in_pixel_fmt), ret);
+            continue;
+        }
+        if (esp_imgfx_get_image_size(cfg.in_pixel_fmt, &cfg.in_res, &in_image.data_len) != ESP_IMGFX_ERR_OK
+            || esp_imgfx_get_image_size(cfg.in_pixel_fmt, &cfg.cropped_res, &out_image.data_len) != ESP_IMGFX_ERR_OK) {
+            printf("%s: get image size failed for " ESP_IMGFX_FOURCC_FMT "\n", __func__, ESP_IMGFX_FOURCC_ARG(cfg.in_pixel_fmt));
+            goto _fmt_exit;
+        }
+        if (posix_memalign((void **)&in_image.data, 128, in_image.data_len) != 0
+            || posix_memalign((void **)&out_image.data, 128, out_image.data_len) != 0) {
+            printf("%s: alloc image failed for " ESP_IMGFX_FOURCC_FMT "\n", __func__, ESP_IMGFX_FOURCC_ARG(cfg.in_pixel_fmt));
+            goto _fmt_exit;
+        }
+        memset(in_image.data, 0x5A, in_image.data_len);
+        if (cfg.in_pixel_fmt == ESP_IMGFX_PIXEL_FMT_RGB888) {
+            rgb888_color_blocks_gen(in_image.data, cfg.in_res.width, cfg.in_res.height);
+            rgb888_terminal_print("Crop Input", in_image.data, cfg.in_res.width, cfg.in_res.height);
+        }
+        ret = esp_imgfx_crop_process(handle, &in_image, &out_image);
+        if (ret != ESP_IMGFX_ERR_OK) {
+            printf("%s: crop_process failed for " ESP_IMGFX_FOURCC_FMT ": %d\n", __func__, ESP_IMGFX_FOURCC_ARG(cfg.in_pixel_fmt), ret);
+            goto _fmt_exit;
+        }
+        if (cfg.in_pixel_fmt == ESP_IMGFX_PIXEL_FMT_RGB888) {
+            rgb888_terminal_print("Crop Output", out_image.data, cfg.cropped_res.width, cfg.cropped_res.height);
+        } else {
+            printf("Crop " ESP_IMGFX_FOURCC_FMT " ok, in_len=%" PRIu32 " out_len=%" PRIu32 " first=%02X %02X %02X %02X\n",
+                   ESP_IMGFX_FOURCC_ARG(cfg.in_pixel_fmt), in_image.data_len, out_image.data_len,
+                   out_image.data[0], out_image.data[1], out_image.data[2], out_image.data[3]);
+        }
+_fmt_exit:
+        if (in_image.data) {
+            free(in_image.data);
+        }
+        if (out_image.data) {
+            free(out_image.data);
+        }
+        esp_imgfx_crop_close(handle);
+    }
+}
+
 extern uint32_t pixel_fmt[15];
 void img_crop_process()
 {

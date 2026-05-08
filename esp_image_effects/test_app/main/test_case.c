@@ -51,6 +51,7 @@ TEST_CASE("scale_inv", "[imgfx]")
     test_esp_imgfx_scale_get_cfg_with_invalid_handle();
     test_esp_imgfx_scale_set_cfg_with_invalid_handle();
     test_esp_imgfx_scale_set_cfg_with_invalid_config();
+    test_esp_imgfx_scale_open_yuv422_odd_output_res();
 }
 
 TEST_CASE("crop", "[imgfx]")
@@ -60,6 +61,11 @@ TEST_CASE("crop", "[imgfx]")
     test_esp_imgfx_crop_set_cfg();
     test_esp_imgfx_crop_process();
     test_esp_imgfx_crop_close();
+}
+
+TEST_CASE("crop_gen_print", "[imgfx]")
+{
+    img_crop_process_gen_print();
 }
 
 TEST_CASE("crop_inv", "[imgfx]")
