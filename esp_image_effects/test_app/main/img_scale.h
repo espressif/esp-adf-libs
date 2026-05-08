@@ -8,6 +8,7 @@ void test_esp_imgfx_scale_get_cfg();
 void test_esp_imgfx_scale_set_cfg();
 void test_esp_imgfx_scale_process();
 void test_esp_imgfx_scale_close();
+void test_esp_imgfx_scale_open_yuv422_odd_output_res();
 
 void test_esp_imgfx_scale_open_with_invalid_config();
 void test_esp_imgfx_scale_process_with_invalid_handle();

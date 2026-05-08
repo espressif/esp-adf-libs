@@ -6,34 +6,44 @@
 #include <sys/stat.h>
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
-#include "driver/sdmmc_host.h"
 #include "image_io.h"
 #include "sdkconfig.h"
+#include "soc/soc_caps.h"
+#if SOC_SDMMC_HOST_SUPPORTED
+#include "driver/sdmmc_host.h"
 #if CONFIG_IDF_TARGET_ESP32P4
 #include "sd_pwr_ctrl_by_on_chip_ldo.h"
 #endif  /* CONFIG_IDF_TARGET_ESP32P4 */
+#endif  /* SOC_SDMMC_HOST_SUPPORTED */
 
 #define MOUNT_POINT "/sdcard"
 
+#if SOC_SDMMC_HOST_SUPPORTED && CONFIG_IDF_TARGET_ESP32P4
 static sd_pwr_ctrl_handle_t pwr_ctrl_handle = NULL;
-static sdmmc_host_t         host            = SDSPI_HOST_DEFAULT();
+#endif  /* SOC_SDMMC_HOST_SUPPORTED && CONFIG_IDF_TARGET_ESP32P4 */
+#if SOC_SDMMC_HOST_SUPPORTED
 static sdmmc_card_t        *card;
 static const char           mount_point[] = MOUNT_POINT;
-#if CONFIG_IDF_TARGET_ESP32P4
+#endif  /* SOC_SDMMC_HOST_SUPPORTED */
+#if SOC_SDMMC_HOST_SUPPORTED && CONFIG_IDF_TARGET_ESP32P4
 #define PIN_CLK 43
 #define PIN_CMD 44
 #define PIN_D0  39
 #define PIN_D1  40
 #define PIN_D2  41
 #define PIN_D3  42
-#endif  /* CONFIG_IDF_TARGET_ESP32P4 */
-#if CONFIG_IDF_TARGET_ESP32S3
+#endif  /* SOC_SDMMC_HOST_SUPPORTED && CONFIG_IDF_TARGET_ESP32P4 */
+#if SOC_SDMMC_HOST_SUPPORTED && CONFIG_IDF_TARGET_ESP32S3
 #define PIN_CLK 15
 #define PIN_CMD 7
 #define PIN_D0  4
-#endif  /* CONFIG_IDF_TARGET_ESP32S3 */
+#endif  /* SOC_SDMMC_HOST_SUPPORTED && CONFIG_IDF_TARGET_ESP32S3 */
 void mount_sd(void)
 {
+#if !SOC_SDMMC_HOST_SUPPORTED
+    ESP_LOGW("SDCARD", "SDMMC host is not supported on this target, skip mounting SD card");
+    return;
+#else
     esp_err_t ret;
 
     // Options for mounting the filesystem.
@@ -95,11 +105,18 @@ void mount_sd(void)
 
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
+#endif  /* SOC_SDMMC_HOST_SUPPORTED */
 }
 
 void unmount_sd(void)
 {
+#if !SOC_SDMMC_HOST_SUPPORTED
+    ESP_LOGW("SDCARD", "SDMMC host is not supported on this target, skip unmounting SD card");
+    return;
+#else
+#if CONFIG_IDF_TARGET_ESP32P4
     esp_err_t ret;
+#endif  /* CONFIG_IDF_TARGET_ESP32P4 */
     // All done, unmount partition and disable SPI peripheral
     esp_vfs_fat_sdcard_unmount(mount_point, card);
     printf("Card unmounted\n");
@@ -110,4 +127,5 @@ void unmount_sd(void)
         return;
     }
 #endif  /* CONFIG_IDF_TARGET_ESP32P4 */
+#endif  /* SOC_SDMMC_HOST_SUPPORTED */
 }

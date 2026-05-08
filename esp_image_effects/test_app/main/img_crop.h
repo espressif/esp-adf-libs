@@ -3,6 +3,7 @@
 #include "esp_timer.h"
 
 void img_crop_process();
+void img_crop_process_gen_print();
 void test_esp_imgfx_crop_open(void);
 void test_esp_imgfx_crop_open_invalid_cfg();
 void test_esp_imgfx_crop_open_not_supported_pixel_fmt();

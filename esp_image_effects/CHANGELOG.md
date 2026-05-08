@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.0
+
+### Features
+
+- Added support for the **ESP32-C61** and **ESP32-S31** chips
+- Added **YUYV** and **UYVY** format support for the `scale` module
+- Added **YUYV** and **UYVY** format support for the `crop` module
+
 ## v1.0.1
 
 ### Features

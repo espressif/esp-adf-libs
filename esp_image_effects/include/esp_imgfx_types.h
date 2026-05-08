@@ -1,7 +1,7 @@
 /*
  * ESPRESSIF MIT License
  *
- * Copyright (c) 2025 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2025-2026 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
  *
  * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
  * it is free of charge, to any person obtaining a copy of this software and associated
@@ -33,6 +33,18 @@ extern "C" {
  * @brief  Macro to create FourCC (Four Character Code) from characters
  */
 #define ESP_IMGFX_FOURCC(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
+
+/**
+ * @brief  FourCC log print helpers
+ * @note   Usage:
+ *         ESP_LOGI(TAG, "fmt: " ESP_IMGFX_FOURCC_FMT, ESP_IMGFX_FOURCC_ARG(pixel_fmt));
+ */
+#define ESP_IMGFX_FOURCC_FMT "%c%c%c%c"
+#define ESP_IMGFX_FOURCC_ARG(fourcc)            \
+    (char)((uint32_t)(fourcc) & 0xFF),          \
+    (char)(((uint32_t)(fourcc) >> 8) & 0xFF),   \
+    (char)(((uint32_t)(fourcc) >> 16) & 0xFF),  \
+    (char)(((uint32_t)(fourcc) >> 24) & 0xFF)
 
 /**
  * @brief  Error codes for image processing operations

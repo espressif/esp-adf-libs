@@ -2,4 +2,4 @@ description: ESP Image Effects Test
 dependencies:
   esp_image_effects:
     version: "*"
-    override_path: "../../../"
+    override_path: "../.."

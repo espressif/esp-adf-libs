@@ -30,6 +30,9 @@ void rgb888_image_show(uint8_t *image, int32_t width, int32_t height);
 
 void rgb888_image_gen(int32_t width, int32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t *image);
 
+void rgb888_color_blocks_gen(uint8_t *image, int32_t width, int32_t height);
+void rgb888_terminal_print(const char *title, const uint8_t *image, int32_t width, int32_t height);
+
 void yuv_packet_image_gen(int32_t width, int32_t height, uint8_t r, uint8_t g, uint8_t b, uint8_t *image);
 
 void rgb888_image_diff_pixel(uint8_t *image, uint8_t r, uint8_t g, uint8_t b, int16_t *r_diff, int16_t *g_diff, int16_t *b_diff);

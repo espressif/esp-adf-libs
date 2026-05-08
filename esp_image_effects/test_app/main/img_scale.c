@@ -41,6 +41,23 @@ void test_esp_imgfx_scale_process(void)
     esp_imgfx_scale_close(handle);
 }
 
+void test_esp_imgfx_scale_open_yuv422_odd_output_res(void)
+{
+    esp_imgfx_scale_cfg_t cfg = {
+        .in_pixel_fmt = ESP_IMGFX_PIXEL_FMT_YUYV,
+        .in_res = {640, 480},
+        .scale_res = {321, 241},
+        .filter_type = ESP_IMGFX_SCALE_FILTER_TYPE_BILINEAR
+    };
+    esp_imgfx_scale_handle_t handle = NULL;
+    esp_imgfx_err_t ret = esp_imgfx_scale_open(&cfg, &handle);
+    TEST_ASSERT_EQUAL(ESP_IMGFX_ERR_INVALID_PARAMETER, ret);
+
+    cfg.in_pixel_fmt = ESP_IMGFX_PIXEL_FMT_UYVY;
+    ret = esp_imgfx_scale_open(&cfg, &handle);
+    TEST_ASSERT_EQUAL(ESP_IMGFX_ERR_INVALID_PARAMETER, ret);
+}
+
 void test_esp_imgfx_scale_close(void)
 {
     esp_imgfx_scale_cfg_t cfg = {
