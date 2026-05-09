@@ -24,7 +24,7 @@ endif()
 
 list(APPEND COMPONENT_REQUIRES esp_mm)
 
-if(${IDF_TARGET} STREQUAL "esp32p4")
+if(${IDF_TARGET} STREQUAL "esp32p4" OR ${IDF_TARGET} STREQUAL "esp32s31")
     list(APPEND COMPONENT_REQUIRES esp_driver_jpeg)
 endif()
 
