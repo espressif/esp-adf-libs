@@ -1,52 +1,28 @@
-menu "ESP Audio Effects Configuration"
+menu "ESP Audio Effects UT Configuration"
 
-choice
-    prompt "Target Board"
-    default ESP32_S3_KORVO_V2_BOARD
+config EXAMPLE_WIFI_SSID
+    string "WiFi SSID"
+    default "xxxx"
     help
-        Select an audio board to use with the ESP-GMF
-config ESP32_S3_KORVO_V2_BOARD
-    depends on IDF_TARGET_ESP32S3
-    bool "ESP32 S3 Korvo V2"
-config ESP32_S3_KORVO_V4_BOARD
-    depends on IDF_TARGET_ESP32S3
-    bool "ESP32 S3 Korvo V4"
-config ESP32_LYRAT_MINI_V1_BOARD
-    depends on IDF_TARGET_ESP32
-    bool "ESP32 LyraT Mini V1"
-config ESP32_KORVO_V1_BOARD
-    depends on IDF_TARGET_ESP32
-    bool "ESP32 Korvo V1"
-config ESP32_S3_BOX_BOARD
-    depends on IDF_TARGET_ESP32S3
-    bool "ESP32 S3 BOX"
-config ESP32_S3_BOX_3_BOARD
-    depends on IDF_TARGET_ESP32S3
-    bool "ESP32 S3 BOX 3"
-config ESP32_P4_FUNCTION_EV_V14_BOARD
-    depends on IDF_TARGET_ESP32P4
-    bool "ESP32 P4 Function EV V1.4"
-config ESP32_S3_EYE_BOARD
-    depends on IDF_TARGET_ESP32S3
-    bool "ESP32 S3 EYE"
-config DUMMY_CODEC_BOARD
-    bool "Dummy Codec Board"
-config XD_AIOT_C3
-    depends on IDF_TARGET_ESP32C3
-    bool "XD AIOT C3"
-endchoice
+        WiFi SSID used by the rate converter test app.
 
-config AUDIO_BOARD
-    string
-    default "S3_Korvo_V2" if ESP32_S3_KORVO_V2_BOARD
-    default "S3_Korvo_V4" if ESP32_S3_KORVO_V4_BOARD
-    default "LYRAT_MINI_V1" if ESP32_LYRAT_MINI_V1_BOARD
-    default "ESP32_KORVO_V1" if ESP32_KORVO_V1_BOARD
-    default "ESP32S3_BOX" if ESP32_S3_BOX_BOARD
-    default "ESP32_S3_BOX_3" if ESP32_S3_BOX_3_BOARD
-    default "ESP32_P4_DEV_V14" if ESP32_P4_FUNCTION_EV_V14_BOARD
-    default "ESP32S3_EYE" if ESP32_S3_EYE_BOARD
-    default "DUMMY_CODEC_BOARD" if DUMMY_CODEC_BOARD
-    default "XD_AIOT_C3" if XD_AIOT_C3
+config EXAMPLE_WIFI_PASSWORD
+    string "WiFi Password"
+    default "xxxx"
+    help
+        WiFi password used by the rate converter test app.
+
+config WIFI_FS_SERVER_IP
+    string "WiFi FS server IP"
+    default "111.111.111.111"
+    help
+        File server IP address used by the WiFi file system.
+
+config WIFI_FS_SERVER_PORT
+    int "WiFi FS server port"
+    range 1 65535
+    default 3333
+    help
+        File server port used by the WiFi file system.
 
 endmenu

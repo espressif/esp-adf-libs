@@ -47,6 +47,7 @@
 #include "esp_ae_rate_cvt.h"
 #include "esp_ae_drc.h"
 #include "esp_ae_mbc.h"
+#include "esp_ae_howl.h"
 #include "media_lib_adapter.h"
 #include "media_lib_mem_trace.h"
 
@@ -822,6 +823,82 @@ TEST_CASE("MBC performance test", "AUDIO_EFFECT")
         end_mem_cnt();
         free(in_buf);
         free(out_buf);
+    }
+    media_lib_stop_mem_trace();
+}
+
+TEST_CASE("Howl performance test", "AUDIO_EFFECT")
+{
+    ESP_LOGI(TAG, "howl test");
+    media_lib_add_default_adapter();
+    int sample_rate[] = {8000, 16000, 48000};
+    int channel[] = {1, 2};
+    int bit[] = {16, 24, 32};
+    uint64_t st;
+    uint64_t et;
+    uint64_t diff;
+    uint64_t sample_cnt = 0;
+    bool enable_imsd[] = {false, true};
+    for (int sr_i = 0; sr_i < 3; sr_i++) {
+        for (int ch_i = 0; ch_i < 2; ch_i++) {
+            for (int b_i = 0; b_i < 3; b_i++) {
+                for (int imsd_i = 0; imsd_i < 2; imsd_i++) {
+                esp_ae_howl_handle_t howl_hd = NULL;
+                char *in_buf = NULL;
+                char *out_buf = NULL;
+                int cnt = 0;
+                uint32_t frame_size = 0;
+                esp_ae_howl_cfg_t cfg;
+
+                memset(&cfg, 0, sizeof(cfg));
+                cfg.sample_rate = (uint32_t)sample_rate[sr_i];
+                cfg.channel = (uint8_t)channel[ch_i];
+                cfg.bits_per_sample = (uint8_t)bit[b_i];
+                cfg.papr_th = 10.0f;
+                cfg.phpr_th = 45.0f;
+                cfg.pnpr_th = 45.0f;
+                cfg.imsd_th = 10.0f;
+                cfg.enable_imsd = enable_imsd[imsd_i];
+
+                start_mem_cnt();
+                int ret = esp_ae_howl_open(&cfg, &howl_hd);
+                TEST_ASSERT_NOT_EQUAL(howl_hd, NULL);
+                ret = esp_ae_howl_get_frame_size(howl_hd, &frame_size);
+                TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+                TEST_ASSERT_GREATER_THAN(0, frame_size);
+
+                in_buf = calloc(1, frame_size);
+                out_buf = calloc(1, frame_size);
+                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
+                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
+
+                int bytes_per_sample = bit[b_i] >> 3;
+                int samples_total_per_frame = (int)(frame_size / (unsigned)bytes_per_sample);
+                int block_len = samples_total_per_frame / channel[ch_i];
+
+                diff = 0;
+                sample_cnt = 0;
+                while (cnt <= 2000) {
+                    wrap_read(in_buf, samples_total_per_frame, bit[b_i]);
+                    sample_cnt += block_len;
+                    st = esp_timer_get_time();
+                    ret = esp_ae_howl_process(howl_hd, in_buf, out_buf);
+                    et = esp_timer_get_time();
+                    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+                    diff += et - st;
+                    cnt++;
+                }
+                uint64_t duration = 1000.0 * (double)sample_cnt / (double)cfg.sample_rate;
+                ESP_LOGI(TAG, "howl: enable_imsd:%d sr:%"PRIu32" ch:%d bit:%d ratio:%02f",
+                         enable_imsd[imsd_i], cfg.sample_rate, cfg.channel, cfg.bits_per_sample,
+                         (double)diff / (duration * 10));
+                esp_ae_howl_close(howl_hd);
+                end_mem_cnt();
+                free(in_buf);
+                free(out_buf);
+                }
+            }
+        }
     }
     media_lib_stop_mem_trace();
 }

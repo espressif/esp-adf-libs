@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "unity.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
@@ -18,21 +20,20 @@
 #include "esp_ae_rate_cvt.h"
 #include "esp_ae_data_weaver.h"
 #include "esp_ae_ch_cvt.h"
-#include "nvs_flash.h"
-#include "esp_event.h"
-#include "esp_netif.h"
-#include "protocol_examples_common.h"
 
-#define TAG                      "TEST_RATE_CVT"
-#define HTTP_SERVER_URL_DOWNLOAD "http://10.18.20.184:8080/audio_files/audio_test_dataset/sine"
-#define HTTP_SERVER_URL_UPLOAD   "http://10.18.20.184:8080/upload?folder=ae_test/rate_cvt_test"
+#define TAG                  "TEST_RATE_CVT"
+#define WIFI_FS_MOUNT_POINT  "/sdcard"
+#define RATE_CVT_INPUT_ROOT  "/sdcard/mount/enc_effects_testset/sine"
+#define RATE_CVT_OUTPUT_ROOT "/sdcard/mount/ae_test/rate_cvt_test"
 
 static uint32_t sample_rate_in[] = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
 static uint32_t sample_rate[]    = {8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000, 88200, 96000};
 static uint8_t  bits[]           = {16, 24, 32};
 
-static bool process_audio_data_http(ae_http_context_t *infile, ae_http_context_t *outfile,
-                                    ae_audio_info_t *audio_info, uint32_t dest_rate, uint32_t data_size)
+#define WRITE_CACHE_SIZE (512 * 1024)
+
+static bool process_audio_data_fs(FILE *infile, FILE *outfile, ae_audio_info_t *audio_info,
+                                  uint32_t dest_rate, uint32_t data_size)
 {
     esp_ae_rate_cvt_cfg_t config = {
         .src_rate = audio_info->sample_rate,
@@ -45,21 +46,24 @@ static bool process_audio_data_http(ae_http_context_t *infile, ae_http_context_t
     void *rate_cvt_handle = NULL;
     esp_ae_err_t ret = esp_ae_rate_cvt_open(&config, &rate_cvt_handle);
 
-    uint32_t in_num = 256;
+    uint32_t in_num = 2048;
     uint32_t out_num = 0;
     ret = esp_ae_rate_cvt_get_max_out_sample_num(rate_cvt_handle, in_num, &out_num);
     TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
-    size_t total_samples = 0;
     uint8_t *inbuf = calloc(1, in_num * audio_info->channels * (audio_info->bits_per_sample >> 3));
     TEST_ASSERT_NOT_EQUAL(inbuf, NULL);
     uint8_t *outbuf = calloc(1, out_num * audio_info->channels * (audio_info->bits_per_sample >> 3));
     TEST_ASSERT_NOT_EQUAL(outbuf, NULL);
+    uint8_t *cache = malloc(WRITE_CACHE_SIZE);
+    TEST_ASSERT_NOT_NULL(cache);
+    uint32_t cache_pos = 0;
     int in_read = 0;
     int sample_num = 0;
     uint32_t total_read = 0;
     bool do_retry = false;
+    uint32_t total_written = 0;
     while (1) {
-        in_read = ae_http_read(inbuf, 1, in_num * audio_info->channels * (audio_info->bits_per_sample >> 3), infile);
+        in_read = fread(inbuf, 1, in_num * audio_info->channels * (audio_info->bits_per_sample >> 3), infile);
         if (in_read <= 0) {
             break;
         }
@@ -72,18 +76,37 @@ static bool process_audio_data_http(ae_http_context_t *infile, ae_http_context_t
         ret = esp_ae_rate_cvt_process(rate_cvt_handle, inbuf, sample_num, outbuf, &out_samples);
         TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
         if (out_samples > 0) {
-            int written = ae_http_write(outbuf, 1, out_samples * (audio_info->bits_per_sample >> 3) * audio_info->channels, false, outfile);
-            if (written < 0) {
-                ESP_LOGE(TAG, "Failed to write data to HTTP stream do retry");
-                do_retry = true;
-                break;
+            int write_size = out_samples * (audio_info->bits_per_sample >> 3) * audio_info->channels;
+            if (cache_pos + write_size >= WRITE_CACHE_SIZE) {
+                int written = fwrite(cache, 1, cache_pos, outfile);
+                if (written != (int)cache_pos) {
+                    ESP_LOGE(TAG, "Failed to write data to wifi_fs file");
+                    do_retry = true;
+                    break;
+                }
+                cache_pos = 0;
             }
-            total_samples += out_samples;
+            memcpy(cache + cache_pos, outbuf, write_size);
+            cache_pos += write_size;
+            total_written += write_size;
         }
     }
-    ae_http_write(NULL, 0, 0, true, outfile);
+    if (cache_pos > 0 && !do_retry) {
+        int written = fwrite(cache, 1, cache_pos, outfile);
+        if (written != (int)cache_pos) {
+            ESP_LOGE(TAG, "Failed to flush cache to wifi_fs file");
+            do_retry = true;
+        }
+    }
+    TEST_ASSERT_TRUE(ae_test_write_wav_header(outfile, &(ae_audio_info_t) {
+                                                           .sample_rate = dest_rate,
+                                                           .channels = audio_info->channels,
+                                                           .bits_per_sample = audio_info->bits_per_sample,
+                                                       },
+                                              total_written));
     free(inbuf);
     free(outbuf);
+    free(cache);
     esp_ae_rate_cvt_close(rate_cvt_handle);
     return do_retry;
 }
@@ -91,35 +114,34 @@ static bool process_audio_data_http(ae_http_context_t *infile, ae_http_context_t
 static void rate_cvt_http_test(uint32_t src_rate, uint32_t dest_rate, uint8_t bits)
 {
 _RATE_CVT_HTTP_TEST_RETRY:
-    ae_http_context_t input_ctx = {0};
-    ae_http_context_t output_ctx = {0};
+    FILE *input_fp = NULL;
+    FILE *output_fp = NULL;
     char download_filename[128];
     sprintf(download_filename, "sine1kHz0dB_%ld_1_%d_10", src_rate, bits);
-    int ret = ae_http_download_init(&input_ctx, download_filename, HTTP_SERVER_URL_DOWNLOAD);
-    TEST_ASSERT_EQUAL(ret, ESP_OK);
-
-    long data_offset = 0;
+    char input_path[256];
+    snprintf(input_path, sizeof(input_path), "%s/%s.wav", RATE_CVT_INPUT_ROOT, download_filename);
+    input_fp = fopen(input_path, "rb");
+    TEST_ASSERT_NOT_NULL(input_fp);
     ae_audio_info_t audio_info = {0};
     ae_audio_info_t dest_audio_info = {0};
     uint32_t data_size = 0;
-    ae_http_parse_wav_header(&input_ctx, &audio_info.sample_rate, &audio_info.channels,
-                             &audio_info.bits_per_sample, &data_offset, &data_size);
+    TEST_ASSERT_TRUE(ae_test_parse_wav_header(input_fp, &audio_info, &data_size));
     ESP_LOGI(TAG, "Starting HTTP test for rate conversion: %ld -> %ld, bits: %d, channels: %d",
              src_rate, dest_rate, audio_info.bits_per_sample, audio_info.channels);
     memcpy(&dest_audio_info, &audio_info, sizeof(ae_audio_info_t));
     dest_audio_info.sample_rate = dest_rate;
-    // Initialize output context for upload
     char output_filename[128];
     snprintf(output_filename, sizeof(output_filename), "sine1kHz0dB_%ld_to_%ld_1_%d_10.wav",
              src_rate, dest_rate, audio_info.bits_per_sample);
-    char upload_url[128];
-    snprintf(upload_url, sizeof(upload_url), "%s/%d", HTTP_SERVER_URL_UPLOAD, audio_info.bits_per_sample);
-    ret = ae_http_upload_init(&output_ctx, output_filename, &dest_audio_info, upload_url);
-    TEST_ASSERT_EQUAL(ret, ESP_OK);
+    char output_path[300];
+    snprintf(output_path, sizeof(output_path), "%s/%d/%s", RATE_CVT_OUTPUT_ROOT, audio_info.bits_per_sample, output_filename);
+    output_fp = fopen(output_path, "wb+");
+    TEST_ASSERT_NOT_NULL(output_fp);
+    TEST_ASSERT_TRUE(ae_test_write_wav_header(output_fp, &dest_audio_info, 0));
 
-    bool do_retry = process_audio_data_http(&input_ctx, &output_ctx, &audio_info, dest_rate, data_size);
-    ae_http_deinit(&input_ctx);
-    ae_http_deinit(&output_ctx);
+    bool do_retry = process_audio_data_fs(input_fp, output_fp, &audio_info, dest_rate, data_size);
+    fclose(input_fp);
+    fclose(output_fp);
     if (do_retry) {
         ESP_LOGI(TAG, "Retry rate conversion");
         goto _RATE_CVT_HTTP_TEST_RETRY;
@@ -384,17 +406,8 @@ TEST_CASE("Rate Convert reset test", "AUDIO_EFFECT")
 
 TEST_CASE("Rate Convert HTTP download and upload test", "AUDIO_EFFECT")
 {
-    ESP_LOGI(TAG, "Starting HTTP download and upload test");
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    ESP_ERROR_CHECK(example_connect());
+    ESP_LOGI(TAG, "Starting wifi_fs download and upload test");
+    ESP_ERROR_CHECK(ae_test_ensure_wifi_fs_ready(WIFI_FS_MOUNT_POINT));
 
     // Test different destination sample rates
     uint32_t rates[] = {8000, 16000, 32000, 44100, 48000, 96000};
@@ -404,12 +417,12 @@ TEST_CASE("Rate Convert HTTP download and upload test", "AUDIO_EFFECT")
             for (int k = 0; k < AE_TEST_PARAM_NUM(bits); k++) {
                 ESP_LOGI(TAG, "Testing rate conversion: %ld -> %ld, bits: %d", rates[i], rates[j], bits[k]);
                 rate_cvt_http_test(rates[i], rates[j], bits[k]);
-                vTaskDelay(4000 / portTICK_PERIOD_MS);
+                vTaskDelay(pdMS_TO_TICKS(4000));
             }
         }
     }
-    example_disconnect();
-    ESP_LOGI(TAG, "HTTP download and upload test completed successfully");
+    ESP_LOGI(TAG, "wifi_fs download and upload test completed successfully");
+    ae_test_wifi_fs_cleanup(WIFI_FS_MOUNT_POINT);
 }
 
 TEST_CASE("Rate Convert interleave vs deinterleave consistency test", "AUDIO_EFFECT")

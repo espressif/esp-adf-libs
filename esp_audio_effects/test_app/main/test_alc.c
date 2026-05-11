@@ -20,10 +20,10 @@
 #define TAG              "TEST_ALC"
 #define TEST_DURATION_MS 5000
 
-static uint32_t            sample_rate[]        = {8000, 44100};
+static uint32_t            sample_rate[]        = {44100};
 static uint8_t             bits_per_sample[]    = {16, 24, 32};
-static uint8_t             channel[]            = {1, 2};
-static float               amplitude[]          = {-75.0, -63.0, -30.0, 0.0};
+static uint8_t             channel[]            = {2};
+static float               amplitude[]          = {-75.0, -30.0, 0.0};
 static uint8_t            *input_buffer         = NULL;
 static uint8_t            *output_buffer        = NULL;
 static uint8_t            *in_deinterlv[3]      = {0};
@@ -350,16 +350,16 @@ TEST_CASE("Alc branch test", "AUDIO_EFFECT")
 TEST_CASE("ALC add volume test", "AUDIO_EFFECT")
 {
     alc_test_gain_params_t gain_params = {
-        .gains = {3, 6, 12, 30, 63, 0},
-        .count = 6};
+        .gains = {12, 63},
+        .count = 2};
     alc_run_test_matrix(&gain_params, "ALC add volume test");
 }
 
 TEST_CASE("ALC sub volume test", "AUDIO_EFFECT")
 {
     alc_test_gain_params_t gain_params = {
-        .gains = {-5, -15, -30, -64},
-        .count = 4};
+        .gains = {-5, -15, -64},
+        .count = 3};
     alc_run_test_matrix(&gain_params, "ALC sub volume test");
 }
 

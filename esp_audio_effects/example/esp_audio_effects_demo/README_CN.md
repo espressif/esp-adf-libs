@@ -46,9 +46,38 @@
 
 2. **搭建基础环境**
 
-   根据需要设置的目标芯片和开发板，修改 `install.sh` 文件
+- 在 Linux 中安装 `esp-bmgr-assist`：
+
    ```bash
-   sh ./install.sh
+   pip install esp-bmgr-assist
+   pip install --upgrade esp-bmgr-assist
+   ```
+
+- 查看支持的板子：
+
+   ```bash
+   idf.py bmgr -l
+   ```
+
+输出示例：
+
+   ```text
+   ℹ️  Main Boards:
+   [1] dual_eyes_board_v1_0
+   [2] esp32_c3_lyra
+   [3] esp32_c5_spot
+   [4] esp32_p4_function_ev
+   [5] esp32_s3_korvo2_v3
+   [6] esp32_s3_korvo2l
+   [7] esp_box_3
+   [8] esp_box_lite
+   [9] esp_hi
+   ```
+
+- 选择开发板（将 `number` 替换为上面列表中的编号）：
+
+   ```bash
+   idf.py bmgr -b number
    ```
 
 3. **配置示例**
