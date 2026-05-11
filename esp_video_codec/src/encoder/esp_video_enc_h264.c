@@ -22,6 +22,7 @@
  *
  */
 
+#include <sdkconfig.h>
 #include "esp_video_enc_h264.h"
 #include "esp_video_enc_reg.h"
 #include "video_codec_utils.h"
@@ -38,7 +39,14 @@ typedef struct {
 } hw_h264_t;
 
 static esp_video_codec_pixel_fmt_t h264_inputs[] = {
+#if CONFIG_ESP_REV_MIN_FULL >= 300
+    ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_LE,
+#endif
     ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY,
+#if CONFIG_ESP_REV_MIN_FULL >= 300
+    ESP_VIDEO_CODEC_PIXEL_FMT_UYVY422,
+    ESP_VIDEO_CODEC_PIXEL_FMT_BGR888,
+#endif
 };
 
 static esp_video_codec_frame_type_t get_codec_frame_type(esp_h264_frame_type_t frame_type)

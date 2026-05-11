@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.4
+
+### Features
+
+- Added `esp32s31` target support
+- Added more target `esp32h4`, `esp32h4`, `esp32c61` support for `esp_new_jpeg`
+- Extend input formats of hardware H.264 encoder for IC rev300+ `esp32p4`
+  - Formats `RGB565LE`, `UYVY422`, `BGR888`
+
 ## v0.5.3
 
 ### Features
