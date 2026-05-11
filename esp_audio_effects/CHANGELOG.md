@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.0~1
+
+### Bug Fixes
+
+- Fixed link errors caused by missing `gmf_fft` linkage (undefined references to `esp_gmf_fft_init`, etc.)
+
 ## v1.3.0
 
 ### Features
