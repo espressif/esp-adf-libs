@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.5
+
+### Bug Fixes
+
+- Fixed extend input formats of hardware H.264 encoder not take effect
+
 ## v0.5.4
 
 ### Features
