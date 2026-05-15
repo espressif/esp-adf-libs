@@ -104,7 +104,7 @@ static esp_vc_err_t hw_h264_open(esp_video_enc_cfg_t *cfg, esp_video_enc_handle_
     hw_h264_t *enc = video_codec_calloc_struct(hw_h264_t);
     VIDEO_CODEC_MEM_CHECK(enc);
     esp_h264_enc_cfg_t enc_cfg = {
-        .pic_type = ESP_H264_RAW_FMT_O_UYY_E_VYY,
+        .pic_type = cfg->in_fmt,
         .gop = cfg->fps * 2,
         .fps = cfg->fps,
         .res = {

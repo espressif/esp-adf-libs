@@ -1,3 +1,12 @@
+description: Espressif video codec
+issues: https://github.com/espressif/esp-adf/issues
+repository: https://github.com/espressif/esp-adf-libs.git
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_video_codec
+version: 0.5.5
+tags:
+  - video_codec
+  - multimedia
+
 dependencies:
   idf:
     version: '>=4.4'
@@ -7,11 +16,3 @@ dependencies:
   espressif/esp_new_jpeg:
     rules:
       - if: "target in [esp32, esp32s2, esp32s3, esp32p4, esp32c2, esp32c3, esp32c5, esp32c6, esp32c61, esp32h4, esp32s31]"
-description: Espressif video codec
-issues: https://github.com/espressif/esp-adf/issues
-repository: https://github.com/espressif/esp-adf-libs.git
-url: https://github.com/espressif/esp-adf-libs/tree/master/esp_video_codec
-version: 0.5.4
-tags:
-  - video_codec
-  - multimedia
