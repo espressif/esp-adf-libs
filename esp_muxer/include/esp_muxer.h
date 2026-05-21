@@ -166,7 +166,7 @@ typedef struct {
     esp_muxer_audio_codec_t codec;               /*!< Audio codec type */
     uint8_t                 channel;             /*!< Audio channel */
     uint8_t                 bits_per_sample;     /*!< Audio bits per sample */
-    uint16_t                sample_rate;         /*!< Audio sample rate */
+    uint32_t                sample_rate;         /*!< Audio sample rate */
     uint32_t                min_packet_duration; /*!< Minimal packet duration (ms), used to estimate table size */
     void*                   codec_spec_info;     /*!< Audio codec specified info.
                                                       For AAC without ADTS header need provide AudioSpecicConfig:

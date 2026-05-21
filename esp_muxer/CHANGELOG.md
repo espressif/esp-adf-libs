@@ -1,5 +1,14 @@
 # Changelog
 
+
+## v1.2.2
+
+### Bug Fixes
+
+- Fixed write with RAM cache not always take effect
+- Fixed recorded MP4 with AAC not playable on windows
+- Fixed sample rate not support 96k (over 16bits)
+
 ## v1.2.1
 
 ### Features
