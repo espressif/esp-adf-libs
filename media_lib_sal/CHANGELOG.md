@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.3
+
+### Bugfix
+
+- Added WHOLE_ARCHIVE attribute to avoid some function is not linked
+
 ## v0.9.2
 
 ### Features
