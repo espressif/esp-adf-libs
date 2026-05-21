@@ -4,4 +4,4 @@ dependencies:
   esp_muxer:
     path: ../../../../esp_muxer
   espressif/esp_board_manager: '~0.5'
-  espressif/esp_capture: '~0.7'
+  espressif/esp_capture: '~0.8'
