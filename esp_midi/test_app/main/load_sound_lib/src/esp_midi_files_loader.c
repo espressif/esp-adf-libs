@@ -102,8 +102,8 @@ esp_midi_err_t esp_midi_files_loader_noteon(esp_midi_lib_loader_handle_t lib_han
         }
         if (note_val == sample_desc->note
             && (sample_desc->velocity >= vel_min && sample_desc->velocity < vel_max)) {
-            char path[100] = "/sdcard/";
-            strcat(path, filename[i]);
+            char path[100];
+            snprintf(path, sizeof(path), "/sdcard/%s", filename[i]);
             FILE *in_file = fopen(path, "rb");
             ESP_MIDI_RETURN_ON_FALSE(in_file, ESP_MIDI_ERR_FAIL, TAG, "Open input file(%s) failed", filename[i]);
             fseek(in_file, 40, SEEK_SET);
