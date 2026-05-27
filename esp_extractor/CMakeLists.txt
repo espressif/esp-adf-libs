@@ -4,11 +4,12 @@ if (CONFIG_EXTRACTOR_CUSTOM_SUPPORT)
     list (APPEND COMPONENT_INCLUDE include/reg)
 endif()
 
-set(COMPONENT_SRC "src/esp_extractor_reg.c")
+set(COMPONENT_SRC "src/esp_extractor_reg.c" "src/extractor_sys.c")
 
 idf_component_register(
     INCLUDE_DIRS ${COMPONENT_INCLUDE}
     SRCS ${COMPONENT_SRC}
+    WHOLE_ARCHIVE
 )
 
 get_filename_component(BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR} NAME)
