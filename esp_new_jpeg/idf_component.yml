@@ -1,4 +1,4 @@
-version: "1.0.1"
+version: "1.0.2"
 description: Espressif JPEG encoder and decoder
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_new_jpeg
 repository: https://github.com/espressif/esp-adf-libs.git

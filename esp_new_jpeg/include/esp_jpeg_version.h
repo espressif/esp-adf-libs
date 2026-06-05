@@ -7,10 +7,10 @@
 extern "C" {
 #endif  /* __cplusplus */
 
-#define ESP_JPEG_VERION "1.0.1"
+#define ESP_JPEG_VERION "1.0.2"
 
 /**
- * @version 1.0.1:
+ * @version 1.0.2:
  *    Features:
  *      Encoder:
  *          - Support variety of width and height to encoder
