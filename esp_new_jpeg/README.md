@@ -190,7 +190,7 @@ For more information, please refer to [Introducing ESP_NEW_JPEG: An Efficient JP
 
 The following table shows the support of ESP_NEW_JPEG for Espressif SoCs. The "&#10004;" means supported, and the "&#10006;" means not supported.
 
-| Chip      | v1.0.1   |
+| Chip      | v1.0.2   |
 |-----------|----------|
 | ESP32     | &#10004; |
 | ESP32-S2  | &#10004; |

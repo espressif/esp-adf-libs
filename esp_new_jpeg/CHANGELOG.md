@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2
+
+### Features
+
+- Optimized IRAM usage on ESP32-S3
+
 ## v1.0.1
 
 ### Features
