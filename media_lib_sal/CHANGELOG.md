@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.0
+
+### Features
+
+- Registerd the default OS adapter with the `constructor` attribute so APIs such as `media_lib_malloc()` work even if `media_lib_add_default_adapter()` is not explicitly called
+
 ## v0.9.3
 
 ### Bugfix

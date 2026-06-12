@@ -34,11 +34,7 @@ static void add_memory_trace(void)
 
 esp_err_t media_lib_add_default_adapter(void)
 {
-    esp_err_t ret;
-    ret = media_lib_add_default_os_adapter();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Fail to add os lib");
-    }
+    esp_err_t ret = ESP_OK;
 #ifdef CONFIG_MEDIA_LIB_CRYPT_ENABLE
     ret = media_lib_add_default_crypt_adapter();
     if (ret != ESP_OK) {
@@ -67,4 +63,22 @@ esp_err_t media_lib_add_default_adapter(void)
     add_memory_trace();
 #endif
     return ret;
+}
+
+/**
+ * @brief  Auto register default OS adapter during system initialization.
+ *         This ensures media_lib_malloc/media_lib_calloc etc. work correctly
+ *         without requiring the user to call media_lib_add_default_adapter() manually.
+ *         Still call media_lib_add_default_adapter() before using socket/TLS/netif/crypt.
+ *
+ *         Using constructor attribute to run before app_main, so that OS
+ *         primitives (malloc, free, thread, semaphore, mutex, etc.) are
+ *         available immediately when any component uses media_lib_sal APIs.
+ */
+static void __attribute__((constructor)) media_lib_auto_init_os_adapter(void)
+{
+    esp_err_t ret = media_lib_add_default_os_adapter();
+    if (ret != ESP_OK) {
+        ESP_EARLY_LOGE(TAG, "Fail to auto add default os lib (%d), media_lib_malloc/calloc etc. will not work", ret);
+    }
 }
