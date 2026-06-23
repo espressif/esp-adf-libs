@@ -1,4 +1,4 @@
-version: "1.0.2"
+version: "1.0.3"
 description: Espressif HLS stream extractor
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_hls_stream
 documentation: "https://github.com/espressif/esp-adf-libs/tree/master/esp_hls_stream/README.md"
@@ -19,4 +19,4 @@ dependencies:
   espressif/media_lib_sal:
     version: "*"
   espressif/gmf_io:
-    version: "~0.8"
+    version: "^1.0"

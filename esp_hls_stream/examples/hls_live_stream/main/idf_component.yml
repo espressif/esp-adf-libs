@@ -1,12 +1,12 @@
 dependencies:
   espressif/esp_audio_simple_player:
-    version: "~0.9"
+    version: "~1.0"
   espressif/gmf_core:
-    version: "~0.8"
+    version: "~1.0"
   espressif/gmf_io:
-     version: "~0.8"
+     version: "~1.0"
   espressif/gmf_audio:
-     version: "~0.8"
+     version: "~1.0"
   espressif/esp_board_manager:
      version: "~0.5"
   esp_hls_stream:

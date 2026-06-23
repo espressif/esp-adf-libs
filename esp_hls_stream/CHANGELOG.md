@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.3
+
+### Features
+
+- Bump only `gmf_io` to v1.0 and adjust example dependency accordingly
+
 ## v1.0.2
 
 ### Features
