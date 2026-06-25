@@ -6,4 +6,9 @@ menu "Extractor Helper Configuration"
         help
             When read use unaligned address will cause file read performance poor.
             Aligned cache setting for `setvbuf` can achieve high read speed.
- endmenu
+    config EXTRACTOR_ID3_PARSER_ENABLE
+        bool "Support ID3 Parser"
+        default y
+        help
+            Enable this option to enable ID3 parser
+endmenu
