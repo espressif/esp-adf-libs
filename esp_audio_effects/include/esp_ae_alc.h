@@ -115,6 +115,33 @@ esp_ae_err_t esp_ae_alc_set_gain(esp_ae_alc_handle_t handle, uint8_t ch_idx, int
 esp_ae_err_t esp_ae_alc_get_gain(esp_ae_alc_handle_t handle, uint8_t ch_idx, int8_t *gain);
 
 /**
+ * @brief  Set the transit time for gain changes in the ALC handle.
+ *         Transit time is the interval (in milliseconds) per 1 dB gain step,
+ *         applied to both attack (gain decrease) and release (gain increase).
+ *
+ * @param[in]  handle          The ALC handle
+ * @param[in]  transit_time_ms Transit time in milliseconds per 1 dB gain step.
+ *                             Range: [1, 500]. Smaller = faster transition
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_alc_set_transit_time(esp_ae_alc_handle_t handle, uint16_t transit_time_ms);
+
+/**
+ * @brief  Get the transit time for gain changes from the ALC handle
+ *
+ * @param[in]   handle          The ALC handle
+ * @param[out]  transit_time_ms Pointer to store the transit time in milliseconds
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_alc_get_transit_time(esp_ae_alc_handle_t handle, uint16_t *transit_time_ms);
+
+/**
  * @brief  Modify audio volume by adjusting gain with interleaved input data
  *
  * @note  The interleaved data is shown in the example:

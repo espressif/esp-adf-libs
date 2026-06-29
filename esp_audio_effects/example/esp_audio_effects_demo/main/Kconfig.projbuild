@@ -25,6 +25,12 @@ config ESP_AUDIO_EFFECTS_DEMO_SELECT_MBC
 config ESP_AUDIO_EFFECTS_DEMO_SELECT_MIXER
     bool "Mixer"
 
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_REVERB
+    bool "Reverb"
+
+config ESP_AUDIO_EFFECTS_DEMO_SELECT_DELAY
+    bool "Delay"
+
 config ESP_AUDIO_EFFECTS_DEMO_SELECT_BASIC_AUDIO_INFO_CVT
     bool "Basic Audio Info Convert"
 
