@@ -24,6 +24,7 @@
 #endif  /* CONFIG_IDF_TARGET_ESP32P4 */
 #endif  /* __linux__ */
 #include "esp_extractor_defaults.h"
+#include "esp_extractor_id3_parser.h"
 #include "extractor_helper.h"
 #include "extractor_cust.h"
 #include "raw_extractor_test.h"
@@ -40,7 +41,30 @@
 #define TEST_FOLDER  (argc > 1 ? argv[1] : NULL)
 #endif  /* __linux__ */
 
-void print_stream_info(esp_extractor_handle_t extractor)
+static void show_id3_info(esp_extractor_id3_parser_hd_t id3_parser)
+{
+    if (id3_parser == NULL) {
+        return;
+    }
+    const esp_extractor_id3_info_t *info = NULL;
+    esp_extractor_err_t ret = esp_extractor_id3_parser_get_info(id3_parser, &info);
+    if (ret != ESP_EXTRACTOR_ERR_OK || info == NULL) {
+        return;
+    }
+    printf("ID3 title:%s\n", info->title ? info->title : "");
+    printf("ID3 author:%s\n", info->author ? info->author : "");
+    printf("ID3 album:%s\n", info->album ? info->album : "");
+    printf("ID3 date:%s\n", info->date ? info->date : "");
+    printf("ID3 genre:%s\n", info->genre ? info->genre : "");
+    printf("ID3 encoding:%d\n", info->encoding);
+    printf("ID3 cover mime:%s size:%d\n", info->cover_mime ? info->cover_mime : "", (int)info->cover_size);
+    for (int i = 0; i < info->extra_num; i++) {
+        printf("ID3 extra %s:%s encoding:%d\n", info->extra[i].key ? info->extra[i].key : "",
+               info->extra[i].value ? info->extra[i].value : "", info->extra[i].encoding);
+    }
+}
+
+void print_stream_info(esp_extractor_handle_t extractor, esp_extractor_id3_parser_hd_t id3_parser)
 {
     uint16_t audio_num = 0;
     uint16_t video_num = 0;
@@ -71,6 +95,7 @@ void print_stream_info(esp_extractor_handle_t extractor)
                  video_info->width, video_info->height, video_info->fps,
                  (int)stream_info.duration);
     }
+    show_id3_info(id3_parser);
 }
 
 int extractor_use_helper(const char *url, frame_verify_func verify)
@@ -78,6 +103,7 @@ int extractor_use_helper(const char *url, frame_verify_func verify)
     esp_extractor_err_t ret = ESP_EXTRACTOR_ERR_OK;
     esp_extractor_config_t *cfg = NULL;
     esp_extractor_handle_t extractor = NULL;
+    esp_extractor_id3_parser_hd_t id3_parser = NULL;
     do {
         cfg = esp_extractor_alloc_file_config(url, ESP_EXTRACT_MASK_AV, OUTPUT_POOL_SIZE);
         if (cfg == NULL) {
@@ -89,12 +115,19 @@ int extractor_use_helper(const char *url, frame_verify_func verify)
             ESP_LOGE(TAG, "Failed to open extractor ret %d", ret);
             break;
         }
+#ifdef CONFIG_EXTRACTOR_ID3_PARSER_ENABLE
+        ret = esp_extractor_id3_parser_open(extractor, &id3_parser);
+        if (ret != ESP_EXTRACTOR_ERR_OK) {
+            ESP_LOGE(TAG, "Failed to open ID3 parser %d", ret);
+            break;
+        }
+#endif
         ret = esp_extractor_parse_stream(extractor);
         if (ret != ESP_EXTRACTOR_ERR_OK) {
             ESP_LOGE(TAG, "Failed to parse stream ret %d", ret);
             break;
         }
-        print_stream_info(extractor);
+        print_stream_info(extractor, id3_parser);
         esp_extractor_frame_info_t frame = {};
         // Now read frames and consume it instantly
         int audio_frame_count = 0;
@@ -145,6 +178,9 @@ int extractor_use_helper(const char *url, frame_verify_func verify)
     } while (0);
     if (extractor) {
         esp_extractor_close(extractor);
+    }
+    if (id3_parser) {
+        esp_extractor_id3_parser_close(id3_parser);
     }
     esp_extractor_free_config(cfg);
     return ret;

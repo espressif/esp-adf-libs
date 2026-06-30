@@ -4,7 +4,7 @@ if (CONFIG_EXTRACTOR_CUSTOM_SUPPORT)
     list (APPEND COMPONENT_INCLUDE include/reg)
 endif()
 
-set(COMPONENT_SRC "src/esp_extractor_reg.c" "src/extractor_sys.c")
+set(COMPONENT_SRC "src/esp_extractor_reg.c" "src/extractor_sys.c" "src/esp_extractor_id3_parser.c")
 
 idf_component_register(
     INCLUDE_DIRS ${COMPONENT_INCLUDE}

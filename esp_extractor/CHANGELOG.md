@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.3
+
+### Features
+
+- Added ID3 parser support
+
 ## v1.0.2
 
 ### Features
