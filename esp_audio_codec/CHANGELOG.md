@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.6.0
+
+### Break change
+
+- Requires `ESP32-P4` chip version >= 3.0 for assembly optimization support
+
+### Features
+
+- Added assembly optimization for `AAC` encoder and decoder on `ESP32-P4` and `ESP32-S31`
+- Added assembly optimization for `Opus` encoder and decoder on `ESP32-P4` and `ESP32-S31`
+- Added assembly optimization for `LC3` encoder and decoder on `ESP32-P4` and `ESP32-S31`
+
+### Bug Fixes
+
+- Fixed several `LC3` codec bugs to pass LC3 encode/decode consistency tests
+
 ## v2.5.0
 
 ### Features
