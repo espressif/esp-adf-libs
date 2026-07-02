@@ -48,6 +48,8 @@
 #include "esp_ae_drc.h"
 #include "esp_ae_mbc.h"
 #include "esp_ae_howl.h"
+#include "esp_ae_reverb.h"
+#include "esp_ae_delay.h"
 #include "media_lib_adapter.h"
 #include "media_lib_mem_trace.h"
 
@@ -116,8 +118,16 @@ void start_mem_cnt()
 {
     media_lib_mem_trace_cfg_t cfg = {0};
     cfg.trace_type |= MEDIA_LIB_MEM_TRACE_MODULE_USAGE;
+#ifdef CONFIG_MEDIA_LIB_MEM_TRACE_DEPTH
     cfg.stack_depth = CONFIG_MEDIA_LIB_MEM_TRACE_DEPTH;
+#else
+    cfg.stack_depth = 3;
+#endif
+#ifdef CONFIG_MEDIA_LIB_MEM_TRACE_NUM
     cfg.record_num = CONFIG_MEDIA_LIB_MEM_TRACE_NUM;
+#else
+    cfg.record_num = 1024;
+#endif
     media_lib_start_mem_trace(&cfg);
 }
 
@@ -163,7 +173,6 @@ TEST_CASE("Alc performance test", "AUDIO_EFFECTS")
             TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
             out_buf = calloc(1, out_num * channel * (bit[k] >> 3));
             TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
-            int8_t gain_val[2] = {0};
             for (int j = 0; j < channel; j++) {
                 esp_ae_alc_set_gain(alc_hd, j, gain[i]);
             }
@@ -278,6 +287,7 @@ TEST_CASE("Channel convert performance test", "AUDIO_EFFECT")
         start_mem_cnt();
         int ret = esp_ae_ch_cvt_open(&cfg, &ch_hd);
         TEST_ASSERT_NOT_EQUAL(ch_hd, NULL);
+        (void)ret;
         diff = 0;
         sample_cnt = 0;
         while (cnt <= 2000) {
@@ -340,6 +350,7 @@ TEST_CASE("Eq performance test", "AUDIO_EFFECT")
         start_mem_cnt();
         int ret = esp_ae_eq_open(cfg, &eq_hd);
         TEST_ASSERT_NOT_EQUAL(eq_hd, NULL);
+        (void)ret;
         in_num = 512;
         out_num = 512;
         in_buf = calloc(1, in_num * channel * (bit[i] >> 3));
@@ -646,7 +657,7 @@ TEST_CASE("Sonic performance test", "AUDIO_EFFECT")
                             ESP_LOGI(TAG, "error");
                             break;
                         }
-                        char *in = inbuf + in_samples.consume_num;
+                        short *in = inbuf + in_samples.consume_num;
                         remain_num -= in_samples.consume_num;
                         in_samples.num = remain_num;
                         in_samples.samples = in;
@@ -897,6 +908,139 @@ TEST_CASE("Howl performance test", "AUDIO_EFFECT")
                 free(in_buf);
                 free(out_buf);
                 }
+            }
+        }
+    }
+    media_lib_stop_mem_trace();
+}
+
+TEST_CASE("Reverb performance test", "AUDIO_EFFECT")
+{
+    ESP_LOGI(TAG, "reverb test");
+    media_lib_add_default_adapter();
+    int sample_rate[] = {16000, 48000};
+    int channel[] = {1, 2};
+    int bit[] = {16, 24, 32};
+    uint64_t st;
+    uint64_t et;
+    uint64_t diff;
+    uint64_t sample_cnt = 0;
+    for (int sr_i = 0; sr_i < 2; sr_i++) {
+        for (int ch_i = 0; ch_i < 2; ch_i++) {
+            for (int b_i = 0; b_i < 3; b_i++) {
+                void *reverb_hd = NULL;
+                char *in_buf = NULL;
+                char *out_buf = NULL;
+                int cnt = 0;
+                int in_num = 512;
+
+                esp_ae_reverb_cfg_t cfg = {
+                    .sample_rate = sample_rate[sr_i],
+                    .channel = channel[ch_i],
+                    .bits_per_sample = bit[b_i],
+                    .reverb_para = {
+                        .room_size = 0.7f,
+                        .damping = 0.5f,
+                        .wet_level = -6.0f,
+                        .dry_level = 0.0f,
+                        .pre_delay_ms = 20,
+                    },
+                };
+                start_mem_cnt();
+                int ret = esp_ae_reverb_open(&cfg, &reverb_hd);
+                TEST_ASSERT_NOT_EQUAL(reverb_hd, NULL);
+
+                in_buf = calloc(1, in_num * channel[ch_i] * (bit[b_i] >> 3));
+                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
+                out_buf = calloc(1, in_num * channel[ch_i] * (bit[b_i] >> 3));
+                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
+
+                diff = 0;
+                sample_cnt = 0;
+                while (cnt <= 2000) {
+                    wrap_read(in_buf, in_num * channel[ch_i], bit[b_i]);
+                    sample_cnt += in_num;
+                    st = esp_timer_get_time();
+                    ret = esp_ae_reverb_process(reverb_hd, in_num, (void *)in_buf, (void *)out_buf);
+                    et = esp_timer_get_time();
+                    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+                    diff += et - st;
+                    cnt++;
+                }
+                uint64_t duration = 1000.0 * (double)sample_cnt / (double)sample_rate[sr_i];
+                ESP_LOGI(TAG, "reverb: sr:%d ch:%d bit:%d ratio:%02f",
+                         sample_rate[sr_i], channel[ch_i], bit[b_i],
+                         (double)diff / (duration * 10));
+                esp_ae_reverb_close(reverb_hd);
+                end_mem_cnt();
+                free(in_buf);
+                free(out_buf);
+            }
+        }
+    }
+    media_lib_stop_mem_trace();
+}
+
+TEST_CASE("Delay performance test", "AUDIO_EFFECT")
+{
+    ESP_LOGI(TAG, "delay test");
+    media_lib_add_default_adapter();
+    int sample_rate[] = {16000, 48000};
+    int channel[] = {1, 2};
+    int bit[] = {16, 24, 32};
+    uint64_t st;
+    uint64_t et;
+    uint64_t diff;
+    uint64_t sample_cnt = 0;
+    for (int sr_i = 0; sr_i < 2; sr_i++) {
+        for (int ch_i = 0; ch_i < 2; ch_i++) {
+            for (int b_i = 0; b_i < 3; b_i++) {
+                void *delay_hd = NULL;
+                char *in_buf = NULL;
+                char *out_buf = NULL;
+                int cnt = 0;
+                int in_num = 512;
+
+                esp_ae_delay_cfg_t cfg = {
+                    .sample_rate = sample_rate[sr_i],
+                    .channel = channel[ch_i],
+                    .bits_per_sample = bit[b_i],
+                    .max_delay_ms = 500,
+                    .delay_para = {
+                        .delay_time_ms = 250,
+                        .feedback = 0.5f,
+                        .mix = 0.35f,
+                    },
+                };
+                start_mem_cnt();
+                int ret = esp_ae_delay_open(&cfg, &delay_hd);
+                TEST_ASSERT_NOT_EQUAL(delay_hd, NULL);
+
+                in_buf = calloc(1, in_num * channel[ch_i] * (bit[b_i] >> 3));
+                TEST_ASSERT_NOT_EQUAL(in_buf, NULL);
+                out_buf = calloc(1, in_num * channel[ch_i] * (bit[b_i] >> 3));
+                TEST_ASSERT_NOT_EQUAL(out_buf, NULL);
+
+                diff = 0;
+                sample_cnt = 0;
+                while (cnt <= 2000) {
+                    wrap_read(in_buf, in_num * channel[ch_i], bit[b_i]);
+                    sample_cnt += in_num;
+                    st = esp_timer_get_time();
+                    ret = esp_ae_delay_process(delay_hd, in_num, (void *)in_buf, (void *)out_buf);
+                    et = esp_timer_get_time();
+                    TEST_ASSERT_EQUAL(ret, ESP_AE_ERR_OK);
+                    diff += et - st;
+                    cnt++;
+                }
+                uint64_t duration = 1000.0 * (double)sample_cnt / (double)sample_rate[sr_i];
+                ESP_LOGI(TAG, "delay: sr:%d ch:%d bit:%d ratio:%02f",
+                         sample_rate[sr_i], channel[ch_i], bit[b_i],
+                         (double)diff / (duration * 10));
+                esp_ae_delay_close(delay_hd);
+                end_mem_cnt();
+                free(in_buf);
+                free(out_buf);
             }
         }
     }

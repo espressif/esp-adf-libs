@@ -23,6 +23,8 @@
 #include "esp_ae_bit_cvt.h"
 #include "esp_ae_ch_cvt.h"
 #include "esp_ae_rate_cvt.h"
+#include "esp_ae_delay.h"
+#include "esp_ae_reverb.h"
 #include "esp_ae_types.h"
 #include "esp_board_manager_includes.h"
 #include "esp_codec_dev.h"
@@ -773,6 +775,139 @@ _MIXER_EXIT:
         free(output_buffer);
     }
 }
+#elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_REVERB)
+
+static void demo_reverb_process(void)
+{
+    ESP_LOGI(TAG, "=== Reverb Demo ===");
+    embed_flash_data_t embed_data = INIT_EMBED_DATA(test_stream_start, test_stream_end);
+    int16_t *input_buffer = NULL;
+    int16_t *output_buffer = NULL;
+    esp_ae_reverb_handle_t reverb_handle = NULL;
+    ae_demo_io_cb_t read_cb = ae_demo_read_embed_flash;
+    ae_demo_io_cb_t write_cb = ae_demo_write_codec;
+    ALLOC_BUFFER(input_buffer, CHUNK_SIZE_BYTES, _REVERB_EXIT);
+    ALLOC_BUFFER(output_buffer, CHUNK_SIZE_BYTES, _REVERB_EXIT);
+    ESP_LOGI(TAG, "[ 1 ] Initialize Reverb");
+    esp_ae_reverb_cfg_t reverb_cfg = {
+        .sample_rate = SAMPLE_RATE,
+        .channel = CHANNELS,
+        .bits_per_sample = BITS_PER_SAMPLE,
+        .reverb_para = {
+            .room_size = 0.9f,
+            .damping = 0.3f,
+            .wet_level = -4.0f,
+            .dry_level = -2.0f,
+            .pre_delay_ms = 40,
+        },
+    };
+    esp_ae_err_t ret = esp_ae_reverb_open(&reverb_cfg, &reverb_handle);
+    AE_DEMO_RET_CHECK(ret, {goto _REVERB_EXIT;}, "Failed to create Reverb handle");
+    ESP_LOGI(TAG, "[ 2 ] Process audio data in chunks and play through codec");
+    uint32_t total_samples = 0;
+    const uint32_t samples_4s = 4 * SAMPLE_RATE;
+    while (1) {
+        int bytes_read = read_cb(input_buffer, CHUNK_SIZE_BYTES, &embed_data);
+        if (bytes_read <= 0) {
+            break;
+        }
+        uint32_t samples_read = bytes_read / (CHANNELS * BYTES_PER_SAMPLE);
+        if (total_samples < samples_4s && (total_samples + samples_read) >= samples_4s) {
+            ESP_LOGI(TAG, "Increasing reverb room size and wet level at 4 seconds");
+            ret = esp_ae_reverb_set_room_size(reverb_handle, 0.85f);
+            AE_DEMO_RET_CHECK(ret, {goto _REVERB_EXIT;}, "Failed to set reverb room size");
+            ret = esp_ae_reverb_set_wet_level(reverb_handle, -3.0f);
+            AE_DEMO_RET_CHECK(ret, {goto _REVERB_EXIT;}, "Failed to set reverb wet level");
+        }
+        ret = esp_ae_reverb_process(reverb_handle, samples_read, (esp_ae_sample_t)input_buffer, (esp_ae_sample_t)output_buffer);
+        AE_DEMO_RET_CHECK(ret, {goto _REVERB_EXIT;}, "Reverb process failed");
+        int bytes_to_write = samples_read * CHANNELS * BYTES_PER_SAMPLE;
+        int written = write_cb(output_buffer, bytes_to_write, audio_codec_handle);
+        if (written < 0) {
+            ESP_LOGE(TAG, "Failed to write data: %d", written);
+            goto _REVERB_EXIT;
+        }
+        total_samples += samples_read;
+    }
+    ESP_LOGI(TAG, "Reverb demo completed");
+_REVERB_EXIT:
+    if (reverb_handle != NULL) {
+        esp_ae_reverb_close(reverb_handle);
+    }
+    if (input_buffer != NULL) {
+        free(input_buffer);
+    }
+    if (output_buffer != NULL) {
+        free(output_buffer);
+    }
+}
+
+#elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_DELAY)
+
+static void demo_delay_process(void)
+{
+    ESP_LOGI(TAG, "=== Delay Demo ===");
+    embed_flash_data_t embed_data = INIT_EMBED_DATA(test_stream_start, test_stream_end);
+    int16_t *input_buffer = NULL;
+    int16_t *output_buffer = NULL;
+    esp_ae_delay_handle_t delay_handle = NULL;
+    ae_demo_io_cb_t read_cb = ae_demo_read_embed_flash;
+    ae_demo_io_cb_t write_cb = ae_demo_write_codec;
+    ALLOC_BUFFER(input_buffer, CHUNK_SIZE_BYTES, _DELAY_EXIT);
+    ALLOC_BUFFER(output_buffer, CHUNK_SIZE_BYTES, _DELAY_EXIT);
+    ESP_LOGI(TAG, "[ 1 ] Initialize Delay");
+    esp_ae_delay_cfg_t delay_cfg = {
+        .sample_rate = SAMPLE_RATE,
+        .channel = CHANNELS,
+        .bits_per_sample = BITS_PER_SAMPLE,
+        .max_delay_ms = 1000,
+        .delay_para = {
+            .delay_time_ms = 500,
+            .feedback = 0.7f,
+            .mix = 0.5f,
+        },
+    };
+    esp_ae_err_t ret = esp_ae_delay_open(&delay_cfg, &delay_handle);
+    AE_DEMO_RET_CHECK(ret, {goto _DELAY_EXIT;}, "Failed to create Delay handle");
+    ESP_LOGI(TAG, "[ 2 ] Process audio data in chunks and play through codec");
+    uint32_t total_samples = 0;
+    const uint32_t samples_4s = 4 * SAMPLE_RATE;
+    while (1) {
+        int bytes_read = read_cb(input_buffer, CHUNK_SIZE_BYTES, &embed_data);
+        if (bytes_read <= 0) {
+            break;
+        }
+        uint32_t samples_read = bytes_read / (CHANNELS * BYTES_PER_SAMPLE);
+        if (total_samples < samples_4s && (total_samples + samples_read) >= samples_4s) {
+            ESP_LOGI(TAG, "Increasing delay feedback and mix at 4 seconds");
+            ret = esp_ae_delay_set_feedback(delay_handle, 0.5f);
+            AE_DEMO_RET_CHECK(ret, {goto _DELAY_EXIT;}, "Failed to set delay feedback");
+            ret = esp_ae_delay_set_mix(delay_handle, 0.5f);
+            AE_DEMO_RET_CHECK(ret, {goto _DELAY_EXIT;}, "Failed to set delay mix");
+        }
+        ret = esp_ae_delay_process(delay_handle, samples_read, (esp_ae_sample_t)input_buffer, (esp_ae_sample_t)output_buffer);
+        AE_DEMO_RET_CHECK(ret, {goto _DELAY_EXIT;}, "Delay process failed");
+        int bytes_to_write = samples_read * CHANNELS * BYTES_PER_SAMPLE;
+        int written = write_cb(output_buffer, bytes_to_write, audio_codec_handle);
+        if (written < 0) {
+            ESP_LOGE(TAG, "Failed to write data: %d", written);
+            goto _DELAY_EXIT;
+        }
+        total_samples += samples_read;
+    }
+    ESP_LOGI(TAG, "Delay demo completed");
+_DELAY_EXIT:
+    if (delay_handle != NULL) {
+        esp_ae_delay_close(delay_handle);
+    }
+    if (input_buffer != NULL) {
+        free(input_buffer);
+    }
+    if (output_buffer != NULL) {
+        free(output_buffer);
+    }
+}
+
 #elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_BASIC_AUDIO_INFO_CVT)
 
 static void demo_basic_audio_info_cvt_process(void)
@@ -928,6 +1063,12 @@ void app_main(void)
 #elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_MBC)
     ESP_LOGI(TAG, "Running MBC demo...");
     demo_mbc_process();
+#elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_REVERB)
+    ESP_LOGI(TAG, "Running Reverb demo...");
+    demo_reverb_process();
+#elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_DELAY)
+    ESP_LOGI(TAG, "Running Delay demo...");
+    demo_delay_process();
 #elif defined(CONFIG_ESP_AUDIO_EFFECTS_DEMO_SELECT_BASIC_AUDIO_INFO_CVT)
     ESP_LOGI(TAG, "Running Basic Audio Info Convert demo...");
     demo_basic_audio_info_cvt_process();

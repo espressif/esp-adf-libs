@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.4.0
+
+### Break Change
+
+- Requires `ESP32-P4` chip version >= 3.0 for assembly optimization support
+
+### Features
+
+- Added `reverb` (room reverb) effect to simulate natural sound reflections in an enclosed space
+- Added `delay` (echo) effect to produce delayed copies of the input signal with configurable feedback decay
+- Added assembly optimizations for `sonic` on `esp32s31` and `esp32p4`, improving performance by 50%
+- Added assembly optimizations for `rate_cvt` on `esp32s31` and `esp32p4`, improving performance by 4×
+- Added `esp_ae_alc_set_transit_time` API for `ALC`
+
 ## v1.3.0~1
 
 ### Bug Fixes
