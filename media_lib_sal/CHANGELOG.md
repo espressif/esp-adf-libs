@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.1
+
+### Bugfix
+
+- Removed `use_secure_element` from TLS config mapping for compatibility with ESP-IDF master after the field was removed from `esp_tls_cfg_t`
+
 ## v1.0.0
 
 ### Features
