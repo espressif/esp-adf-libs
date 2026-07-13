@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2
+
+### Bugfix
+
+- Uniformed remove the use of member `use_secure_element` above ESP-IDF v6.0
+
 ## v1.0.1
 
 ### Bugfix

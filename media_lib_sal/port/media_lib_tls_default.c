@@ -64,7 +64,7 @@ static media_lib_tls_handle_t _tls_new(const char *hostname, int hostlen, int po
         .use_global_ca_store = cfg->use_global_ca_store,
         .skip_common_name = cfg->skip_common_name,
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 3, 0))
-#if (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 2, 0))
+#if (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(6, 0, 0))
         .use_secure_element = cfg->use_secure_element,
 #endif
         .crt_bundle_attach = cfg->crt_bundle_attach,
