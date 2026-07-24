@@ -64,10 +64,13 @@ typedef enum {
     ESP_RTC_EVENT_HANGUP,
     ESP_RTC_EVENT_ERROR,
     ESP_RTC_EVENT_UNREGISTERED,
+    ESP_RTC_EVENT_MESSAGE,
+    ESP_RTC_EVENT_MESSAGE_SENT,
     ESP_RTC_EVENT_AUDIO_SESSION_BEGIN,
     ESP_RTC_EVENT_AUDIO_SESSION_END,
     ESP_RTC_EVENT_VIDEO_SESSION_BEGIN,
     ESP_RTC_EVENT_VIDEO_SESSION_END,
+    ESP_RTC_EVENT_KEEPALIVE,
 } esp_rtc_event_t;
 
 typedef int (*esp_rtc_event_handle)(esp_rtc_event_t event, void *ctx);
@@ -102,6 +105,17 @@ typedef struct {
 } esp_rtc_video_info_t;
 
 /**
+ * @brief SIP MESSAGE data
+ */
+typedef struct
+{
+    const char *content_type; /*!< Content-Type header, e.g. "text/plain", "application/json" */
+    const char *body;         /*!< Message body content */
+    int         body_len;     /*!< Body length (0 = auto-calculate with strlen) */
+    const char *peer_uri;     /*!< For received: sender URI; For sending: target URI (NULL = use server) */
+} esp_rtc_msg_data_t;
+
+/**
  * @brief RTC session configurations
  */
 typedef struct {
@@ -114,6 +128,7 @@ typedef struct {
     esp_rtc_event_handle        event_handler;       /*!< RTC session event handler */
     bool                        use_public_addr;     /*!< Use the public IP address returned by the server (RFC3581) */
     bool                        send_options;        /*!< Use 'OPTIONS' messages replace keep-alive to server for keep NAT hole opened */
+    bool                        suspend_reg_on_call; /*!< Suspend refresh register on call */
     int                         keepalive;           /*!< Send keep-alive or 'OPTIONS' messages interval in seconds (defaults is 30s) */
     int                         rw_timeout_ms;       /*!< Read/Write transport timeout setting, in milliseconds (defaults to 3s) */
     int                         connect_timeout_ms;  /*!< Connection timeout setting, in milliseconds (defaults to 3s) */
@@ -124,10 +139,13 @@ typedef struct {
                                                      /*!< Function pointer to esp_crt_bundle_attach. Enables the use of certification
                                                           bundle for server verification, must be enabled in menuconfig */
     int                         register_interval;   /*!< Registration interval in seconds (defaults is 3600s) */
+    int                         aud_frame_size;      /*!< Audio RTP frame buffer size for send and receive */
     const char                  *user_agent;         /*!< Set user agent field (defaults is "ESP32 SIP/2.0") */
     int                         fixed_local_port;    /*!< Set fixed local port (defaults is 0) */
     bool                        p2p_mode;            /*!< When work in P2P mode it will skip register step and do invite or accept invite directly from peer */
     const char                  *domain;             /*!< Set domain(optional), this domain constructs the host of SIP URIs, supports a single server divided into multiple domains */
+    uint8_t                     video_payload_type;  /*!< SDP video payload type */
+    const char                  *private_header;     /*!< Set private header since the initial stage */
 } esp_rtc_config_t;
 
 /**
@@ -188,9 +206,13 @@ int esp_rtc_answer(esp_rtc_handle_t esp_rtc);
 /**
  * @brief      Get rtc session peer name
  *
+ * @note       Call from the RTC event callback on `ESP_RTC_EVENT_INCOMING` (or later while the
+ *             call is active). The returned pointer refers to internal storage; copy it if needed
+ *             beyond the callback. Not thread-safe.
+ *
  * @param[in]  esp_rtc  The rtc handle
  *
- * @return     remote peer name
+ * @return     remote peer name, or NULL if unavailable
  */
 const char *esp_rtc_get_peer(esp_rtc_handle_t esp_rtc);
 
@@ -224,6 +246,12 @@ int esp_rtc_set_invite_info(esp_rtc_handle_t esp_rtc, const esp_rtc_sip_message_
 /**
  * @brief      Read incoming sip message
  *
+ * @note       Call from the RTC event callback while a call is active.
+ *             - Incoming call (UAS): on `ESP_RTC_EVENT_INCOMING`.
+ *             - Outgoing call (UAC): on `ESP_RTC_EVENT_CALLING`.
+ *             Copy into user buffers in `sip_read_info` before returning from the callback.
+ *             Not thread-safe.
+ *
  * @param[in]  esp_rtc       The rtc handle
  * @param[in]  sip_read_info Read Via, From, To, Contact fields, we will copy to user buffer.
  *
@@ -235,8 +263,38 @@ int esp_rtc_set_invite_info(esp_rtc_handle_t esp_rtc, const esp_rtc_sip_message_
 int esp_rtc_read_incoming_messages(esp_rtc_handle_t esp_rtc, esp_rtc_sip_message_info_t *sip_read_info);
 
 /**
+ * @brief      Read raw SIP headers from incoming message
+ *
+ *             Returns the complete original header text of the current incoming SIP message
+ *             (from request/status line up to but not including the blank line before body).
+ *             Users can search for any header (e.g. Alert-Info, Call-Info) using strstr/strcasestr.
+ *
+ * @note       Timing: call this from the RTC event callback while a call is active.
+ *             - Incoming call (UAS): call on `ESP_RTC_EVENT_INCOMING` to read the INVITE headers.
+ *             - Outgoing call (UAC): call on `ESP_RTC_EVENT_CALLING` to read provisional response headers.
+ *             Headers remain valid until the call ends (`ESP_RTC_EVENT_HANGUP`).
+ *             `ESP_RTC_EVENT_INCOMING` is reported periodically during ringing; handle auto-answer only once.
+ *             Copy into `buf` before returning from the callback. Not thread-safe.
+ *
+ *             Buffer sizing: pass `buf == NULL` to query the required length without copying.
+ *             Then allocate at least `len + 1` bytes (including the null terminator) and call again.
+ *             If `buf` is too small, an error is logged and the function returns `-1` without copying.
+ *
+ * @param[in]  esp_rtc   The rtc handle
+ * @param[out] buf       User-allocated buffer to copy raw headers into (NULL to query length only)
+ * @param[in]  buf_size  Size of user buffer (including space for null terminator)
+ *
+ * @return     Length of raw headers on success, or `-1` on error
+ */
+int esp_rtc_read_raw_headers(esp_rtc_handle_t esp_rtc, char *buf, int buf_size);
+
+/**
  * @brief      Get hangup message when receive `ESP_RTC_EVENT_HANGUP`
- * 
+ *
+ * @note       Call from the RTC event callback on `ESP_RTC_EVENT_HANGUP`.
+ *             `msg->reason` points to internal storage; copy it before returning from the callback.
+ *             Not thread-safe.
+ *
  * @param esp_rtc  The rtc handle
  * @param msg      Hangup message
  * @return
@@ -281,6 +339,51 @@ int esp_rtc_send_dtmf(esp_rtc_handle_t esp_rtc, uint8_t dtmf_event, uint8_t volu
  *     - ESP_ERR_INVALID_ARG on wrong handle
  */
 int esp_rtc_set_private_header(esp_rtc_handle_t esp_rtc, const char *pheader);
+
+/**
+ * @brief      Send an out-of-dialog SIP MESSAGE request
+ *
+ *             Sends instant text or application data to a peer or the configured SIP server
+ *             without establishing a voice/video call (SIP MESSAGE method).
+ *             Completion is reported via `ESP_RTC_EVENT_MESSAGE_SENT`. To receive messages,
+ *             handle `ESP_RTC_EVENT_MESSAGE` and call `esp_rtc_get_message`.
+ *
+ *             Typical use: P2P text chat, IoT or control payloads (e.g. `application/json`),
+ *             or replying to an incoming MESSAGE while registered or during a call.
+ *
+ * @note       May be called from any task (not limited to the event callback).
+ *             `content_type`, `body`, and `peer_uri` are copied internally; the pointers in
+ *             `msg_data` need only be valid for the duration of this call.
+ *             Sending is asynchronous: the SIP task performs the actual request later.
+ *             Do not call again until `ESP_RTC_EVENT_MESSAGE_SENT` is reported for the
+ *             previous send; overlapping calls are not thread-safe.
+ *
+ * @param[in]  esp_rtc    The rtc handle
+ * @param[in]  msg_data   Message to send (`peer_uri` NULL uses the configured server)
+ *
+ * @return
+ *     - ESP_OK on success (message queued)
+ *     - ESP_ERR_INVALID_ARG on wrong handle or missing fields
+ *     - ESP_ERR_INVALID_STATE if not registered or in an invalid state
+ */
+int esp_rtc_send_message(esp_rtc_handle_t esp_rtc, const esp_rtc_msg_data_t *msg_data);
+
+/**
+ * @brief      Get received SIP MESSAGE
+ *
+ * @note       Call from the RTC event callback on `ESP_RTC_EVENT_MESSAGE`.
+ *             `content_type`, `body`, and `peer_uri` in `msg_data` point to internal storage;
+ *             copy them before returning from the callback. Not thread-safe.
+ *
+ * @param[in]  esp_rtc    The rtc handle
+ * @param[out] msg_data   Received message fields
+ *
+ * @return
+ *     - ESP_OK on success
+ *     - ESP_ERR_INVALID_ARG on wrong handle
+ *     - ESP_ERR_INVALID_STATE if no message is pending
+ */
+int esp_rtc_get_message(esp_rtc_handle_t esp_rtc, esp_rtc_msg_data_t *msg_data);
 
 #ifdef __cplusplus
 }
