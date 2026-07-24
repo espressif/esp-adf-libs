@@ -1,4 +1,4 @@
-version: "0.6.2"
+version: "1.0.0"
 description: Espressif media protocols
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_media_protocols
 repository: https://github.com/espressif/esp-adf-libs.git
@@ -19,6 +19,7 @@ targets:
   - esp32c3
   - esp32c5
   - esp32c6
+  - esp32c61
   - esp32h4
 
 tags:

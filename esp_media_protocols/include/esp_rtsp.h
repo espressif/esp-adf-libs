@@ -115,25 +115,25 @@ typedef struct {
  * @brief ESP RTSP session configurations
  */
 typedef struct {
-    void                    *ctx;           /*!< RTSP session user context */
-    bool                    video_enable;   /*!< Enable video */
-    bool                    audio_enable;   /*!< Enable audio */
+    void                    *ctx;               /*!< RTSP session user context */
+    bool                    video_enable;       /*!< Enable video */
+    bool                    audio_enable;       /*!< Enable audio */
 
-    const char              *uri;           /*!< Client push/play uri */
-    int                     local_port;     /*!< Local server port */
-    const char              *local_addr;    /*!< Local address */
-    int                     stack_size;     /*!< Task stack size */
-    int                     task_prio;      /*!< Task priority */
-    rtsp_payload_codec_t    acodec;         /*!< Audio codec */
-    uint8_t                 aud_channel;    /*!< Audio channel */
-    int                     aud_sample_rate;/*!< Audio sample rate */
-    int                     aud_frame_size; /*!< Received audio frame size */
+    const char              *uri;               /*!< Client push/play uri */
+    int                     local_port;         /*!< Local server port */
+    const char              *local_addr;        /*!< Local address */
+    int                     stack_size;         /*!< Task stack size */
+    int                     task_prio;          /*!< Task priority */
+    rtsp_payload_codec_t    acodec;             /*!< Audio codec */
+    uint8_t                 aud_channel;        /*!< Audio channel */
+    int                     aud_sample_rate;    /*!< Audio sample rate */
+    int                     aud_frame_size;     /*!< Audio RTP frame buffer size for send and receive */
     int                     aud_frame_duration; /*!< Audio frame duration */
-    esp_rtsp_mode_t         mode;           /*!< Set server or PUSH/PLAY mode */
-    esp_rtsp_video_info_t   *video_info;    /*!< Video info */
-    esp_rtsp_data_cb_t      *data_cb;       /*!< Data callback */
-    esp_rtsp_state_handler  state;          /*!< State handler */
-    esp_rtsp_transport_t    trans;          /*!< Client default transport */
+    esp_rtsp_mode_t         mode;               /*!< Set server or PUSH/PLAY mode */
+    esp_rtsp_video_info_t   *video_info;        /*!< Video info */
+    esp_rtsp_data_cb_t      *data_cb;           /*!< Data callback */
+    esp_rtsp_state_handler  state;              /*!< State handler */
+    esp_rtsp_transport_t    trans;              /*!< Client default transport */
 } esp_rtsp_config_t;
 
 /**
