@@ -1,4 +1,13 @@
 menu "Audio Codec Configuration"
+    config ESP_AUDIO_CODEC_S31_USE_ASM
+        bool "Use ESP32-S31 assembly-optimized codec libraries"
+        depends on IDF_TARGET_ESP32S31
+        default y
+        help
+            Select the assembly-optimized libraries from the esp32s31
+            directory. Disable this option to use the portable C
+            implementation from the esp32s31_esp_c directory.
+
     menu "Audio Decoder Configuration"
         config AUDIO_DECODER_AAC_SUPPORT
             bool "Support AAC Decoder"

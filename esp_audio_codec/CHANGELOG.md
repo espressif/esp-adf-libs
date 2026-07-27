@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.6.1
+
+### Features
+
+- Added two library variants for `ESP32-S31`: one with PIE assembly optimization and one without
+- Added menuconfig option `ESP_AUDIO_CODEC_S31_USE_ASM` to select whether to use assembly optimized library on `ESP32-S31`
+
 ## v2.6.0
 
 ### Break change
