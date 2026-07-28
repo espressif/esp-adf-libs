@@ -1,0 +1,12 @@
+menu "Audio Effects Configuration"
+    config ESP_AUDIO_EFFECTS_S31_USE_ASM
+        bool "Use ESP32-S31 assembly-optimized effects libraries"
+        depends on IDF_TARGET_ESP32S31
+        default y
+        help
+            Select the assembly-optimized libraries from the esp32s31
+            directory. Disable this option to use the portable C
+            implementation from the esp32s31_esp_c directory.
+            esp_ae_utils basic ops always remain assembly-capable and
+            are not gated by this option.
+endmenu
