@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.6.2
+
+### Break Change
+
+- Added CMake check to require `ESP32-P4` chip version >= 3.0 (fails at build time with guidance to use chip version >= 3.0 or audio codec version < v2.6)
+- Changed `ESP_AUDIO_CODEC_S31_USE_ASM` default to `n` so PIE assembly optimization is disabled by default on `ESP32-S31` (algorithm performance is lower without ASM, but tasks are no longer automatically moved to core 1)
+
+### Bug Fixes
+
+- Fixed `AAC` LC mono decoder out-of-bounds write when packing interleaved mono output samples
+
 ## v2.6.1
 
 ### Features

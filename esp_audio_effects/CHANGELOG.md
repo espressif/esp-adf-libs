@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4.2
+
+### Break Change
+
+- Added CMake check to require `ESP32-P4` chip version >= 3.0 (fails at build time with guidance to use chip version >= 3.0 or audio effects version < v1.4)
+- Changed `ESP_AUDIO_EFFECTS_S31_USE_ASM` default to `n` so PIE assembly optimization is disabled by default on `ESP32-S31` (algorithm performance is lower without ASM, but tasks are no longer automatically moved to core 1)
+
+### Features
+
+- Added `set` / `get` APIs for `howl` thresholds: `papr_th`, `phpr_th`, `pnpr_th`, and `imsd_th`
+
 ## v1.4.1
 
 ### Features
