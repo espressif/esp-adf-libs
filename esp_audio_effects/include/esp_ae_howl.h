@@ -128,6 +128,115 @@ esp_ae_err_t esp_ae_howl_process(esp_ae_howl_handle_t handle, esp_ae_sample_t in
 esp_ae_err_t esp_ae_howl_deintlv_process(esp_ae_howl_handle_t handle, esp_ae_sample_t *in_samples, esp_ae_sample_t *out_samples);
 
 /**
+ * @brief  Set the PAPR (Peak to Average Power Ratio) threshold
+ *
+ * @param[in]  handle   The HOWL handle
+ * @param[in]  papr_th  PAPR threshold in dB, range: [-10.0, 20.0]
+ *
+ * @note  Can be called at any time after `esp_ae_howl_open`, including during processing. This function is not thread-safe;
+ *        avoid concurrent calls with process on the same handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_set_papr_th(esp_ae_howl_handle_t handle, float papr_th);
+
+/**
+ * @brief  Get the PAPR (Peak to Average Power Ratio) threshold
+ *
+ * @param[in]   handle   The HOWL handle
+ * @param[out]  papr_th  PAPR threshold in dB
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_get_papr_th(esp_ae_howl_handle_t handle, float *papr_th);
+
+/**
+ * @brief  Set the PHPR (Peak to Harmonic Power Ratio) threshold
+ *
+ * @param[in]  handle   The HOWL handle
+ * @param[in]  phpr_th  PHPR threshold in dB, range: [0.0, 100.0]
+ *
+ * @note  Can be called at any time after `esp_ae_howl_open`, including during processing. This function is not thread-safe;
+ *        avoid concurrent calls with process on the same handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_set_phpr_th(esp_ae_howl_handle_t handle, float phpr_th);
+
+/**
+ * @brief  Get the PHPR (Peak to Harmonic Power Ratio) threshold
+ *
+ * @param[in]   handle   The HOWL handle
+ * @param[out]  phpr_th  PHPR threshold in dB
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_get_phpr_th(esp_ae_howl_handle_t handle, float *phpr_th);
+
+/**
+ * @brief  Set the PNPR (Peak to Noise Power Ratio) threshold
+ *
+ * @param[in]  handle   The HOWL handle
+ * @param[in]  pnpr_th  PNPR threshold in dB, range: [0.0, 100.0]
+ *
+ * @note  Can be called at any time after `esp_ae_howl_open`, including during processing. This function is not thread-safe;
+ *        avoid concurrent calls with process on the same handle
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_set_pnpr_th(esp_ae_howl_handle_t handle, float pnpr_th);
+
+/**
+ * @brief  Get the PNPR (Peak to Noise Power Ratio) threshold
+ *
+ * @param[in]   handle   The HOWL handle
+ * @param[out]  pnpr_th  PNPR threshold in dB
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_get_pnpr_th(esp_ae_howl_handle_t handle, float *pnpr_th);
+
+/**
+ * @brief  Set the IMSD (Inter-Frame Magnitude Spectral Deviation) threshold
+ *
+ * @note  This only takes effect when IMSD is enabled (enable_imsd is true)
+ *        Can be called at any time after `esp_ae_howl_open`, including during processing. This function is not thread-safe;
+ *        avoid concurrent calls with process on the same handle
+ *
+ * @param[in]  handle   The HOWL handle
+ * @param[in]  imsd_th  IMSD threshold (not in dB), range: [0.0, 20.0]
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_set_imsd_th(esp_ae_howl_handle_t handle, float imsd_th);
+
+/**
+ * @brief  Get the IMSD (Inter-Frame Magnitude Spectral Deviation) threshold
+ *
+ * @param[in]   handle   The HOWL handle
+ * @param[out]  imsd_th  IMSD threshold
+ *
+ * @return
+ *       - ESP_AE_ERR_OK                 Operation succeeded
+ *       - ESP_AE_ERR_INVALID_PARAMETER  Invalid input parameter
+ */
+esp_ae_err_t esp_ae_howl_get_imsd_th(esp_ae_howl_handle_t handle, float *imsd_th);
+
+/**
  * @brief  Reset the internal processing state of howl handle while preserving user-configured gain settings
  *         It allows the handle to be reused efficiently when the audio information (sample rate, channel, bits per sample)
  *         remains unchanged, avoiding the overhead of closing and recreating the howl handle

@@ -199,6 +199,118 @@ TEST_CASE("Howl branch test", "[howl][branch]")
     ret = esp_ae_howl_get_frame_size(handle, &frame_size);
     TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
 
+    /* esp_ae_howl_set_papr_th / get_papr_th */
+    ret = esp_ae_howl_set_papr_th(NULL, 10.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_papr_th(handle, -11.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_papr_th(handle, 21.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_papr_th(handle, 15.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    float papr_val = 0;
+    ret = esp_ae_howl_get_papr_th(NULL, &papr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_papr_th(handle, NULL);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_papr_th(handle, &papr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 15.0f, papr_val);
+    ret = esp_ae_howl_set_papr_th(handle, -10.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_papr_th(handle, &papr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -10.0f, papr_val);
+    ret = esp_ae_howl_set_papr_th(handle, 20.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_papr_th(handle, &papr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 20.0f, papr_val);
+
+    /* esp_ae_howl_set_phpr_th / get_phpr_th */
+    ret = esp_ae_howl_set_phpr_th(NULL, 45.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_phpr_th(handle, -1.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_phpr_th(handle, 101.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_phpr_th(handle, 60.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    float phpr_val = 0;
+    ret = esp_ae_howl_get_phpr_th(NULL, &phpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_phpr_th(handle, NULL);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_phpr_th(handle, &phpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 60.0f, phpr_val);
+    ret = esp_ae_howl_set_phpr_th(handle, 0.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_phpr_th(handle, &phpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, phpr_val);
+    ret = esp_ae_howl_set_phpr_th(handle, 100.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_phpr_th(handle, &phpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 100.0f, phpr_val);
+
+    /* esp_ae_howl_set_pnpr_th / get_pnpr_th */
+    ret = esp_ae_howl_set_pnpr_th(NULL, 45.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_pnpr_th(handle, -1.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_pnpr_th(handle, 101.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_pnpr_th(handle, 55.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    float pnpr_val = 0;
+    ret = esp_ae_howl_get_pnpr_th(NULL, &pnpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_pnpr_th(handle, NULL);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_pnpr_th(handle, &pnpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 55.0f, pnpr_val);
+    ret = esp_ae_howl_set_pnpr_th(handle, 0.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_pnpr_th(handle, &pnpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, pnpr_val);
+    ret = esp_ae_howl_set_pnpr_th(handle, 100.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_pnpr_th(handle, &pnpr_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 100.0f, pnpr_val);
+
+    /* esp_ae_howl_set_imsd_th / get_imsd_th */
+    ret = esp_ae_howl_set_imsd_th(NULL, 10.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_imsd_th(handle, -0.1f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_imsd_th(handle, 21.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_set_imsd_th(handle, 5.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    float imsd_val = 0;
+    ret = esp_ae_howl_get_imsd_th(NULL, &imsd_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_imsd_th(handle, NULL);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
+    ret = esp_ae_howl_get_imsd_th(handle, &imsd_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 5.0f, imsd_val);
+    ret = esp_ae_howl_set_imsd_th(handle, 0.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_imsd_th(handle, &imsd_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, imsd_val);
+    ret = esp_ae_howl_set_imsd_th(handle, 20.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_imsd_th(handle, &imsd_val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 20.0f, imsd_val);
+
     /* reset: NULL handle */
     ret = esp_ae_howl_reset(NULL);
     TEST_ASSERT_EQUAL(ESP_AE_ERR_INVALID_PARAMETER, ret);
@@ -528,4 +640,124 @@ TEST_CASE("Howl reset same input same output", "[howl][reset]")
     free(out_buf);
     free(ref_out);
     esp_ae_howl_close(handle);
+}
+
+TEST_CASE("Howl threshold set/get round-trip", "[howl][setget]")
+{
+    esp_ae_howl_cfg_t cfg;
+    esp_ae_howl_handle_t handle = NULL;
+    esp_ae_err_t ret;
+    float val = 0;
+
+    howl_default_cfg(&cfg);
+    ret = esp_ae_howl_open(&cfg, &handle);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    /* Verify initial values match cfg */
+    ret = esp_ae_howl_get_papr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 10.0f, val);
+    ret = esp_ae_howl_get_phpr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 45.0f, val);
+    ret = esp_ae_howl_get_pnpr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 45.0f, val);
+    ret = esp_ae_howl_get_imsd_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 10.0f, val);
+
+    /* Set new values and verify */
+    ret = esp_ae_howl_set_papr_th(handle, -5.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_papr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -5.0f, val);
+
+    ret = esp_ae_howl_set_phpr_th(handle, 80.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_phpr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 80.0f, val);
+
+    ret = esp_ae_howl_set_pnpr_th(handle, 30.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_pnpr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 30.0f, val);
+
+    ret = esp_ae_howl_set_imsd_th(handle, 15.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_imsd_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 15.0f, val);
+
+    /* Verify changing papr_th doesn't affect other thresholds */
+    ret = esp_ae_howl_set_papr_th(handle, 8.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_phpr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 80.0f, val);
+    ret = esp_ae_howl_get_pnpr_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 30.0f, val);
+    ret = esp_ae_howl_get_imsd_th(handle, &val);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 15.0f, val);
+
+    esp_ae_howl_close(handle);
+}
+
+TEST_CASE("Howl threshold change affects output", "[howl][setget]")
+{
+    esp_ae_howl_cfg_t cfg;
+    esp_ae_howl_handle_t h1 = NULL, h2 = NULL;
+    uint32_t frame_size = 0;
+    esp_ae_err_t ret;
+
+    howl_default_cfg(&cfg);
+    ret = esp_ae_howl_open(&cfg, &h1);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_open(&cfg, &h2);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_get_frame_size(h1, &frame_size);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    uint8_t *in_buf = (uint8_t *)heap_caps_calloc(1, frame_size, MALLOC_CAP_INTERNAL);
+    uint8_t *out1 = (uint8_t *)heap_caps_calloc(1, frame_size, MALLOC_CAP_INTERNAL);
+    uint8_t *out2 = (uint8_t *)heap_caps_calloc(1, frame_size, MALLOC_CAP_INTERNAL);
+    TEST_ASSERT_NOT_NULL(in_buf);
+    TEST_ASSERT_NOT_NULL(out1);
+    TEST_ASSERT_NOT_NULL(out2);
+
+    /* Use a signal that triggers howl detection more easily */
+    uint32_t samples_per_ch = frame_size / (cfg.channel * (cfg.bits_per_sample / 8));
+    int16_t *s16 = (int16_t *)in_buf;
+    for (uint32_t i = 0; i < samples_per_ch; i++) {
+        s16[i] = (int16_t)(16000.0f * sinf(2.0f * 3.14159265f * 1000.0f * (float)i / (float)cfg.sample_rate));
+    }
+
+    ret = esp_ae_howl_set_papr_th(h2, -10.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    ret = esp_ae_howl_set_pnpr_th(h2, 0.0f);
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+
+    const int num_frames = 10;
+    for (int f = 0; f < num_frames; f++) {
+        memcpy(out1, in_buf, frame_size);
+        memcpy(out2, in_buf, frame_size);
+        ret = esp_ae_howl_process(h1, out1, out1);
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+        ret = esp_ae_howl_process(h2, out2, out2);
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, ret);
+    }
+
+    bool outputs_differ = (memcmp(out1, out2, frame_size) != 0);
+    TEST_ASSERT_TRUE(outputs_differ);
+
+    free(in_buf);
+    free(out1);
+    free(out2);
+    esp_ae_howl_close(h1);
+    esp_ae_howl_close(h2);
 }

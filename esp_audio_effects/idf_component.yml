@@ -2,7 +2,7 @@ description: Espressif audio effects
 issues: https://github.com/espressif/esp-adf/issues
 repository: https://github.com/espressif/esp-adf-libs.git
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_audio_effects
-version: 1.4.1
+version: 1.4.2
 
 dependencies:
   espressif/gmf_fft:
