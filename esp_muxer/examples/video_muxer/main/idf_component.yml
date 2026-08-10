@@ -3,5 +3,5 @@ description: Video Muxer
 dependencies:
   esp_muxer:
     path: ../../../../esp_muxer
-  espressif/esp_board_manager: '~0.5'
-  espressif/esp_capture: '~0.8'
+  espressif/esp_board_manager: '~0.7'
+  espressif/esp_capture: '~1.0'

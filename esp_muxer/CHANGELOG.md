@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.3
+
+### Features
+
+- Added metadata lists support for mp4 muxer
+- Replace example `idf_ext.py` with board manager assist script
 
 ## v1.2.2
 
