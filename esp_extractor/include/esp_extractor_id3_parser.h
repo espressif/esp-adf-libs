@@ -32,8 +32,8 @@ typedef enum {
  */
 typedef struct {
     char    *key;       /*!< Frame key */
-    char    *value;     /*!< Frame value */
-    uint8_t  encoding;  /*!< Text encoding type */
+    char    *value;     /*!< Frame value (UTF-8) */
+    uint8_t  encoding;  /*!< Source text encoding in the ID3 frame */
 } esp_extractor_id3_kv_t;
 
 /**
@@ -41,17 +41,20 @@ typedef struct {
  *
  * @note  All memory is owned by parser handle and valid until
  *        `esp_extractor_id3_parser_close` is called.
+ *        Text fields (`title`/`author`/`album`/`date`/`genre`/`extra[].value`)
+ *        are always decoded to UTF-8 for display. `encoding` / `extra[].encoding`
+ *        report the original ID3 text encoding from the file.
  */
 typedef struct {
-    char                   *title;       /*!< Title */
-    char                   *author;      /*!< Author/artist */
-    char                   *album;       /*!< Album */
-    char                   *date;        /*!< Date/year */
-    char                   *genre;       /*!< Genre */
+    char                   *title;       /*!< Title (UTF-8) */
+    char                   *author;      /*!< Author/artist (UTF-8) */
+    char                   *album;       /*!< Album (UTF-8) */
+    char                   *date;        /*!< Date/year (UTF-8) */
+    char                   *genre;       /*!< Genre (UTF-8) */
     char                   *cover_mime;  /*!< Cover MIME type */
     uint8_t                *cover;       /*!< Cover data */
     uint32_t                cover_size;  /*!< Cover data size */
-    uint8_t                 encoding;    /*!< Text encoding type for common fields */
+    uint8_t                 encoding;    /*!< Source text encoding of common fields */
     esp_extractor_id3_kv_t *extra;       /*!< Extra string fields */
     uint16_t                extra_num;   /*!< Number of extra fields */
 } esp_extractor_id3_info_t;

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.4
+
+### Bug Fixes
+
+- Fixed ID3 UTF-16 / ISO-8859-1 text decoding
+
 ## v1.0.3
 
 ### Features

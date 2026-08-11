@@ -69,7 +69,7 @@ static void id3_free_info(esp_extractor_id3_info_t *info)
     memset(info, 0, sizeof(esp_extractor_id3_info_t));
 }
 
-static char *id3_copy_trim(const uint8_t *data, uint32_t size)
+static char *id3_copy_utf8(const uint8_t *data, uint32_t size)
 {
     while (size && (data[size - 1] == '\0' || data[size - 1] == ' ')) {
         size--;
@@ -92,13 +92,142 @@ static char *id3_copy_trim(const uint8_t *data, uint32_t size)
     return str;
 }
 
-static char *id3_copy_text(const uint8_t *data, uint32_t size)
+static bool id3_utf8_put(uint8_t *out, uint32_t *pos, uint32_t cap, uint32_t cp)
 {
-    if (size == 0) {
+    if (cp <= 0x7F) {
+        if (*pos + 1 > cap) {
+            return false;
+        }
+        out[(*pos)++] = (uint8_t)cp;
+    } else if (cp <= 0x7FF) {
+        if (*pos + 2 > cap) {
+            return false;
+        }
+        out[(*pos)++] = (uint8_t)(0xC0 | (cp >> 6));
+        out[(*pos)++] = (uint8_t)(0x80 | (cp & 0x3F));
+    } else if (cp <= 0xFFFF) {
+        if (cp >= 0xD800 && cp <= 0xDFFF) {
+            return false;
+        }
+        if (*pos + 3 > cap) {
+            return false;
+        }
+        out[(*pos)++] = (uint8_t)(0xE0 | (cp >> 12));
+        out[(*pos)++] = (uint8_t)(0x80 | ((cp >> 6) & 0x3F));
+        out[(*pos)++] = (uint8_t)(0x80 | (cp & 0x3F));
+    } else if (cp <= 0x10FFFF) {
+        if (*pos + 4 > cap) {
+            return false;
+        }
+        out[(*pos)++] = (uint8_t)(0xF0 | (cp >> 18));
+        out[(*pos)++] = (uint8_t)(0x80 | ((cp >> 12) & 0x3F));
+        out[(*pos)++] = (uint8_t)(0x80 | ((cp >> 6) & 0x3F));
+        out[(*pos)++] = (uint8_t)(0x80 | (cp & 0x3F));
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static char *id3_copy_iso8859_1(const uint8_t *data, uint32_t size)
+{
+    while (size && (data[size - 1] == '\0' || data[size - 1] == ' ')) {
+        size--;
+    }
+    while (size && (*data == '\0' || *data == ' ')) {
+        data++;
+        size--;
+    }
+    /* Worst case: every byte becomes 2-byte UTF-8. */
+    uint32_t cap = size * 2 + 1;
+    uint8_t *str = (uint8_t *)id3_malloc(cap);
+    if (str == NULL) {
         return NULL;
     }
-    // First byte is text encoding. Keep bytes as-is, only drop separators.
-    return id3_copy_trim(data + 1, size - 1);
+    uint32_t out = 0;
+    for (uint32_t i = 0; i < size; i++) {
+        if (data[i] == 0) {
+            continue;
+        }
+        if (!id3_utf8_put(str, &out, cap - 1, data[i])) {
+            media_lib_free(str);
+            return NULL;
+        }
+    }
+    str[out] = '\0';
+    return (char *)str;
+}
+
+static uint16_t id3_read_utf16_unit(const uint8_t *data, bool be)
+{
+    return be ? ((uint16_t)data[0] << 8) | data[1] : ((uint16_t)data[1] << 8) | data[0];
+}
+
+static char *id3_copy_utf16(const uint8_t *data, uint32_t size, bool be, bool has_bom)
+{
+    if (size < 2) {
+        return NULL;
+    }
+    uint32_t pos = 0;
+    if (has_bom) {
+        uint16_t bom = id3_read_utf16_unit(data, true);
+        if (bom == 0xFEFF) {
+            be = true;
+            pos = 2;
+        } else if (bom == 0xFFFE) {
+            be = false;
+            pos = 2;
+        }
+        /* No BOM: keep caller endianness (UTF-16BE default for encoding 0x02). */
+    }
+    /* Align to code-unit boundary. */
+    size -= (size - pos) & 1U;
+    /* Worst case: each BMP unit -> 3 UTF-8 bytes. */
+    uint32_t cap = ((size - pos) / 2) * 3 + 1;
+    uint8_t *str = (uint8_t *)id3_malloc(cap);
+    if (str == NULL) {
+        return NULL;
+    }
+    uint32_t out = 0;
+    while (pos + 1 < size) {
+        uint16_t unit = id3_read_utf16_unit(data + pos, be);
+        pos += 2;
+        if (unit == 0) {
+            continue;
+        }
+        uint32_t cp;
+        if (unit >= 0xD800 && unit <= 0xDBFF) {
+            if (pos + 1 >= size) {
+                break;
+            }
+            uint16_t low = id3_read_utf16_unit(data + pos, be);
+            if (low < 0xDC00 || low > 0xDFFF) {
+                continue;
+            }
+            pos += 2;
+            cp = 0x10000 + ((((uint32_t)unit - 0xD800) << 10) | ((uint32_t)low - 0xDC00));
+        } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+            continue;
+        } else {
+            cp = unit;
+        }
+        if (cp == ' ' && out == 0) {
+            continue;
+        }
+        if (!id3_utf8_put(str, &out, cap - 1, cp)) {
+            media_lib_free(str);
+            return NULL;
+        }
+    }
+    while (out && (str[out - 1] == ' ')) {
+        out--;
+    }
+    str[out] = '\0';
+    if (out == 0) {
+        media_lib_free(str);
+        return NULL;
+    }
+    return (char *)str;
 }
 
 static uint8_t id3_get_text_encoding(const uint8_t *data, uint32_t size)
@@ -107,6 +236,28 @@ static uint8_t id3_get_text_encoding(const uint8_t *data, uint32_t size)
         return ESP_EXTRACTOR_ID3_TEXT_ENCODING_NONE;
     }
     return data[0];
+}
+
+static char *id3_copy_text(const uint8_t *data, uint32_t size)
+{
+    if (size == 0) {
+        return NULL;
+    }
+    uint8_t encoding = id3_get_text_encoding(data, size);
+    const uint8_t *payload = data + 1;
+    uint32_t payload_size = size - 1;
+    switch (encoding) {
+        case ESP_EXTRACTOR_ID3_TEXT_ENCODING_ISO_8859_1:
+            return id3_copy_iso8859_1(payload, payload_size);
+        case ESP_EXTRACTOR_ID3_TEXT_ENCODING_UTF_16:
+            return id3_copy_utf16(payload, payload_size, true, true);
+        case ESP_EXTRACTOR_ID3_TEXT_ENCODING_UTF_16BE:
+            return id3_copy_utf16(payload, payload_size, true, false);
+        case ESP_EXTRACTOR_ID3_TEXT_ENCODING_UTF_8:
+            return id3_copy_utf8(payload, payload_size);
+        default:
+            return NULL;
+    }
 }
 
 static void id3_replace_string(char **dst, char *value)
@@ -140,7 +291,7 @@ static void id3_add_extra(esp_extractor_id3_info_t *info, const char *key, char 
         }
         memset(info->extra, 0, ID3_V2_MAX_EXTRA * sizeof(esp_extractor_id3_kv_t));
     }
-    char *key_copy = id3_copy_trim((const uint8_t *)key, strlen(key));
+    char *key_copy = id3_copy_utf8((const uint8_t *)key, strlen(key));
     if (key_copy == NULL) {
         media_lib_free(value);
         return;
@@ -197,28 +348,44 @@ static void id3_keep_apic_frame(esp_extractor_id3_info_t *info, const uint8_t *d
     if (size < 5) {
         return;
     }
+    uint8_t encoding = id3_get_text_encoding(data, size);
+    bool utf16_desc = (encoding == ESP_EXTRACTOR_ID3_TEXT_ENCODING_UTF_16 ||
+                       encoding == ESP_EXTRACTOR_ID3_TEXT_ENCODING_UTF_16BE);
     uint32_t pos = 1;
+    /* MIME type is always ISO-8859-1, null-terminated. */
     while (pos < size && data[pos]) {
         pos++;
     }
     if (pos >= size) {
         return;
     }
-    char *mime = id3_copy_trim(data + 1, pos - 1);
-    pos++;  // MIME terminator
+    char *mime = id3_copy_utf8(data + 1, pos - 1);
+    pos++;  /* MIME terminator */
     if (pos >= size) {
         media_lib_free(mime);
         return;
     }
-    pos++;  // Picture type
-    while (pos < size && data[pos]) {
+    pos++;  /* Picture type */
+    /* Description terminator depends on text encoding. */
+    if (utf16_desc) {
+        while (pos + 1 < size && (data[pos] || data[pos + 1])) {
+            pos += 2;
+        }
+        if (pos + 1 >= size) {
+            media_lib_free(mime);
+            return;
+        }
+        pos += 2;
+    } else {
+        while (pos < size && data[pos]) {
+            pos++;
+        }
+        if (pos >= size) {
+            media_lib_free(mime);
+            return;
+        }
         pos++;
     }
-    if (pos >= size) {
-        media_lib_free(mime);
-        return;
-    }
-    pos++;  // Description terminator
     uint32_t cover_size = size - pos;
     uint8_t *cover = (uint8_t *)id3_malloc(cover_size);
     if (cover == NULL) {
@@ -262,10 +429,10 @@ static int id3_parse_v1(id3_read_cb reader, void *read_ctx, esp_extractor_id3_pa
     if (memcmp(tag, "TAG", 3) != 0) {
         return -1;
     }
-    id3_replace_string(&parser->info.title, id3_copy_trim(tag + 3, ID3_V1_FIELD_TITLE));
-    id3_replace_string(&parser->info.author, id3_copy_trim(tag + 33, ID3_V1_FIELD_AUTHOR));
-    id3_replace_string(&parser->info.album, id3_copy_trim(tag + 63, ID3_V1_FIELD_ALBUM));
-    id3_replace_string(&parser->info.date, id3_copy_trim(tag + 93, ID3_V1_FIELD_DATE));
+    id3_replace_string(&parser->info.title, id3_copy_iso8859_1(tag + 3, ID3_V1_FIELD_TITLE));
+    id3_replace_string(&parser->info.author, id3_copy_iso8859_1(tag + 33, ID3_V1_FIELD_AUTHOR));
+    id3_replace_string(&parser->info.album, id3_copy_iso8859_1(tag + 63, ID3_V1_FIELD_ALBUM));
+    id3_replace_string(&parser->info.date, id3_copy_iso8859_1(tag + 93, ID3_V1_FIELD_DATE));
     id3_replace_string(&parser->info.genre, id3_copy_v1_genre(tag[127]));
     parser->info.encoding = ESP_EXTRACTOR_ID3_TEXT_ENCODING_ISO_8859_1;
     parser->parsed = true;
