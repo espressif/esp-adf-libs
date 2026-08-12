@@ -58,6 +58,15 @@
 
 ## 编译与运行
 
+- 安装开发板生成脚本
+```
+# 首次安装
+pip install esp-bmgr-assist
+
+# 更新升级
+pip install --upgrade esp-bmgr-assist
+```
+
 - 先选择目标开发板
 
 ```

@@ -58,6 +58,14 @@ Output path and slice behavior are controlled by the **slice callback** (`slice_
 
 ## Build and Run
 
+- Install board generate script
+```
+# First-time install
+pip install esp-bmgr-assist
+
+# Upgrade later
+pip install --upgrade esp-bmgr-assist
+```
 - Select target board firstly
 
 ```
