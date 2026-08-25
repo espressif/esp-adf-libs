@@ -20,6 +20,7 @@ extern "C" {
 #include "esp_caf_extractor.h"
 #include "esp_flv_extractor.h"
 #include "esp_raw_extractor.h"
+#include "esp_mjpeg_extractor.h"
 
 /**
  * @brief  Register all supported extractor type

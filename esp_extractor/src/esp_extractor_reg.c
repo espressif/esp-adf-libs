@@ -42,6 +42,10 @@ esp_extractor_err_t esp_extractor_register_default(void)
 #ifdef CONFIG_FLV_EXTRACTOR_SUPPORT
     ret |= esp_flv_extractor_register();
 #endif  /* CONFIG_FLV_EXTRACTOR_SUPPORT */
+
+#ifdef CONFIG_MJPEG_EXTRACTOR_SUPPORT
+    ret |= esp_mjpeg_extractor_register();
+#endif  /* CONFIG_MJPEG_EXTRACTOR_SUPPORT */
     return ret;
 }
 
@@ -78,4 +82,8 @@ void esp_extractor_unregister_default(void)
 #ifdef CONFIG_FLV_EXTRACTOR_SUPPORT
     esp_flv_extractor_unregister();
 #endif  /* CONFIG_FLV_EXTRACTOR_SUPPORT */
+
+#ifdef CONFIG_MJPEG_EXTRACTOR_SUPPORT
+    esp_mjpeg_extractor_unregister();
+#endif  /* CONFIG_MJPEG_EXTRACTOR_SUPPORT */
 }

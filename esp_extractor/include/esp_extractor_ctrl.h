@@ -63,6 +63,10 @@ typedef enum {
                                                                 Specially for raw extractor */
     ESP_EXTRACTOR_CTRL_TYPE_SET_MAX_FRAME_SIZE   = 0x4b,  /*!< `uint32_t`:
                                                                 Set maximum frame size (specially for raw extractor) */
+    ESP_EXTRACTOR_CTRL_TYPE_SET_MJPEG_FPS        = 0x4c,  /*!< `uint16_t`:
+                                                                Set MJPEG frames per second */
+    ESP_EXTRACTOR_CTRL_TYPE_SET_MJPEG_BOUNDARY   = 0x4d,  /*!< NUL-terminated string:
+                                                                Set multipart MJPEG boundary without leading "--" */
 
     ESP_EXTRACTOR_CTRL_TYPE_GET             = 0x80,  /*!< Control type for getting */
     ESP_EXTRACTOR_CTRL_TYPE_GET_RESUME_INFO = 0x81,  /*!< `esp_extractor_stream_resume_info_t`:
