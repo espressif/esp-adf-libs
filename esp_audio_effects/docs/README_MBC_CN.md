@@ -26,13 +26,13 @@
 系统 menuconfig 配置：
 |   HW_Version   | IDF_Version  | CPU Frequency | SPI Ram  |
 |       --       |     --       |      --       |    --    |
-|   ESP32-S3R8   | release/v5.5 |    240MHz     |  80MHz   |
+|   ESP32-S3R8   | v6.2         |    240MHz     |  80MHz   |
 
 | 采样位宽 (bits) | 内存 (Byte) | CPU 占用(%) |
 |       --        |     --      |     --       |
-|      16         |   < 43K     |    < 3.2     |
-|      24         |   < 43K     |    < 4.1     |
-|      32         |   < 44K     |    < 4.7     |
+|      16         |   < 43K     |    < 2.4     |
+|      24         |   < 44K     |    < 3.6     |
+|      32         |   < 44K     |    < 3.0     |
 
 说明：
 1) 测试音频为 8k 单声道，其它采样率与声道数的 CPU 占用约按 `sample rate / 8000 * channel` 成比例变化。

@@ -26,13 +26,13 @@
 The system menuconfig is:  
 |   HW_Version   | IDF_Version  | CPU Frequency | SPI Ram  |
 |       --       |   --         |  --           |     --   |  
-|   ESP32-S3R8   | release/v5.5 | 240MHz        |   80MHz  |   
+|   ESP32-S3R8   | v6.2         | 240MHz        |   80MHz  |   
 
 | Bits per sample| Memory(Byte) | CPU loading(%) |
 |       --       |  --          |     --         |  
-|       16       |  < 43K       |    < 3.2       | 
-|       24       |  < 43k       |    < 4.1       | 
-|       32       |  < 44k       |    < 4.7       | 
+|       16       |  < 43K       |    < 2.4       | 
+|       24       |  < 44K       |    < 3.6       | 
+|       32       |  < 44K       |    < 3.0       | 
 
 Note:   
     1) The test music is 8k mono, and the CPU loading of music with other sampling rate and channel is about `sample rate / 8000 * channel` times that of this.    

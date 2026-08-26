@@ -245,7 +245,7 @@ esp_ae_err_t esp_ae_drc_set_knee_width(esp_ae_drc_handle_t handle, float knee_wi
  * @brief  Get the value of the knee width
  *
  * @param[in]   handle       The DRC handle
- * @param[out]  makeup_gain  The knee width
+ * @param[out]  knee_width   The knee width
  *
  * @return
  *       - ESP_AE_ERR_OK                 Operation succeeded
