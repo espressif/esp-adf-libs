@@ -33,7 +33,7 @@
 #define TAG                 "EXTRACTOR_DEMO"
 #define MAX_PATH_LEN        (128)
 #define OUTPUT_POOL_SIZE    (100 * 1024)  // Should more than one frame size
-#define SUPPORTED_FILE_EXT  "avi;aac;mp3;mp4;flv;ts;caf;amr;ogg;flac;wav;opus;"
+#define SUPPORTED_FILE_EXT  "avi;aac;mp3;mp4;flv;ts;caf;amr;ogg;flac;wav;opus;mjpeg;"
 
 #ifndef __linux__
 #define TEST_FOLDER  "/sdcard"
@@ -114,6 +114,12 @@ int extractor_use_helper(const char *url, frame_verify_func verify)
         if (ret != ESP_EXTRACTOR_ERR_OK) {
             ESP_LOGE(TAG, "Failed to open extractor ret %d", ret);
             break;
+        }
+        if (esp_extractor_get_favor_type(url) == ESP_EXTRACTOR_TYPE_MJPEG) {
+            // If support boundary MJPEG set your boundary accordingly
+            char *mjpeg_boundary = "esp-boundary";
+            esp_extractor_ctrl(extractor, ESP_EXTRACTOR_CTRL_TYPE_SET_MJPEG_BOUNDARY,
+                               mjpeg_boundary, strlen(mjpeg_boundary) + 1);
         }
 #ifdef CONFIG_EXTRACTOR_ID3_PARSER_ENABLE
         ret = esp_extractor_id3_parser_open(extractor, &id3_parser);

@@ -216,6 +216,9 @@ esp_extractor_type_t esp_extractor_get_favor_type(const char *url)
     if (strcasecmp(ext, "wav") == 0) {
         return ESP_EXTRACTOR_TYPE_WAV;
     }
+    if (strcasecmp(ext, ".mjpeg") == 0 || strcasecmp(ext, ".mjpg") == 0) {
+        return ESP_EXTRACTOR_TYPE_MJPEG;
+    }
     if (strcasecmp(ext, "aac") == 0) {
         return ESP_EXTRACTOR_TYPE_AAC;
     }

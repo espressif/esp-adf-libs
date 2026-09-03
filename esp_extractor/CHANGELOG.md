@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.5
+
+### Features
+
+- Added `MJPEG` extractor support
+ - Supports both standard files and boundary-separated streams.
+ - Introduced the `ESP_EXTRACTOR_CTRL_TYPE_SET_MJPEG_BOUNDARY` control config to manually set boundaries for frame extraction
+
 ## v1.0.4
 
 ### Bug Fixes

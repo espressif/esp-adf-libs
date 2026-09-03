@@ -58,6 +58,7 @@ typedef enum {
     ESP_EXTRACTOR_TYPE_FLAC  = EXTRACTOR_4CC('F', 'L', 'A', 'C'),  /*!< FLAC extractor type */
     ESP_EXTRACTOR_TYPE_AMRNB = EXTRACTOR_4CC('A', 'M', 'R', 'N'),  /*!< AMR-NB extractor type */
     ESP_EXTRACTOR_TYPE_AMRWB = EXTRACTOR_4CC('A', 'M', 'R', 'W'),  /*!< AMR-WB extractor type */
+    ESP_EXTRACTOR_TYPE_MJPEG = EXTRACTOR_4CC('M', 'J', 'P', 'G'),  /*!< MJPEG stream extractor type */
     ESP_EXTRACTOR_TYPE_RAW   = EXTRACTOR_4CC('R', 'A', 'W', ' '),  /*!< Raw extractor type */
 } esp_extractor_type_t;
 
