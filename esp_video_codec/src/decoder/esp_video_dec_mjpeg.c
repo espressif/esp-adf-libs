@@ -1,7 +1,7 @@
 /**
  * ESPRESSIF MIT License
  *
- * Copyright (c) 2024 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
+ * Copyright (c) 2026 <ESPRESSIF SYSTEMS (SHANGHAI) CO., LTD>
  *
  * Permission is hereby granted for use on all ESPRESSIF SYSTEMS products, in which case,
  * it is free of charge, to any person obtaining a copy of this software and associated
@@ -130,6 +130,10 @@ static esp_vc_err_t hw_mjpeg_dec_decode(esp_video_dec_handle_t h, esp_video_dec_
         if (ret != ESP_VC_ERR_OK) {
             return ret;
         }
+    }
+    if (out_frame->size < dec->expect_out_size) {
+        out_frame->decoded_size = dec->expect_out_size;
+        return ESP_VC_ERR_BUF_NOT_ENOUGH;
     }
     ret = jpeg_decoder_process(dec->dec_handle, &dec->dec_cfg,
                                in_frame->data, in_frame->size,

@@ -120,7 +120,7 @@ esp_vc_err_t esp_video_enc_set_fps(esp_video_enc_handle_t handle, uint32_t fps)
 
 esp_vc_err_t esp_video_enc_set_gop(esp_video_enc_handle_t handle, uint32_t gop_frames)
 {
-    VIDEO_ENC_SIMPLE_SET(handle, ESP_VIDEO_ENC_SET_TYPE_FPS, gop_frames);
+    VIDEO_ENC_SIMPLE_SET(handle, ESP_VIDEO_ENC_SET_TYPE_GOP, gop_frames);
 }
 
 esp_vc_err_t esp_video_enc_set_resend_sps_pps(esp_video_enc_handle_t handle, uint32_t gop_num)

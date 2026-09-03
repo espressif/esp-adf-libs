@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.6
+
+### Features
+
+- Added `esp_video_dec_sw_parse()` to read JPEG/H264 codec, resolution, fps and frame type from bitstream (for output buffer sizing)
+- Added force IDR support for H264 encoder (`esp_video_enc_set_force_idr`)
+
+### Bug Fixes
+
+- Fixed `esp_video_enc_set_gop` incorrectly applying FPS instead of GOP
+
 ## v0.5.5
 
 ### Bug Fixes

@@ -28,6 +28,9 @@
 - **B-frame Handling**
   To process video with B-frame support, we added a `consumed` field in the input frame. This allows users to feed one input frame to get multiple output frames or input multiple frames to get a single output frame. Additionally, we support a unified flush behavior: users can set the `size` of an input frame to 0, prompting the encoder or decoder to flush as needed.
 
+- **Software Bitstream Parse**
+  `esp_video_dec_sw_parse()` reads codec, resolution, fps and frame type from a JPEG/H.264 bitstream so you can size and allocate the decode output buffer before opening the decoder.
+
 - **Cross-Platform Support**
   The user can register a PC codec and then debug the app code on the PC to accelerate development.
 

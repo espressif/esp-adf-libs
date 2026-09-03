@@ -72,7 +72,8 @@ static esp_vc_err_t hw_h264_get_caps(esp_video_enc_caps_t *caps)
     caps->set_caps = ESP_VIDEO_ENC_CAPS(ESP_VIDEO_ENC_SET_TYPE_BITRATE) |
                      ESP_VIDEO_ENC_CAPS(ESP_VIDEO_ENC_SET_TYPE_QP) |
                      ESP_VIDEO_ENC_CAPS(ESP_VIDEO_ENC_SET_TYPE_FPS) |
-                     ESP_VIDEO_ENC_CAPS(ESP_VIDEO_ENC_SET_TYPE_GOP);
+                     ESP_VIDEO_ENC_CAPS(ESP_VIDEO_ENC_SET_TYPE_GOP) |
+                     ESP_VIDEO_ENC_CAPS(ESP_VIDEO_ENC_SET_TYPE_FORCE_IDR);
     caps->typical_res.width = VIDEO_HW_ENC_H264_TYPICAL_WIDTH;
     caps->typical_res.height = VIDEO_HW_ENC_H264_TYPICAL_HEIGHT;
     caps->typical_fps = VIDEO_HW_ENC_H264_TYPICAL_FPS;
@@ -156,6 +157,12 @@ static esp_vc_err_t hw_h264_set(esp_video_enc_handle_t h, esp_video_enc_set_type
                 return ESP_VC_ERR_OK;
             }
             ret = esp_h264_enc_set_gop(enc->param_handle, (uint8_t) * (uint32_t *)data);
+            break;
+        case ESP_VIDEO_ENC_SET_TYPE_FORCE_IDR:
+            if (enc->enc_handle == NULL) {
+                return ESP_VC_ERR_OK;
+            }
+            ret = esp_h264_enc_force_idr(enc->param_handle);
             break;
         default:
             return ESP_VC_ERR_NOT_SUPPORTED;

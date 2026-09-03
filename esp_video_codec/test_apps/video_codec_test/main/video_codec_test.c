@@ -25,6 +25,7 @@
 
 #define TEST_PATTERN_IS_VERTICAL (false)
 #define TEST_PATTERN_BAR_COUNT   (8)
+#define TEST_FPS                 (10)
 
 #define CODEC_TYPE_NAME(is_hw)   (is_hw ? "HW" : "SW")
 #define MIN_RESOLUTION(a, b)     ((a.width * a.height > b.width * b.height) ? &b : &a)
@@ -117,7 +118,7 @@ static int video_encoder_test(test_codec_info_t *enc_info, esp_video_codec_resol
         .codec_cc = enc_info->desc.codec_cc,
         .resolution = *resolution,
         .in_fmt = enc_info->fmt,
-        .fps = 10,
+        .fps = TEST_FPS,
     };
     esp_video_enc_handle_t enc_handle = NULL;
     int ret = esp_video_enc_open(&enc_cfg, &enc_handle);
@@ -164,6 +165,33 @@ static int video_encoder_test(test_codec_info_t *enc_info, esp_video_codec_resol
     return 0;
 }
 
+static bool video_decoder_verify_sw_parse(esp_video_dec_in_frame_t *in_frame, esp_video_codec_type_t codec_type)
+{
+    const uint8_t expect_fps = TEST_FPS;
+    esp_video_dec_parsed_info_t parsed_info = {};
+    if (esp_video_dec_sw_parse(in_frame, &parsed_info) != ESP_VC_ERR_OK) {
+        ESP_LOGE(TAG, "Fail to sw parse frame");
+        return false;
+    }
+    if (parsed_info.codec_type != codec_type) {
+        ESP_LOGE(TAG, "SW parse codec mismatch expect %s got %s",
+                 esp_video_codec_get_codec_str(codec_type),
+                 esp_video_codec_get_codec_str(parsed_info.codec_type));
+        return false;
+    }
+    if (parsed_info.res.width != test_res.res.width || parsed_info.res.height != test_res.res.height) {
+        ESP_LOGE(TAG, "SW parse resolution mismatch expect %dx%d got %dx%d",
+                 (int)test_res.res.width, (int)test_res.res.height,
+                 (int)parsed_info.res.width, (int)parsed_info.res.height);
+        return false;
+    }
+    if (parsed_info.fps != 0 && parsed_info.fps != expect_fps) {
+        ESP_LOGE(TAG, "SW parse fps mismatch expect %d got %d", expect_fps, parsed_info.fps);
+        return false;
+    }
+    return true;
+}
+
 static int video_decoder_test_one_frame(test_codec_info_t *dec_info)
 {
     ESP_LOGI(TAG, "Decoder:%s-%s Format:%s",
@@ -203,6 +231,10 @@ static int video_decoder_test_one_frame(test_codec_info_t *dec_info)
         ESP_LOGE(TAG, "Decoded resolution wrong encoded: %dx%d decoded:%dx%d", (int)test_res.res.width,
                  (int)test_res.res.height, (int)frame_info.res.width,
                  (int)frame_info.res.height);
+        ret = -1;
+    }
+    if (video_decoder_verify_sw_parse(&in_frame, dec_info->desc.codec_type) == false) {
+        ret = -1;
     }
     esp_video_dec_close(dec_handle);
     return ret;
@@ -255,7 +287,7 @@ static int video_encoder_to_decoder_multiple_frame(test_codec_info_t *enc_info, 
             .codec_cc = enc_info->desc.codec_cc,
             .resolution = *resolution,
             .in_fmt = enc_info->fmt,
-            .fps = 10,
+            .fps = TEST_FPS,
         };
         int ret = esp_video_enc_open(&enc_cfg, &enc_handle);
         if (ret != ESP_VC_ERR_OK || enc_handle == NULL) {
@@ -584,7 +616,7 @@ static int single_mjpeg_encode_test(void)
 #else
         .in_fmt = ESP_VIDEO_CODEC_PIXEL_FMT_RGB888,
 #endif
-        .fps = 10,
+        .fps = TEST_FPS,
     };
     esp_video_enc_handle_t enc_handle = NULL;
     int ret = esp_video_enc_open(&enc_cfg, &enc_handle);
