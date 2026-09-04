@@ -7,6 +7,7 @@ set(COMPONENT_SRC
     "src/esp_video_codec_version.c"
     "src/video_codec_utils.c"
     "src/video_codec_reg.c"
+    "src/decoder/esp_video_dec_sw_parse.c"
 )
 
 set(COMPONENT_INCLUDE "include"

@@ -104,6 +104,17 @@ typedef struct {
 } esp_video_dec_caps_t;
 
 /**
+ * @brief  Parsed frame information from SW bitstream parse
+ */
+typedef struct {
+    esp_video_codec_type_t                codec_type;          /*!< Detected codec type */
+    esp_video_codec_frame_type_t          frame_type;          /*!< Frame type if known */
+    esp_video_codec_resolution_t          res;                 /*!< Frame resolution */
+    esp_video_codec_chroma_subsampling_t  chroma_subsampling;  /*!< Chroma subsampling if known */
+    uint8_t                               fps;                 /*!< Frame rate if known (0 if unknown) */
+} esp_video_dec_parsed_info_t;
+
+/**
  * @brief  Query video decoder capabilities
  *
  * @param[in]   query  Query setting
@@ -160,6 +171,23 @@ esp_vc_err_t esp_video_dec_get_frame_align(esp_video_dec_handle_t handle, uint8_
  */
 esp_vc_err_t esp_video_dec_process(esp_video_dec_handle_t handle, esp_video_dec_in_frame_t *in_frame,
                                    esp_video_dec_out_frame_t *out_frame);
+
+/**
+ * @brief  Software parse frame information from encoded bitstream
+ *
+ * @note  Pure function, no heap allocation. Iterates built-in parsers until one succeeds.
+ *        Built-in JPEG/H264 parsers are compiled in when related SW/HW codec is enabled in menuconfig.
+ *
+ * @param[in]   in_frame  Encoded input frame
+ * @param[out]  info      Parsed frame information
+ *
+ * @return
+ *       - ESP_VC_ERR_OK             Parse success
+ *       - ESP_VC_ERR_INVALID_ARG    Invalid argument
+ *       - ESP_VC_ERR_WRONG_DATA     No parser recognized the data
+ *       - ESP_VC_ERR_NOT_SUPPORTED  No parser available
+ */
+esp_vc_err_t esp_video_dec_sw_parse(const esp_video_dec_in_frame_t *in_frame, esp_video_dec_parsed_info_t *info);
 
 /**
  * @brief  Get video decoder frame information

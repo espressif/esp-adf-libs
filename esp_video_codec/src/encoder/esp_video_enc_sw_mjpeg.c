@@ -127,7 +127,7 @@ static esp_vc_err_t sw_mjpeg_open(esp_video_enc_cfg_t *cfg, esp_video_enc_handle
 static esp_vc_err_t sw_mjpeg_set(esp_video_enc_handle_t h, esp_video_enc_set_type_t type, void *data, uint32_t size)
 {
     sw_mjpeg_enc_t *enc = (sw_mjpeg_enc_t *)h;
-    if (enc->enc_handle && type != ESP_VIDEO_ENC_SET_TYPE_QUALITY) {
+    if (enc->enc_handle && type != ESP_VIDEO_ENC_SET_TYPE_QUALITY && type != ESP_VIDEO_ENC_SET_TYPE_FORCE_IDR) {
         return ESP_VC_ERR_INVALID_STATE;
     }
     switch (type) {
@@ -152,6 +152,8 @@ static esp_vc_err_t sw_mjpeg_set(esp_video_enc_handle_t h, esp_video_enc_set_typ
             jpeg_enc_set_quality(enc->enc_handle, *quality);
             break;
         }
+        case ESP_VIDEO_ENC_SET_TYPE_FORCE_IDR:
+            break;
         default:
             return ESP_VC_ERR_NOT_SUPPORTED;
     }

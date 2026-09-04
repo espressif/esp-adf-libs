@@ -129,6 +129,8 @@ static esp_vc_err_t hw_mjpeg_set(esp_video_enc_handle_t h, esp_video_enc_set_typ
             enc->jpeg_enc_cfg.image_quality = *quality;
             return ESP_VC_ERR_OK;
         }
+        case ESP_VIDEO_ENC_SET_TYPE_FORCE_IDR:
+            return ESP_VC_ERR_OK;
         default:
             break;
     }
