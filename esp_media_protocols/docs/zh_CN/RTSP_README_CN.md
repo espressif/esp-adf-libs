@@ -61,7 +61,7 @@ Real-Time Streaming Protocol，实现音视频流传输控制。
 
 # 应用示例
 
-以下是一个应用示例 [RTSP server/client](https://github.com/espressif/esp-adf/tree/master/examples/protocols/esp-rtsp)
+以下是一个应用示例 [RTSP server/client](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/protocols/esp-rtsp)
 
 # 常见问题解答
 

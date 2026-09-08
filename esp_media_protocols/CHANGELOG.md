@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.0.1
+
+### Features
+
+- Added SDES-SRTP support for SIP (`ESP_RTC_SRTP_OFF` / `PREFER` / `REQUIRED`)
+- Added `esp_rtc_is_srtp_active()` and `esp_rtc_get_reject_reason()` for SRTP session query
+
+### Bug Fixes
+
+- Fixed RTP timestamp for OPUS
+- Fixed crashes when RTSP server, pusher, or puller exited
+- Fixed PTS calculation error for AAC in RTSP
+- Fixed incorrect H264 SDP that caused the server to deny RTSP push
+- Fixed RTSP keep-alive retrying only once
+
 ## v1.0.0
 
 ### Features

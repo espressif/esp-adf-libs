@@ -9,6 +9,12 @@ Session Initiation Protocol implementation for audio and video communication ove
 - DTMF support (RFC2833)
 - SSL/TLS encryption
 - Custom SIP headers
+- Configurable domain, TCP/TLS keep-alive, and transport timeouts
+- SIP MESSAGE and re-INVITE
+- Custom SDP RTP payload type and RTP frame size
+- RFC 2435 JPEG over RTP
+- Raw SIP header access
+- SDES-SRTP negotiation
 
 # Use Cases
 
@@ -40,6 +46,18 @@ Session Initiation Protocol implementation for audio and video communication ove
 |   CANCEL  |     Y     |                -               |
 |    BYE    |     Y     |                -               |
 |    ACK    |     Y     |                -               |
+|  MESSAGE  |     Y     |                -               |
+|   NOTIFY  |     Y     | Response only                   |
+
+# SDES-SRTP
+
+| Mode | Behavior |
+|------|----------|
+| `ESP_RTC_SRTP_OFF` | Disable SRTP |
+| `ESP_RTC_SRTP_PREFER` | Prefer SRTP and allow fallback to RTP |
+| `ESP_RTC_SRTP_REQUIRED` | Require SRTP and reject cleartext RTP |
+
+Use `esp_rtc_is_srtp_active()` to query the negotiated media protection and `esp_rtc_get_reject_reason()` to obtain an SRTP-related rejection reason.
 
 # Performance
 
@@ -60,8 +78,8 @@ Note:
 
 # Best Practice
 
-- Here is an example of using [SIP audio](https://github.com/espressif/esp-adf/tree/master/examples/protocols/voip)
-- Here is an example of using [SIP audio/video](https://github.com/espressif/esp-adf/tree/master/examples/protocols/esp-rtc)
+- Here is an example of using [SIP audio](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/protocols/voip)
+- Here is an example of using [SIP audio/video](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/protocols/esp-rtc)
 
 # FAQ
 

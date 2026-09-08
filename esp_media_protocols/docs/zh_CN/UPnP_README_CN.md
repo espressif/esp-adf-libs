@@ -13,6 +13,7 @@ Universal Plug and Play，实现媒体共享和设备发现，支持 DLNA 规范
 - 支持媒体服务器/渲染器/控制器
 
 # 典型应用
+
 - 媒体服务器与 NAS
 - 智能电视与流媒体设备
 - 家庭自动化系统
@@ -37,7 +38,7 @@ Universal Plug and Play，实现媒体共享和设备发现，支持 DLNA 规范
 
 # 应用示例
 
-以下是一个应用示例 [UPnP device discovery and interoperate](https://github.com/espressif/esp-adf/tree/master/examples/advanced_examples/dlna)
+以下是一个应用示例 [UPnP device discovery and interoperate](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/advanced_examples/dlna)
 
 # 常见问题解答
 

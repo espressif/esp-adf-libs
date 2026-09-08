@@ -39,7 +39,7 @@ Real-Time Messaging Protocol，实现与平台或自建服务器的直播流应�
 
 ## 并发连接
 
-服务器模式支持6个客户端的并发连接
+服务器最大客户端数量由 `max_clients` 配置
 
 ## 资源使用
 
@@ -53,7 +53,7 @@ Real-Time Messaging Protocol，实现与平台或自建服务器的直播流应�
 
 # 应用示例
 
-以下是一个应用示例 [RTMP streaming application](https://github.com/espressif/esp-adf/tree/master/examples/protocols/rtmp)
+以下是一个应用示例 [RTMP streaming application](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/protocols/rtmp)
 
 # 常见问题解答
 

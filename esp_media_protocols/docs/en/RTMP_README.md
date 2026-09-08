@@ -39,7 +39,7 @@ Tested with the following system configuration:
 
 ## Concurrent Connections
 
-The server mode supports concurrent connections of 6 clients
+The maximum number of server clients is configured by `max_clients`
 
 ## Resource Utilization
 
@@ -53,7 +53,7 @@ Note:
 
 # Best Practice
 
-Here is an example of using [RTMP streaming application](https://github.com/espressif/esp-adf/tree/master/examples/protocols/rtmp)
+Here is an example of using [RTMP streaming application](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/protocols/rtmp)
 
 # FAQ
 

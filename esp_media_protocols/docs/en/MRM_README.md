@@ -37,7 +37,7 @@ Note:
 
 # Best Practice
 
-Here is an example of using [Multi-Room Music](https://github.com/espressif/esp-adf/tree/master/examples/advanced_examples/multi-room)
+Here is an example of using [Multi-Room Music](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/advanced_examples/multi-room)
 
 # FAQ
 

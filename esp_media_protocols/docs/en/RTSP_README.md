@@ -61,7 +61,7 @@ Note:
 
 # Best Practice
 
-Here is an example of using [RTSP server/client](https://github.com/espressif/esp-adf/tree/master/examples/protocols/esp-rtsp)
+Here is an example of using [RTSP server/client](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/protocols/esp-rtsp)
 
 # FAQ
 

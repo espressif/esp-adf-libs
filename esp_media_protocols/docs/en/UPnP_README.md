@@ -38,7 +38,7 @@ Note:
 
 # Best Practice
 
-Here is an example of using [UPnP device discovery and interoperate](https://github.com/espressif/esp-adf/tree/master/examples/advanced_examples/dlna)
+Here is an example of using [UPnP device discovery and interoperate](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/advanced_examples/dlna)
 
 # FAQ
 

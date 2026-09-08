@@ -35,6 +35,9 @@ extern "C" {
  *     - Support UDP, TCP, TLS transport
  *     - Support audio codecs: G711A, G711U, OPUS
  *     - Support video codecs: MJPEG, H264
+ *     - Support SIP MESSAGE and re-INVITE
+ *     - Support RFC2435 JPEG over RTP
+ *     - Support SDES-SRTP
  *     - Support md5 digest authentication
  *     - Support Freeswitch and FreePBX, etc
  *
@@ -46,8 +49,7 @@ extern "C" {
  *     - Extent API `esp_rtc_send_dtmf` to customized send DTMF duration and volume
  *     - Fix SIP invite response not contain SDP, if invite received multiple times
  *     - Dynamic allocate buffer to hold and parse UPNP XML data (support big XML)
- * 
- *  Release Notes:
+ *
  *     v1.3.0:
  *     - Added AAC support for RTSP
  *     - Added SPS-PPS parsing for H264
@@ -59,14 +61,52 @@ extern "C" {
  *     - Added OPUS support
  *     - Added fixed port support for SIP (UDP only)
  *     - Added lock and protect code to avoid timing issues
- * 
+ *
  *     - Fixed build issues
  *     - Fixed RTSP server setup not responded
  *     - Fixed PTS calc not correct
  *     - Fixed RTP marker conflict
  *     - Fixed bad option free cause double free
+ *
+ *     v1.4.0:
+ *     - Added domain for a single server divided into multiple domains
+ *     - Added TCP/TLS keep-alive mechanism
+ *     - Added configurable read/write and connect timeouts
+ *     - Added response handling for NOTIFY messages
+ *
+ *     - Removed authentication headers from unwanted methods
+ *     - Fixed missing expire handling in Contact and failure to reset after REGISTER OK
+ *     - Removed Expires header from unwanted methods
+ *     - Removed retry send logic for TLS/TCP
+ *     - Fixed incorrect SIP message parsing when peer flushes input over TCP/TLS
+ *     - Improved safety of `strcasecmp` to prevent NULL pointer crashes
+ *     - Refined TLS error log output
+ *     - Fixed incorrect ACK request sending
+ *     - Fixed incorrect handling of `200 OK` responses after a CANCEL
+ *
+ *     v1.5.0:
+ *     - Added support for SIP MESSAGE method
+ *     - Added support for re-INVITE
+ *     - Added support for custom SDP RTP payload type
+ *     - Added option to suspend refresh register during a call
+ *     - Added support for configuring private header at init for the first message
+ *     - Added register refresh keepalive event
+ *     - Added support for RFC2435 JPEG over RTP assemble and parse
+ *     - Added support for configurable RTP frame size
+ *     - Added support for reading raw SIP headers for custom parsing
+ *
+ *     - Fixed refresh register reusing previous `call_id`
+ *     - Fixed SDP negotiation failure when only video is present
+ *     - Fixed crash caused by race condition when stopping RTP
+ *     - Fixed `use_public_addr` always using the default route
+ *     - Fixed the abnormal organization of request-URI, branch, and from tag in special cases
+ *
+ *     v1.6.0:
+ *     - Added SDES-SRTP support for SIP
+ *
+ *     - Fixed RTP timestamp for OPUS
  */
-#define ESP_RTC_VERSION "1.3.0"
+#define ESP_RTC_VERSION "1.6.0"
 
 #ifdef __cplusplus
 }
