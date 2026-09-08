@@ -15,7 +15,8 @@ list(APPEND COMPONENT_ADD_INCLUDEDIRS ./esp_audio/include
                             ./esp_new_jpeg/include
                             ./media_lib_sal/include
                             ./media_lib_sal/include/port
-                            ./esp_muxer/include)
+                            ./esp_muxer/include
+                            ./esp_muxer/include/impl)
 
 if (CONFIG_MEDIA_PROTOCOL_LIB_ENABLE)
     list(APPEND COMPONENT_ADD_INCLUDEDIRS  ./esp_media_protocols/include)
