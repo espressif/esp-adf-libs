@@ -27,6 +27,8 @@ Session Initiation Protocol implementation for audio and video communication ove
   - DTMF support (RFC2833)
   - SSL/TLS encryption
   - Custom SIP headers
+  - SIP MESSAGE and re-INVITE
+  - SDES-SRTP negotiation
 - **Use Cases:**
   - IP phones and VoIP applications
   - Video conferencing systems
@@ -126,5 +128,6 @@ The following table shows the support of ESP_MEDIA_PROTOCOLS for Espressif SoCs.
 |ESP32-C3     |     &#10004;     |
 |ESP32-C5     |     &#10004;     |
 |ESP32-C6     |     &#10004;     |
+|ESP32-C61    |     &#10004;     |
 |ESP32-P4     |     &#10004;     |
 |ESP32-H4     |     &#10004;     |

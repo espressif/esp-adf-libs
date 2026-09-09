@@ -27,6 +27,8 @@ Session Initiation Protocol，基于 IP 网络实现音视频通话。
   - DTMF 支持（RFC2833）
   - SSL/TLS 加密
   - 支持自定义 SIP 头
+  - 支持 SIP MESSAGE 和 re-INVITE
+  - 支持 SDES-SRTP 协商
 - **典型应用:**
   - IP 电话与 VoIP 应用
   - 视频会议系统
@@ -126,5 +128,6 @@ Universal Plug and Play，实现媒体共享和设备发现，支持 DLNA 规范
 |ESP32-C3    |     &#10004;     |
 |ESP32-C5    |     &#10004;     |
 |ESP32-C6    |     &#10004;     |
+|ESP32-C61   |     &#10004;     |
 |ESP32-P4    |     &#10004;     |
 |ESP32-H4    |     &#10004;     |

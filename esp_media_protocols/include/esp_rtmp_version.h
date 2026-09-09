@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#define ESP_RTMP_VERION "1.3.1"
+#define ESP_RTMP_VERION "1.3.2"
 
 /**
  *  Features:
@@ -55,7 +55,7 @@ extern "C" {
  *     - Support url parser to get ip address, set default port if not provided
  *     - Fix H264 SPS-PPS parameter parse wrong
  *     - Fix racing condition when receive instance is freed after use
- * 
+ *
  *     v1.3.0:
  *     - Add customized command exchange between pusher and puller when using `esp_rtmp_server`
  *     - RTMP source add support for callback media data and metadata directly without mux to FLV
@@ -66,7 +66,10 @@ extern "C" {
  *     v1.3.1:
  *     - Support for standby while keep connection
  *     - Support quick wakeup from standby by notify new connect request for RTMP server
- *   
+ *
+ *     v1.3.2:
+ *     - Fix UAF when receive thread frees reader lock
+ *
  *  Notes:
  *     - MJPEG video codec is supported in private format (use FLV video codecid 1)
  *       Users can refer to README.md under example folder to check the technical details

@@ -38,12 +38,16 @@ extern "C" {
  *     - Support Public method : OPTIONS, DESCRIBE, SETUP, PLAY, TEARDOWN
  *     - Support EasyDarwin and other common RTSP server
  *     - Support VLC, Potplayer, FFMPEG, etc
+ *    
  *
- *  To be implemented:
- *     - To support AAC
- *     - To support digest authentication
+ *  Version: 1.2.0:
+ *     - Fixed some crash when RTSP server, pusher, puller exited
+ *     - Fixed PTS calc error for AAC
+ *     - Added fast quit logic use socket level shutdown when stop
+ *     - Fixed SDP wrong for H264 cause denied by server when push
+ *     - Fixed keep alive setting retry only once
  */
-#define ESP_RTSP_VERSION "1.1.0"
+#define ESP_RTSP_VERSION "1.2.0"
 
 #ifdef __cplusplus
 }

@@ -73,6 +73,26 @@ typedef enum {
     ESP_RTC_EVENT_KEEPALIVE,
 } esp_rtc_event_t;
 
+/**
+ * @brief SRTP negotiation mode
+ */
+typedef enum
+{
+    ESP_RTC_SRTP_OFF = 0,  /*!< RTP/AVP only, no a=crypto */
+    ESP_RTC_SRTP_PREFER,   /*!< Prefer SDES-SRTP; fall back to cleartext RTP if negotiation fails */
+    ESP_RTC_SRTP_REQUIRED, /*!< Require SDES-SRTP; never send cleartext RTP */
+} esp_rtc_srtp_mode_t;
+
+/**
+ * @brief Call reject reason (valid on ESP_RTC_EVENT_ERROR)
+ */
+typedef enum
+{
+    ESP_RTC_REJECT_NONE = 0,
+    ESP_RTC_REJECT_SRTP_REQUIRED,  /*!< Peer has no usable crypto, or local SRTP setup failed */
+    ESP_RTC_REJECT_SRTP_DOWNGRADE, /*!< re-INVITE removed or weakened crypto */
+} esp_rtc_reject_reason_t;
+
 typedef int (*esp_rtc_event_handle)(esp_rtc_event_t event, void *ctx);
 typedef int (*__esp_rtc_send_audio)(unsigned char *data, int len, void *ctx);
 typedef int (*__esp_rtc_receive_audio)(unsigned char *data, int len, void *ctx);
@@ -143,6 +163,7 @@ typedef struct {
     const char                  *user_agent;         /*!< Set user agent field (defaults is "ESP32 SIP/2.0") */
     int                         fixed_local_port;    /*!< Set fixed local port (defaults is 0) */
     bool                        p2p_mode;            /*!< When work in P2P mode it will skip register step and do invite or accept invite directly from peer */
+    esp_rtc_srtp_mode_t         srtp_mode;           /*!< SRTP mode (default OFF) */
     const char                  *domain;             /*!< Set domain(optional), this domain constructs the host of SIP URIs, supports a single server divided into multiple domains */
     uint8_t                     video_payload_type;  /*!< SDP video payload type */
     const char                  *private_header;     /*!< Set private header since the initial stage */
@@ -384,6 +405,28 @@ int esp_rtc_send_message(esp_rtc_handle_t esp_rtc, const esp_rtc_msg_data_t *msg
  *     - ESP_ERR_INVALID_STATE if no message is pending
  */
 int esp_rtc_get_message(esp_rtc_handle_t esp_rtc, esp_rtc_msg_data_t *msg_data);
+
+/**
+ * @brief      Query whether the current session negotiated SRTP
+ *
+ * @note       Call after `ESP_RTC_EVENT_CALL_ANSWERED` or `ESP_RTC_EVENT_AUDIO_SESSION_BEGIN`.
+ *
+ * @param[in]  esp_rtc  The rtc handle
+ *
+ * @return     true if SRTP protect/unprotect is active, false otherwise
+ */
+bool esp_rtc_is_srtp_active(esp_rtc_handle_t esp_rtc);
+
+/**
+ * @brief      Get the last call reject reason
+ *
+ * @note       Call from the RTC event callback on `ESP_RTC_EVENT_ERROR`.
+ *
+ * @param[in]  esp_rtc  The rtc handle
+ *
+ * @return     Reject reason, or `ESP_RTC_REJECT_NONE`
+ */
+esp_rtc_reject_reason_t esp_rtc_get_reject_reason(esp_rtc_handle_t esp_rtc);
 
 #ifdef __cplusplus
 }

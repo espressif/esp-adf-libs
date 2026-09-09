@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.0.1"
 description: Espressif media protocols
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_media_protocols
 repository: https://github.com/espressif/esp-adf-libs.git
@@ -8,6 +8,7 @@ dependencies:
   idf:
     version: '>=5.0'
   espressif/media_lib_sal: "^1.0"
+  espressif/esp_libsrtp: "^1.0.0"
 
 targets:
   - esp32
@@ -25,6 +26,7 @@ targets:
 tags:
   - multimedia
   - rtp
+  - srtp
   - sdp
   - sip
   - rtsp

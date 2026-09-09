@@ -37,7 +37,7 @@ Multi-Room Music，实现多设备音频同步播放。
 
 # 应用示例
 
-以下是一个应用示例 [Multi-Room Music](https://github.com/espressif/esp-adf/tree/master/examples/advanced_examples/multi-room)
+以下是一个应用示例 [Multi-Room Music](https://github.com/espressif/esp-adf/tree/release/v2.x/examples/advanced_examples/multi-room)
 
 # 常见问题解答
 
