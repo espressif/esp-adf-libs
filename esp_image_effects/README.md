@@ -60,9 +60,9 @@ For more details on API usage, please refer to the source files in `test_app/mai
 | ESP32-C5 | √ |  x  |
 | ESP32-C61 | √ |  x  |
 | ESP32-C6 | √ |  x  |
-| ESP32-P4 | √ |  x  |
+| ESP32-P4 | √ | √ |
 | ESP32-H4 | √ |  x  |
-| ESP32-S31 | √ |  x  |
+| ESP32-S31 | √ | √ |
 
 # FAQ
 
