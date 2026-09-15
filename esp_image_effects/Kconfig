@@ -1,0 +1,10 @@
+menu "Image Effects Configuration"
+    config ESP_IMAGE_EFFECTS_S31_USE_ASM
+        bool "Use ESP32-S31 assembly-optimized image effects libraries"
+        depends on IDF_TARGET_ESP32S31
+        default n
+        help
+            Select the assembly-optimized libraries from the esp32s31
+            directory. Disable this option to use the portable C
+            implementation from the esp32s31_esp_c directory.
+endmenu

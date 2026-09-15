@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.0
+
+### Features
+
+- Added C and PIE assembly-optimized library variants for **ESP32-S31**.
+- Added prebuilt library selection for different **ESP32-P4** chip revisions.
+- Enabled PIE acceleration for **ESP32-S31** and **ESP32-P4**.
+
 ## v1.1.0
 
 ### Features
