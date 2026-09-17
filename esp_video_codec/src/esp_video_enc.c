@@ -23,6 +23,7 @@
  */
 
 #include <stdlib.h>
+#include <sdkconfig.h>
 #include "esp_video_enc.h"
 #include "esp_video_enc_reg.h"
 #include "video_codec_utils.h"
@@ -161,3 +162,10 @@ esp_vc_err_t esp_video_enc_close(esp_video_enc_handle_t handle)
     esp_video_codec_free(enc);
     return ret;
 }
+
+#ifndef CONFIG_VIDEO_ENCODER_HW_H264_SUPPORT
+void esp_video_enc_hw_dual_with_sync(bool enable)
+{
+    (void)enable;
+}
+#endif

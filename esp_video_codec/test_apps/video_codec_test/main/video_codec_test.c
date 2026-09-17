@@ -18,8 +18,13 @@
 #include "esp_video_enc_default.h"
 #include "esp_video_dec_default.h"
 #include "esp_video_codec_version.h"
+#include "esp_video_enc_h264.h"
 #include "unity.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "sdkconfig.h"
 
 #define TAG "VIDEO_CODEC_TEST"
 
@@ -779,6 +784,284 @@ TEST_CASE("Single Encoder and Decode Test", "VIDEO_CODEC_TEST")
     } while (0);
     release_test_res();
 }
+
+#if CONFIG_VIDEO_ENCODER_HW_H264_SUPPORT && CONFIG_VIDEO_ENCODER_HW_H264_DUAL_SUPPORT
+#define DUAL_ENC_WIDTH              320
+#define DUAL_ENC_HEIGHT             240
+#define DUAL_ENC_FPS                TEST_FPS
+#define DUAL_ENC_FRAME_COUNT        3
+#define DUAL_ENC_TASK_STACK         8192
+#define DUAL_ENC_TASK_PRIO          5
+#define DUAL_ENC_PEER_OPEN_DELAY_MS 100
+#define DUAL_ENC_OPEN_PENDING_MS    30
+
+typedef struct {
+    const char            *name;
+    esp_video_enc_handle_t handle;
+    uint8_t               *raw;
+    uint32_t               raw_size;
+    uint8_t               *encoded;
+    uint32_t               encoded_size;
+    uint32_t               last_encoded_size;
+    int                    ok_frames;
+    int                    ret;
+    bool                   do_open_close;
+    uint32_t               gop;
+    uint32_t               bitrate;
+    SemaphoreHandle_t      done;
+} dual_enc_ctx_t;
+
+static int dual_enc_alloc_buffers(esp_video_enc_handle_t handle, dual_enc_ctx_t *ctx, esp_video_codec_resolution_t *res)
+{
+    uint8_t in_align = 0;
+    uint8_t out_align = 0;
+    if (esp_video_enc_get_frame_align(handle, &in_align, &out_align) != ESP_VC_ERR_OK) {
+        return -1;
+    }
+    ctx->raw_size = esp_video_codec_get_image_size(ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY, res);
+    ctx->raw = esp_video_codec_align_alloc(in_align, ctx->raw_size, &ctx->raw_size);
+    if (ctx->raw == NULL) {
+        return -1;
+    }
+    ctx->encoded_size = ctx->raw_size / 2;
+    ctx->encoded = esp_video_codec_align_alloc(out_align, ctx->encoded_size, &ctx->encoded_size);
+    if (ctx->encoded == NULL) {
+        esp_video_codec_free(ctx->raw);
+        ctx->raw = NULL;
+        return -1;
+    }
+    memset(ctx->raw, 0x80, ctx->raw_size);
+    return 0;
+}
+
+static void dual_enc_free_buffers(dual_enc_ctx_t *ctx)
+{
+    if (ctx->raw) {
+        esp_video_codec_free(ctx->raw);
+        ctx->raw = NULL;
+    }
+    if (ctx->encoded) {
+        esp_video_codec_free(ctx->encoded);
+        ctx->encoded = NULL;
+    }
+}
+
+static int dual_enc_process_frames(dual_enc_ctx_t *ctx)
+{
+    uint32_t pts = 0;
+    uint32_t delta_pts = 1000 / DUAL_ENC_FPS;
+    for (int i = 0; i < DUAL_ENC_FRAME_COUNT; i++) {
+        esp_video_enc_in_frame_t in_frame = {
+            .pts = pts,
+            .data = ctx->raw,
+            .size = ctx->raw_size,
+        };
+        esp_video_enc_out_frame_t out_frame = {
+            .data = ctx->encoded,
+            .size = ctx->encoded_size,
+        };
+        ctx->ret = esp_video_enc_process(ctx->handle, &in_frame, &out_frame);
+        if (ctx->ret != ESP_VC_ERR_OK || out_frame.encoded_size == 0) {
+            if (ctx->ret == ESP_VC_ERR_OK) {
+                ctx->ret = ESP_VC_ERR_FAIL;
+            }
+            ESP_LOGE(TAG, "%s fail to encode frame %d ret %d size %d",
+                     ctx->name, i, ctx->ret, (int)out_frame.encoded_size);
+            return -1;
+        }
+        ctx->last_encoded_size = out_frame.encoded_size;
+        ctx->ok_frames++;
+        ESP_LOGI(TAG, "%s encoded %d size %d", ctx->name, i, (int)out_frame.encoded_size);
+        pts += delta_pts;
+    }
+    return 0;
+}
+
+static void dual_enc_task(void *arg)
+{
+    dual_enc_ctx_t *ctx = (dual_enc_ctx_t *)arg;
+    esp_video_codec_resolution_t res = {
+        .width = DUAL_ENC_WIDTH,
+        .height = DUAL_ENC_HEIGHT,
+    };
+    do {
+        if (ctx->do_open_close) {
+            /* enc0 opens first and should stay pending until enc1 opens. */
+            if (strcmp(ctx->name, "enc1") == 0) {
+                vTaskDelay(pdMS_TO_TICKS(DUAL_ENC_PEER_OPEN_DELAY_MS));
+            }
+            esp_video_enc_cfg_t enc_cfg = {
+                .codec_type = ESP_VIDEO_CODEC_TYPE_H264,
+                .codec_cc = ESP_VIDEO_ENC_HW_H264_TAG,
+                .resolution = res,
+                .in_fmt = ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY,
+                .fps = DUAL_ENC_FPS,
+            };
+            ctx->ret = esp_video_enc_open(&enc_cfg, &ctx->handle);
+            if (ctx->ret != ESP_VC_ERR_OK || ctx->handle == NULL) {
+                ESP_LOGE(TAG, "%s fail to open encoder", ctx->name);
+                break;
+            }
+            esp_video_enc_set_bitrate(ctx->handle, ctx->bitrate);
+            esp_video_enc_set_gop(ctx->handle, ctx->gop);
+            if (dual_enc_alloc_buffers(ctx->handle, ctx, &res) != 0) {
+                ctx->ret = ESP_VC_ERR_NO_MEMORY;
+                ESP_LOGE(TAG, "%s fail to alloc buffers", ctx->name);
+                break;
+            }
+        }
+        dual_enc_process_frames(ctx);
+    } while (0);
+
+    if (ctx->do_open_close && ctx->handle) {
+        esp_video_enc_close(ctx->handle);
+        ctx->handle = NULL;
+    }
+    xSemaphoreGive(ctx->done);
+    vTaskDelete(NULL);
+}
+
+static void dual_enc_wait_tasks_done(SemaphoreHandle_t done0, SemaphoreHandle_t done1)
+{
+    xSemaphoreTake(done0, portMAX_DELAY);
+    xSemaphoreTake(done1, portMAX_DELAY);
+    /* Idle task frees TCB/stack after vTaskDelete; wait so heap check is stable. */
+    vTaskDelay(pdMS_TO_TICKS(50));
+}
+
+static int dual_enc_open_one(dual_enc_ctx_t *ctx, esp_video_codec_resolution_t *res)
+{
+    esp_video_enc_cfg_t enc_cfg = {
+        .codec_type = ESP_VIDEO_CODEC_TYPE_H264,
+        .codec_cc = ESP_VIDEO_ENC_HW_H264_TAG,
+        .resolution = *res,
+        .in_fmt = ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY,
+        .fps = DUAL_ENC_FPS,
+    };
+    int ret = esp_video_enc_open(&enc_cfg, &ctx->handle);
+    if (ret != ESP_VC_ERR_OK || ctx->handle == NULL) {
+        return -1;
+    }
+    esp_video_enc_set_bitrate(ctx->handle, ctx->bitrate);
+    esp_video_enc_set_gop(ctx->handle, ctx->gop);
+    if (dual_enc_alloc_buffers(ctx->handle, ctx, res) != 0) {
+        esp_video_enc_close(ctx->handle);
+        ctx->handle = NULL;
+        return -1;
+    }
+    return 0;
+}
+
+TEST_CASE("HW H264 dual encode open both then process", "VIDEO_CODEC_TEST")
+{
+    int heap_size = esp_get_free_heap_size();
+    TEST_ESP_OK(esp_video_enc_register_default());
+    esp_video_enc_hw_dual_with_sync(false);
+
+    esp_video_codec_resolution_t res = {
+        .width = DUAL_ENC_WIDTH,
+        .height = DUAL_ENC_HEIGHT,
+    };
+    uint32_t bitrate = res.width * res.height * DUAL_ENC_FPS / 10;
+    uint32_t gop = DUAL_ENC_FPS * 2;
+    SemaphoreHandle_t done0 = xSemaphoreCreateBinary();
+    SemaphoreHandle_t done1 = xSemaphoreCreateBinary();
+    TEST_ASSERT_NOT_NULL(done0);
+    TEST_ASSERT_NOT_NULL(done1);
+
+    dual_enc_ctx_t ctx0 = {
+        .name = "enc0",
+        .gop = gop,
+        .bitrate = bitrate,
+        .done = done0,
+    };
+    dual_enc_ctx_t ctx1 = {
+        .name = "enc1",
+        .gop = gop,
+        .bitrate = bitrate,
+        .done = done1,
+    };
+
+    TEST_ASSERT_EQUAL(0, dual_enc_open_one(&ctx0, &res));
+    TEST_ASSERT_EQUAL(0, dual_enc_open_one(&ctx1, &res));
+    TEST_ASSERT_EQUAL(pdPASS, xTaskCreate(dual_enc_task, "enc0", DUAL_ENC_TASK_STACK, &ctx0, DUAL_ENC_TASK_PRIO, NULL));
+    TEST_ASSERT_EQUAL(pdPASS, xTaskCreate(dual_enc_task, "enc1", DUAL_ENC_TASK_STACK, &ctx1, DUAL_ENC_TASK_PRIO, NULL));
+    dual_enc_wait_tasks_done(done0, done1);
+
+    TEST_ASSERT_EQUAL(ESP_VC_ERR_OK, ctx0.ret);
+    TEST_ASSERT_EQUAL(ESP_VC_ERR_OK, ctx1.ret);
+    TEST_ASSERT_EQUAL(DUAL_ENC_FRAME_COUNT, ctx0.ok_frames);
+    TEST_ASSERT_EQUAL(DUAL_ENC_FRAME_COUNT, ctx1.ok_frames);
+    TEST_ASSERT_GREATER_THAN(0, ctx0.last_encoded_size);
+    TEST_ASSERT_GREATER_THAN(0, ctx1.last_encoded_size);
+
+    if (ctx0.handle) {
+        esp_video_enc_close(ctx0.handle);
+    }
+    if (ctx1.handle) {
+        esp_video_enc_close(ctx1.handle);
+    }
+    dual_enc_free_buffers(&ctx0);
+    dual_enc_free_buffers(&ctx1);
+    vSemaphoreDelete(done0);
+    vSemaphoreDelete(done1);
+    esp_video_enc_hw_dual_with_sync(false);
+    esp_video_enc_unregister_default();
+    TEST_ASSERT_EQUAL_INT(heap_size, (int)esp_get_free_heap_size());
+}
+
+TEST_CASE("HW H264 dual encode with sync wait open", "VIDEO_CODEC_TEST")
+{
+    int heap_size = esp_get_free_heap_size();
+    TEST_ESP_OK(esp_video_enc_register_default());
+    esp_video_enc_hw_dual_with_sync(true);
+
+    uint32_t bitrate = DUAL_ENC_WIDTH * DUAL_ENC_HEIGHT * DUAL_ENC_FPS / 10;
+    uint32_t gop = DUAL_ENC_FPS * 2;
+    SemaphoreHandle_t done0 = xSemaphoreCreateBinary();
+    SemaphoreHandle_t done1 = xSemaphoreCreateBinary();
+    TEST_ASSERT_NOT_NULL(done0);
+    TEST_ASSERT_NOT_NULL(done1);
+
+    dual_enc_ctx_t ctx0 = {
+        .name = "enc0",
+        .do_open_close = true,
+        .gop = gop,
+        .bitrate = bitrate,
+        .done = done0,
+    };
+    dual_enc_ctx_t ctx1 = {
+        .name = "enc1",
+        .do_open_close = true,
+        .gop = gop,
+        .bitrate = bitrate,
+        .done = done1,
+    };
+
+    TEST_ASSERT_EQUAL(pdPASS, xTaskCreate(dual_enc_task, "enc0", DUAL_ENC_TASK_STACK, &ctx0, DUAL_ENC_TASK_PRIO, NULL));
+    TEST_ASSERT_EQUAL(pdPASS, xTaskCreate(dual_enc_task, "enc1", DUAL_ENC_TASK_STACK, &ctx1, DUAL_ENC_TASK_PRIO, NULL));
+    vTaskDelay(pdMS_TO_TICKS(DUAL_ENC_OPEN_PENDING_MS));
+    TEST_ASSERT_NULL(ctx0.handle);
+    TEST_ASSERT_EQUAL(0, ctx0.ok_frames);
+    dual_enc_wait_tasks_done(done0, done1);
+
+    TEST_ASSERT_EQUAL(ESP_VC_ERR_OK, ctx0.ret);
+    TEST_ASSERT_EQUAL(ESP_VC_ERR_OK, ctx1.ret);
+    TEST_ASSERT_EQUAL(DUAL_ENC_FRAME_COUNT, ctx0.ok_frames);
+    TEST_ASSERT_EQUAL(DUAL_ENC_FRAME_COUNT, ctx1.ok_frames);
+    TEST_ASSERT_GREATER_THAN(0, ctx0.last_encoded_size);
+    TEST_ASSERT_GREATER_THAN(0, ctx1.last_encoded_size);
+
+    dual_enc_free_buffers(&ctx0);
+    dual_enc_free_buffers(&ctx1);
+    vSemaphoreDelete(done0);
+    vSemaphoreDelete(done1);
+    esp_video_enc_hw_dual_with_sync(false);
+    esp_video_enc_unregister_default();
+    TEST_ASSERT_EQUAL_INT(heap_size, (int)esp_get_free_heap_size());
+}
+#endif
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Start test for esp_video_codec version %s", esp_video_codec_get_version());

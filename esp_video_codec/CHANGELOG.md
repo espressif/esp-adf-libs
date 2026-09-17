@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.7
+
+### Features
+
+- Added hardware H264 dual-encode wrapper so two `esp_video_enc` instances can share one dual encoder
+- Added `esp_video_enc_hw_dual_with_sync()` to wait for the second encoder open before the first process
+- Added `CONFIG_VIDEO_ENCODER_HW_H264_DUAL_SUPPORT` (default on) to enable or disable dual-encode wrapper
+
 ## v0.5.6
 
 ### Features

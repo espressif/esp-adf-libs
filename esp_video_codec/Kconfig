@@ -35,6 +35,14 @@ menu "Video Codec Configuration"
             help
                 Enable this option to register hardware H264 encoder
 
+        config VIDEO_ENCODER_HW_H264_DUAL_SUPPORT
+            bool "Support HW H264 Dual Encoder"
+            default y
+            depends on VIDEO_ENCODER_HW_H264_SUPPORT
+            help
+                Wrap two esp_video_enc instances onto one hardware H264 dual encoder.
+                Disable this option to use the original single-stream hardware encoder only.
+
         config VIDEO_ENCODER_SW_H264_SUPPORT
             bool "Support SW H264 Encoder"
             default y

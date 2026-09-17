@@ -135,6 +135,20 @@ esp_vc_err_t esp_video_enc_query_caps(esp_video_codec_query_t *query, esp_video_
 esp_vc_err_t esp_video_enc_open(esp_video_enc_cfg_t *cfg, esp_video_enc_handle_t *handle);
 
 /**
+ * @brief  Enable hardware H264 dual-encode open sync
+ *
+ * @note  Only takes effect when `CONFIG_VIDEO_ENCODER_HW_H264_DUAL_SUPPORT` is enabled.
+ *        Hardware H264 dual encode shares one dual encoder between two `esp_video_enc` instances.
+ *        GOP of both instances must be the same.
+ *        When enabled, the first `esp_video_enc_open` waits up to 1000ms for the second open,
+ *        so the first `esp_video_enc_process` can use dual encode directly.
+ *        Call this API before opening encoders.
+ *
+ * @param[in]  enable  true to wait for peer open, false to disable
+ */
+void esp_video_enc_hw_dual_with_sync(bool enable);
+
+/**
  * @brief  Get video encoder input and output frame alignment
  *
  * @param[in]   handle           Video encoder handle
@@ -270,6 +284,11 @@ esp_vc_err_t esp_video_enc_set_chroma_subsampling(esp_video_enc_handle_t handle,
  * @note  After set force IDR, next frame force to be a IDR, this action will reset the GOP.
  *         Also it will trigger only once.
  *
+ * @note  Hardware H264 dual encode (when `CONFIG_VIDEO_ENCODER_HW_H264_DUAL_SUPPORT` is enabled)
+ *        gathers one frame from each instance and encodes them together.
+ *        `esp_video_enc_process` of the two instances should be called from different threads.
+ *        If the peer frame does not arrive within 500ms, `ESP_VC_ERR_TIMEOUT` is returned.
+ *
  * @param[in]      handle     Video encoder handle
  * @param[in,out]  in_frame   Information for input frame to be encoded
  * @param[in,out]  out_frame  Information for output encoded frame
@@ -278,6 +297,7 @@ esp_vc_err_t esp_video_enc_set_chroma_subsampling(esp_video_enc_handle_t handle,
  *       - ESP_VC_ERR_OK              Process success
  *       - ESP_VC_ERR_INVALID_ARG     Invalid argument
  *       - ESP_VC_ERR_BUF_NOT_ENOUGH  Buffer for output frame not enough
+ *       - ESP_VC_ERR_TIMEOUT         Wait peer dual-encode frame timeout
  */
 esp_vc_err_t esp_video_enc_process(esp_video_enc_handle_t handle, esp_video_enc_in_frame_t *in_frame,
                                    esp_video_enc_out_frame_t *out_frame);
