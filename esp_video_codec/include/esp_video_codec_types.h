@@ -51,6 +51,7 @@ typedef enum {
     ESP_VC_ERR_NOT_SUPPORTED  = -5,  /*!< Not supported */
     ESP_VC_ERR_INTERNAL_ERROR = -6,  /*!< Internal error */
     ESP_VC_ERR_NOT_EXISTED    = -7,  /*!< Not existed */
+    ESP_VC_ERR_TIMEOUT        = -8,  /*!< Timeout */
     ESP_VC_ERR_WRONG_DATA     = -10, /*!< Wrong frame data */
 } esp_vc_err_t;
 
