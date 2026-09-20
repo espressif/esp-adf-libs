@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.4.3
+
+### Features
+
+- Optimized `MBC` implementation, improving performance by 25%
+- Updated `gmf_fft` dependency to `~1.1`
+
+### Bug Fixes
+
+- Fixed `DRC` curve-point sorting truncating float coordinates to `int`, which corrupted the compression curve
+- Fixed `DRC` gain mapping when the input level falls outside all curve segments (now clamps to the edge segments)
+
 ## v1.4.2
 
 ### Break Change
