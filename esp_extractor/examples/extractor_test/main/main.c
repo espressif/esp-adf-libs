@@ -173,6 +173,8 @@ int extractor_use_helper(const char *url, frame_verify_func verify)
                     int frame_idx = (frame.stream_type == ESP_EXTRACTOR_STREAM_TYPE_AUDIO) ? audio_frame_count : video_frame_count;
                     ESP_LOGE(TAG, "Fail to verify stream %d frame_idx:%d", frame.stream_type, frame_idx - 1);
                 }
+            } else {
+                break;
             }
         }
         if (audio_frame_count) {

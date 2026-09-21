@@ -228,7 +228,9 @@ esp_extractor_err_t esp_extractor_enable_stream(esp_extractor_handle_t extractor
  * @brief  Do extract stream data operation, output one frame after each call
  *
  * @note  `frame_buffer` in `frame_info` is allocated in memory pool
- *         Users need call `esp_extractor_release_frame` to free when not used anymore
+ *         Users need call `esp_extractor_release_frame` to free when not used anymore.
+ *         A successful read that returns a buffer holds an internal reference until
+ *         `esp_extractor_release_frame`, so `esp_extractor_close` can wait for it.
  *
  * @param[in]   extractor   Extractor Handle
  * @param[out]  frame_info  Output frame information
