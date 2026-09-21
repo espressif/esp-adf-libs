@@ -1,4 +1,4 @@
-version: "1.0.1"
+version: "1.0.2"
 description: Espressif media protocols
 url: https://github.com/espressif/esp-adf-libs/tree/master/esp_media_protocols
 repository: https://github.com/espressif/esp-adf-libs.git

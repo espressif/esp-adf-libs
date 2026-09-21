@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.2
+
+### Bug Fixes
+
+- Fixed crash when the SIP password is empty
+- Fixed replying `200 OK` without SDP instead of `480` when an incoming call is not answered in time
+- Fixed tags in SIP responses to be compliant with RFC3261
+
 ## v1.0.1
 
 ### Features
