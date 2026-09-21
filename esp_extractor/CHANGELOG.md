@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.6
+
+### Bug Fixes
+
+- Fixed wav file can not played due to chunk size not even aligned
+- Fixed dead loop when play special TS file to end
+- Enhanced EOS handler for data cache
+
 ## v1.0.5
 
 ### Features
