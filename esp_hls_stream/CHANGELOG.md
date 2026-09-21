@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.4
+
+### Bug Fixes
+
+- Refine abort and cancel abort logic
+- Fixed seeking flag is wrongly clear before do seek
+
+### Features
+
+- Bump `esp_board_manager` to v0.7
+
 ## v1.0.3
 
 ### Features
