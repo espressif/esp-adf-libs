@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.7
+
+### Bug Fixes
+
+- Fixed regression for atomic lock wrapper rollbacked
+
 ## v1.0.6
 
 ### Bug Fixes
