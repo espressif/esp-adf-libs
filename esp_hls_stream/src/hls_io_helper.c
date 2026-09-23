@@ -12,7 +12,7 @@
 
 #define HLS_DEFAULT_OUT_POOL_SIZE  (100 * 1024)
 #define HLS_DEFAULT_OUT_ALIGN      (64)
-#define HLS_READ_TIMEOUT           (5000)
+#define HLS_READ_TIMEOUT           (10000)
 #define TAG                        "HLS_IO_HELPER"
 
 typedef struct {
@@ -134,12 +134,23 @@ static int file_read(void *buffer, uint32_t size, void *ctx)
     return read_from_io(src->fd, buffer, size);
 }
 
+static int file_abort(void *ctx)
+{
+    io_src_t *src = (io_src_t *)ctx;
+    if (src == NULL || src->fd == NULL) {
+        return -1;
+    }
+    /* Wake blocked esp_gmf_io_acquire_read so stop can complete promptly. */
+    return (esp_gmf_io_abort(src->fd) == ESP_GMF_ERR_OK) ? 0 : -1;
+}
+
 static int file_seek(uint32_t position, void *ctx)
 {
     io_src_t *src = (io_src_t *)ctx;
     if (src == NULL || src->fd == NULL) {
         return -1;
     }
+    (void)esp_gmf_io_clear_abort(src->fd);
     esp_gmf_info_file_t info = {};
     esp_gmf_io_get_info(src->fd, &info);
     ESP_LOGI(TAG, "Seek from %d to position %d", (int)info.pos, (int)position);
@@ -266,6 +277,7 @@ esp_hls_extractor_cfg_t *esp_hls_extractor_io_cfg_init(const char *url,
     hls_io->open = file_open;
     hls_io->reload = file_reload;
     hls_io->read = file_read;
+    hls_io->read_abort = file_abort;
     hls_io->seek = file_seek;
     hls_io->get_file_size = file_size;
     hls_io->close = file_close;

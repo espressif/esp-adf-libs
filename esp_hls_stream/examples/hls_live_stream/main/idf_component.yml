@@ -8,11 +8,11 @@ dependencies:
   espressif/gmf_audio:
      version: "~1.0"
   espressif/esp_board_manager:
-     version: "~0.5"
+     version: "~0.7"
   esp_hls_stream:
     version: "~1.0.0"
     override_path: "../../../../esp_hls_stream"
   espressif/esp_wifi_remote:
-    version: "~0.14.3"
+    version: "~1.6"
     rules:
       - if: "target in [esp32p4]"
