@@ -1,0 +1,14 @@
+description: Ambient LED color sampling from camera or framebuffer for Espressif chips
+issues: https://github.com/espressif/esp-adf/issues
+repository: https://github.com/espressif/esp-adf-libs.git
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_ambient_led
+documentation: https://github.com/espressif/esp-adf-libs/blob/master/esp_ambient_led/README.md
+version: "1.0.0"
+dependencies:
+  idf:
+    version: ">=5.5"
+tags:
+  - adf
+  - multimedia
+  - led
+  - led_strip
