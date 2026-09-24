@@ -105,8 +105,13 @@ extern "C" {
  *     - Added SDES-SRTP support for SIP
  *
  *     - Fixed RTP timestamp for OPUS
+ * 
+ *     v1.6.1:
+ *     - Added task scheduler config support for SIP
+ *
+ *     - Fixed jpeg make tables order zigzag instead of raster
  */
-#define ESP_RTC_VERSION "1.6.0"
+#define ESP_RTC_VERSION "1.6.1"
 
 #ifdef __cplusplus
 }

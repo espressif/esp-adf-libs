@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.3
+
+### Features
+
+- Added configurable stack, priority and core for SIP and RTP tasks
+
+### Bug Fixes
+
+- Corrected JPEG quantization tables to use zigzag instead of wrong raster order
+
 ## v1.0.2
 
 ### Bug Fixes

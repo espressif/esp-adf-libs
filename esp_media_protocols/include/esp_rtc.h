@@ -31,6 +31,34 @@
 extern "C" {
 #endif
 
+/**
+ * Thread names created by the RTC/SIP stack.
+ * Override stack, priority and core through the matching esp_rtc_config_t field.
+ * stack_size 0 keeps the protocol default for that thread (stack, priority and core).
+ *
+ * sip_task:      SIP signaling (connect, REGISTER, INVITE/BYE, OPTIONS/keep-alive)
+ * listen_task:   Accept incoming SIP TCP (P2P / TCP server); not created for UDP
+ * audio_recv:    RTP audio RX → receive_audio; TX is an esp_timer, not this task
+ * video_recv:    RTP video RX / depayload → receive_video; TX is an esp_timer
+ */
+#define ESP_RTC_THREAD_SIP                 "sip_task"
+#define ESP_RTC_THREAD_LISTEN              "listen_task"
+#define ESP_RTC_THREAD_AUDIO_RECV          "_rtp_audio_recv"
+#define ESP_RTC_THREAD_VIDEO_RECV          "_rtp_video_recv"
+
+#define ESP_RTC_THREAD_SIP_STACK           (10 * 1024)
+#define ESP_RTC_THREAD_SIP_PRIO            20
+#define ESP_RTC_THREAD_SIP_CORE            0
+#define ESP_RTC_THREAD_LISTEN_STACK        (2 * 1024)
+#define ESP_RTC_THREAD_LISTEN_PRIO         20
+#define ESP_RTC_THREAD_LISTEN_CORE         0
+#define ESP_RTC_THREAD_AUDIO_RECV_STACK    (4 * 1024)
+#define ESP_RTC_THREAD_AUDIO_RECV_PRIO     20
+#define ESP_RTC_THREAD_AUDIO_RECV_CORE     0
+#define ESP_RTC_THREAD_VIDEO_RECV_STACK    (3 * 1024)
+#define ESP_RTC_THREAD_VIDEO_RECV_PRIO     15
+#define ESP_RTC_THREAD_VIDEO_RECV_CORE     1
+
 typedef struct _esp_rtc_handle *esp_rtc_handle_t;
 
 /**
@@ -136,6 +164,19 @@ typedef struct
 } esp_rtc_msg_data_t;
 
 /**
+ * @brief RTC/SIP worker thread configuration
+ *
+ *         If stack_size is 0, the protocol default for that thread is used
+ *         (stack, priority and core together). If stack_size is non-zero,
+ *         priority and core_id are taken as given (core_id 0 is valid).
+ */
+typedef struct {
+    uint16_t                        stack_size;          /*!< Stack in bytes, 0 = protocol default */
+    uint8_t                         priority;            /*!< Task priority */
+    uint8_t                         core_id;             /*!< CPU core, 0 is a valid core */
+} esp_rtc_thread_cfg_t;
+
+/**
  * @brief RTC session configurations
  */
 typedef struct {
@@ -167,6 +208,14 @@ typedef struct {
     const char                  *domain;             /*!< Set domain(optional), this domain constructs the host of SIP URIs, supports a single server divided into multiple domains */
     uint8_t                     video_payload_type;  /*!< SDP video payload type */
     const char                  *private_header;     /*!< Set private header since the initial stage */
+    esp_rtc_thread_cfg_t        sip_task;            /*!< SIP signaling task: connect, REGISTER, INVITE/BYE, keep-alive.
+                                                          stack_size 0 = 10K / prio 20 / core 0 */
+    esp_rtc_thread_cfg_t        listen_task;         /*!< SIP TCP accept for incoming P2P/server connections (not used on UDP).
+                                                          stack_size 0 = 2K / prio 20 / core 0 */
+    esp_rtc_thread_cfg_t        audio_recv;          /*!< RTP audio receive task; calls receive_audio. TX uses an esp_timer.
+                                                          stack_size 0 = 4K / prio 20 / core 0 */
+    esp_rtc_thread_cfg_t        video_recv;          /*!< RTP video receive/depayload task; calls receive_video. TX uses an esp_timer.
+                                                          stack_size 0 = 3K / prio 15 / core 1 */
 } esp_rtc_config_t;
 
 /**
