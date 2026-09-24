@@ -29,5 +29,6 @@ jobs:
             esp_midi;
             esp_extractor;
             esp_hls_stream;
+            esp_ambient_led;
           namespace: "espressif"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
