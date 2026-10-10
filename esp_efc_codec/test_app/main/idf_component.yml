@@ -1,0 +1,7 @@
+dependencies:
+  espressif/esp_board_manager:
+    version: "~0.7"
+  espressif/esp_lv_eaf_player:
+    version: "^0.3.0"
+    matches:
+      - if: "$CONFIG{EFC_DECODER_BENCH_WITH_FILE} == True"

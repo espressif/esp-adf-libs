@@ -1,0 +1,13 @@
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_TASK_WDT_INIT=n
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_ESP_EFC_LVGL_WIDGET=y
+CONFIG_ESP_EFC_PERF_LOG=y
+# Match the demo's 10 ms EFC frame delay so every decoded frame can be presented.
+CONFIG_LV_DEF_REFR_PERIOD=10
+# The LVGL PPA blit only registers when a single software draw unit is configured.
+CONFIG_LV_DRAW_SW_DRAW_UNIT_CNT=1
+# A large clip list exceeds LVGL's fixed 64 KB builtin heap.
+CONFIG_LV_USE_CLIB_MALLOC=y

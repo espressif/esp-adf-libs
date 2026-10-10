@@ -1,0 +1,41 @@
+menu "ESP-EFC codec"
+
+    config ESP_EFC_DECODE_4X4_ONLY
+        bool "Decode only fixed 4x4-grid blobs (smaller and faster)"
+        default y
+        help
+            Compile the decoder with ONLY the fixed 4x4-grid path. The
+            8x8/general-grid and quadtree decoders are removed (less code), and
+            the tile size becomes a compile-time constant so the inner loops
+            unroll (faster). esp_efc_dec_open() then rejects any non-(fixed,4)
+            blob.
+
+            Pair with encoding at tile=4. Disable this if you need to decode
+            8x8 or quadtree blobs.
+
+    config ESP_EFC_USE_SIMD
+        bool "Use 128-bit PIE SIMD for bulk pixel moves"
+        default y
+        help
+            On ESP32-P4 (RISC-V PIE) and ESP32-S3 (Xtensa PIE), route the
+            decoder's bulk pixel copies through a 128-bit-vector memcpy written
+            in assembly. Ignored on targets without the PIE vector unit (the
+            portable C path is used instead).
+
+    config ESP_EFC_LVGL_WIDGET
+        bool "LVGL EFC player widget (lv_efc)"
+        default n
+        help
+            Compile lv_efc, an LVGL image widget that plays an EFC clip.
+            Requires LVGL 9
+
+    config ESP_EFC_PERF_LOG
+        bool "Log EFC player stage timing"
+        depends on ESP_EFC_LVGL_WIDGET
+        default n
+        help
+            Once per second, log average time spent decoding, preparing the
+            scaled/alpha image, publishing it to LVGL, and outside the EFC
+            timer callback. Intended for performance diagnosis.
+
+endmenu

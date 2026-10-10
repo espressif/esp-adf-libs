@@ -1,0 +1,3 @@
+# CI runs the embedded-asset decoder bench (efc_test_main.c).
+# Disable the SD-card EAF/EFC file benchmark path.
+CONFIG_EFC_DECODER_BENCH_WITH_FILE=n
