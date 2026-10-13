@@ -1,0 +1,5 @@
+menu "EFC Decoder Test Configuration"
+    config EFC_DECODER_BENCH_WITH_FILE
+        bool "EFC VS EAF use real file"
+        default y
+endmenu

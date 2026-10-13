@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GIF to EFC</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font: 16px/1.45 system-ui, sans-serif;
+      max-width: 40rem;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: CanvasText;
+      background: Canvas;
+    }
+    h1 { font-size: 1.4rem; }
+    label { display: block; margin: 0.8rem 0; }
+    button { font: inherit; padding: 0.4rem 0.9rem; }
+    #log { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 0.9rem; }
+    a { font-weight: 600; }
+    #preview {
+      display: none;
+      max-width: min(100%, 24rem);
+      margin: 0.6rem 0 1rem;
+      border: 1px solid color-mix(in srgb, CanvasText 22%, transparent);
+      background-color: #bbb;
+      background-image:
+        linear-gradient(45deg, #8888 25%, transparent 25%),
+        linear-gradient(-45deg, #8888 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #8888 75%),
+        linear-gradient(-45deg, transparent 75%, #8888 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    }
+    #preview.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>GIF to EFC</h1>
+  <p>Lossless RGB565 emote encode in the browser. GIF frames are decoded with gifuct-js, then packed with the same fixed-grid encoder as the C reference.</p>
+  <label>GIF <input id="file" type="file" accept="image/gif,.gif" /></label>
+  <img id="preview" alt="" />
+  <label>Tile
+    <select id="tile">
+      <option value="4" selected>4 (device decoder)</option>
+      <option value="8">8</option>
+      <option value="0">0 (smaller of 4 and 8)</option>
+    </select>
+  </label>
+  <label><input id="zlib" type="checkbox" checked /> zlib (raw DEFLATE, on by default)</label>
+  <button id="go" type="button">Encode</button>
+  <p id="log">Choose a GIF.</p>
+  <p id="dl"></p>
+  <script src="./efc_encoder.min.js"></script>
+  <script>
+    const { parseGIF, decompressFrames, encodeEfc, csumFrames,
+      tokenStream, withRawDeflate, gifToRgb565 } = EfcEncoder;
+
+    async function deflateRaw(bytes) {
+      const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+
+    const log = document.getElementById("log");
+    const dl = document.getElementById("dl");
+    const preview = document.getElementById("preview");
+    const fileInput = document.getElementById("file");
+    let previewUrl = null;
+    let previewGen = 0;
+
+    /** Netscape loop count 0 means repeat forever. Insert that block when the GIF has none. */
+    function forceGifLoop(bytes) {
+      const sig = [0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30];
+      for (let i = 0; i + 19 < bytes.length; i++) {
+        if (bytes[i] !== 0x21 || bytes[i + 1] !== 0xff || bytes[i + 2] !== 0x0b) continue;
+        let match = true;
+        for (let j = 0; j < sig.length; j++) {
+          if (bytes[i + 3 + j] !== sig[j]) {
+            match = false;
+            break;
+          }
+        }
+        if (!match || bytes[i + 14] !== 0x03 || bytes[i + 15] !== 0x01) continue;
+        const out = bytes.slice();
+        out[i + 16] = 0;
+        out[i + 17] = 0;
+        return out;
+      }
+      if (bytes.length < 13 || bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46) {
+        return bytes;
+      }
+      let pos = 13;
+      if (bytes[10] & 0x80) {
+        pos += (1 << ((bytes[10] & 7) + 1)) * 3;
+      }
+      const ext = new Uint8Array([
+        0x21, 0xff, 0x0b,
+        0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30,
+        0x03, 0x01, 0x00, 0x00, 0x00,
+      ]);
+      const out = new Uint8Array(bytes.length + ext.length);
+      out.set(bytes.subarray(0, pos), 0);
+      out.set(ext, pos);
+      out.set(bytes.subarray(pos), pos + ext.length);
+      return out;
+    }
+
+    fileInput.addEventListener("change", async () => {
+      const gen = ++previewGen;
+      const file = fileInput.files[0];
+      if (!file) {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+        preview.removeAttribute("src");
+        preview.classList.remove("show");
+        preview.alt = "";
+        return;
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (gen !== previewGen) return;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(new Blob([forceGifLoop(bytes)], { type: "image/gif" }));
+      preview.alt = file.name;
+      preview.src = previewUrl;
+      preview.classList.add("show");
+    });
+
+    document.getElementById("go").onclick = async () => {
+      const file = document.getElementById("file").files[0];
+      if (!file) {
+        log.textContent = "Choose a GIF first.";
+        return;
+      }
+      dl.textContent = "";
+      log.textContent = "Decoding…";
+      const buf = await file.arrayBuffer();
+      const t0 = performance.now();
+      const parsed = parseGIF(buf);
+      const frames = decompressFrames(parsed, true);
+      const clip = gifToRgb565(parsed, frames);
+      const decMs = performance.now() - t0;
+      log.textContent = "Encoding…";
+      const tile = Number(document.getElementById("tile").value);
+      const zlib = document.getElementById("zlib").checked;
+      const t1 = performance.now();
+      let blob = encodeEfc(clip.rgb565, clip.width, clip.height, clip.frameCount, tile, clip.colorKey);
+      if (zlib) {
+        blob = withRawDeflate(blob, await deflateRaw(tokenStream(blob)));
+      }
+      const encMs = performance.now() - t1;
+      const csum = csumFrames(clip.rgb565) >>> 0;
+      const name = file.name.replace(/\.gif$/i, "") + ".efc";
+      const url = URL.createObjectURL(new Blob([blob], { type: "application/octet-stream" }));
+      log.textContent =
+        `${clip.width}×${clip.height}  ${clip.frameCount} frames\n` +
+        `gif ${file.size} B\n` +
+        `efc ${blob.length} B   zlib ${zlib ? "on" : "off"}\n` +
+        `decode ${decMs.toFixed(0)} ms   encode ${encMs.toFixed(0)} ms\n` +
+        `csum 0x${csum.toString(16).padStart(8, "0")}`;
+      dl.innerHTML = "";
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.textContent = `Download ${name}`;
+      dl.appendChild(a);
+    };
+  </script>
+</body>
+</html>

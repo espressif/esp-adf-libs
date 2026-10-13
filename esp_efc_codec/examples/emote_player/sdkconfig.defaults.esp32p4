@@ -1,0 +1,15 @@
+CONFIG_IDF_TARGET="esp32p4"
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# 8 MB flash with a large factory partition to hold the embedded giphy.efc
+# (~0.55 MB) inside the app image.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# A 480x480 clip needs ~0.9 MB (EFC cur/prev) + 0.46 MB framebuffers, which does
+# not fit internal SRAM. Enable PSRAM and route large allocations to it.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_PARTITION_TABLE_OFFSET=0x9000

@@ -1,0 +1,9 @@
+CONFIG_IDF_TARGET="esp32p4"
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# A 480x480 clip needs ~0.9 MB (EFC cur/prev) + 0.46 MB framebuffers, which does
+# not fit internal SRAM. Enable PSRAM and route large allocations to it.
+# Flash size / custom partition table live in sdkconfig.defaults.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_PARTITION_TABLE_OFFSET=0x9000

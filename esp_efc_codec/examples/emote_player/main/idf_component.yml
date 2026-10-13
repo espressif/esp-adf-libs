@@ -1,0 +1,10 @@
+dependencies:
+  espressif/esp_board_manager:
+    version: "~0.7"
+  espressif/esp_lcd_touch:
+    version: "*"
+  espressif/esp_lvgl_adapter:
+    version: "*"
+  espressif/esp_efc_codec:
+    version: "~1.0"
+    override_path: "../../../../esp_efc_codec"

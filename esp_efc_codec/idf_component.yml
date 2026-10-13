@@ -1,0 +1,28 @@
+version: "1.0.0"
+description: >-
+  EFC - Emote Frame Codec: a lossless, tile-based, palette-aware inter/intra
+  codec for short looping emote clips.
+issues: https://github.com/espressif/esp-adf/issues
+repository: https://github.com/espressif/esp-adf-libs.git
+url: https://github.com/espressif/esp-adf-libs/tree/master/esp_efc_codec
+tags:
+  - multimedia
+  - animation
+  - emote
+  - lvgl
+  - display
+targets:
+  - esp32
+  - esp32s3
+  - esp32p4
+  - esp32c3
+  - esp32c6
+  - esp32s31
+dependencies:
+  lvgl/lvgl:
+    version: ">=9,<10"
+    public: true
+    matches:
+      - if: "$CONFIG{ESP_EFC_LVGL_WIDGET} == True"
+examples:
+  - path: examples/emote_player
