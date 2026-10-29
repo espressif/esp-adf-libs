@@ -276,6 +276,9 @@ Recommended settings for the ESP32 decoder:
 
 * **Tile:** `4`
 * **zlib:** enabled
+* **Mode:** predictor planes (`PRED`)
+
+PRED is recommended for animated clips because it usually reduces the file and decode work. Legacy opcodes remain available for comparison.
 
 ### Browser
 
@@ -290,8 +293,9 @@ The page is self-contained. No network connection or local server is required.
 1. Select a GIF.
 2. Leave **Tile** at `4 (device decoder)`.
 3. Leave **zlib** enabled.
-4. Click **Encode**.
-5. Click **Download**.
+4. Select **predictor planes**.
+5. Click **Encode**.
+6. Click **Download**.
 
 The page shows the GIF size, EFC size, frame count, and encoding time.
 
@@ -301,7 +305,7 @@ Node.js 18 or later:
 
 ```bash
 cd pc/js/dist
-node encode_gif.mjs smile.gif smile.efc
+node encode_gif.mjs smile.gif smile.efc 4 z pred
 ```
 
 The released script includes its dependencies; `npm install` is not required.
@@ -310,6 +314,11 @@ Disable zlib with:
 
 ```bash
 node encode_gif.mjs smile.gif smile.efc raw
+```
+Use legacy opcodes instead:
+
+```bash
+node encode_gif.mjs smile.gif smile_legacy.efc 4 z legacy
 ```
 
 Encode multiple GIFs:
@@ -321,6 +330,104 @@ for g in *.gif; do
     node encode_gif.mjs "$g" "out/${g%.gif}.efc"
 done
 ```
+---
+
+## Convert a video to EFC
+
+`pc/video_to_efc.py` turns a short MP4, AVI, or GIF into an `.efc` file. It needs Python 3, NumPy, Pillow, and FFmpeg. One-time setup:
+
+```bash
+python -m pip install numpy pillow
+```
+
+Run the following commands from this directory. Choose a workflow according to the source and the required output:
+
+* Use **lossless RGB565** when preserving the decoded source pixels matters more than size.
+* Use **GIF-style palette conversion** for clean graphics that need stable color reduction.
+* Use **H.264 smoothing** for photographic, noisy, or heavily textured animation.
+* Use a **file-size target** when the output must fit a fixed flash budget. It can be combined with H.264 smoothing.
+* Add `--legacy` to any workflow to disable the newer predictor-plane (`PRED`) encoding and emit only legacy tile opcodes. This is useful for older decoders or format comparison, but usually produces a larger EFC file.
+
+### 1. Preserve the source pixels
+
+Use `--lossless` to skip denoising, palette reduction, temporal hold, and internal scaling. EFC stores the decoded source as RGB565 without further lossy processing:
+
+```bash
+python pc/video_to_efc.py clip.mp4 clip_lossless.efc --lossless
+```
+
+### 2. Reduce colors while keeping stable visual quality
+
+Use `--via-gif` for GIF-style global palette quantization followed by lossless EFC encoding. This is preferred when you want a smaller file without the floating noise that temporal dithering or aggressive hold can introduce:
+
+```bash
+python pc/video_to_efc.py clip.mp4 clip_palette.efc --via-gif
+```
+
+### 3. Smooth complex sources before EFC encoding
+
+`--h264-crf` performs an H.264 round trip with x264's animation tuning before the normal palette and EFC stages. This is a lossy preprocessing step: it automatically smooths fine noise and texture so that the final EFC is often much smaller while retaining good visual quality at conservative settings.
+
+Start with CRF 18:
+
+```bash
+python pc/video_to_efc.py noisy.gif noisy.efc --h264-crf 18 --cmp /tmp/noisy_cmp.png
+```
+
+If the EFC is still too large, try CRF 30 and inspect the comparison image or preview. A higher CRF usually makes a smaller EFC, but it also removes more texture and can introduce contouring or temporal pumping:
+
+```bash
+python pc/video_to_efc.py noisy.gif noisy_small.efc --h264-crf 30 --cmp /tmp/noisy_small_cmp.png
+```
+
+This workflow requires an FFmpeg build with the `libx264` encoder. Set `EFC_FFMPEG` when that build is not the default `ffmpeg` on `PATH`;
+
+```bash
+EFC_FFMPEG=$HOME/ffmpeg/ffmpeg/ffmpeg python pc/video_to_efc.py noisy.gif noisy.efc --h264-crf 18
+```
+
+Lossy inputs are denoised automatically. Use `--denoise off` when preserving fine texture is more important than the additional size reduction. Quality metrics and `--cmp` still compare the decoded EFC with the original input, not with the H.264 intermediate.
+
+### 4. Fit a file-size target
+
+Use `--size` with bytes or a `K`/`M` suffix:
+
+```bash
+python pc/video_to_efc.py clip.mp4 clip_300k.efc --size 300K
+```
+
+The search keeps every frame. It first lowers the palette color count. If that is still too large, it gradually increases the 4×4 temporal deadzone. Internal 4/5, 4/6, 1/2, then 1/4 scaling is the last resort. It keeps the highest-quality candidate that fits the requested size and reports when the target cannot be reached.
+
+For a complex source, combine the conservative H.264 starting point with the size search:
+
+```bash
+python pc/video_to_efc.py noisy.gif noisy_300k.efc --h264-crf 18 --size 300K
+```
+
+An `.efc` file does not store a frame rate. Play it with a delay of `duration_ms / frame_count`.
+
+---
+
+## Play EFC on a PC
+
+`pc/efc_play.py` opens an `.efc` file in a window. It uses Tk when available and otherwise falls back to `ffplay`. The file has no frame rate, so the player uses 15 fps unless you set one.
+
+```bash
+python3 pc/efc_play.py clip.efc
+python3 pc/efc_play.py clip.efc --fps 15
+python3 pc/efc_play.py clip.efc --delay-ms 67
+python3 pc/efc_play.py clip.efc --dump /tmp/frame0.png
+```
+
+| Key | Action |
+| --- | --- |
+| Space | Pause or resume |
+| Left / Right | Step one frame, and pause |
+| Up / Down | Faster or slower |
+| C | Cycle the backdrop: checker, black, white |
+| Q or Escape | Quit |
+
+The color key is drawn over the backdrop. `--dump` writes frame 0 and exits.
 
 ---
 

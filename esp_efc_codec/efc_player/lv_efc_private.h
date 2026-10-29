@@ -39,20 +39,21 @@ extern "C" {
  *         touch stay as they were.
  */
 struct _lv_efc_t {
-    lv_image_t            img;            /*!< Base image widget */
-    esp_efc_dec_handle_t  dec;            /*!< Open decoder, or NULL when no clip is loaded */
-    uint8_t              *blob;           /*!< Owned copy of the EFC file */
-    size_t                blob_len;       /*!< Length of `blob` in bytes */
-    uint8_t              *frame;          /*!< Color plane, then the optional alpha plane */
-    const uint16_t       *decode_pixels;  /*!< Current decoded color plane */
-    int                   decode_stride;  /*!< Current decoded color stride in pixels */
-    size_t                frame_bytes;    /*!< Bytes LVGL should read from `frame` */
-    uint8_t              *view;           /*!< Fitted RGB565 / RGB565A8, or NULL when the frame is shown 1:1 */
-    size_t                view_cap;       /*!< Allocated bytes of `view`, cache-line aligned */
-    int                   view_w;         /*!< Fitted width; 0 when `view` is not on screen */
-    int                   view_h;         /*!< Fitted height; 0 when `view` is not on screen */
-    uint16_t             *x_idx;          /*!< Source x for each fitted column, fixed for this scale */
-    int                   x_idx_dst_w;    /*!< Width used to build `x_idx`; may differ from `view_w` */
+    lv_image_t            img;               /*!< Base image widget */
+    esp_efc_dec_handle_t  dec;               /*!< Open decoder, or NULL when no clip is loaded */
+    uint8_t              *blob;              /*!< Owned copy of the EFC file */
+    size_t                blob_len;          /*!< Length of `blob` in bytes */
+    uint8_t              *frame;             /*!< Color plane, then the optional alpha plane */
+    const uint16_t       *decode_pixels;     /*!< Current decoded color plane */
+    int                   decode_stride;     /*!< Current decoded color stride in pixels */
+    size_t                frame_bytes;       /*!< Bytes LVGL should read from `frame` */
+    uint8_t              *view;              /*!< Fitted RGB565 / RGB565A8, or NULL when the frame is shown 1:1 */
+    size_t                view_cap;          /*!< Allocated bytes of `view`, cache-line aligned */
+    int                   view_w;            /*!< Fitted width; 0 when `view` is not on screen */
+    int                   view_h;            /*!< Fitted height; 0 when `view` is not on screen */
+    uint16_t             *x_idx;             /*!< Source x for each fitted column, fixed for this scale */
+    int                   x_idx_dst_w;       /*!< Width used to build `x_idx`; may differ from `view_w` */
+    bool                  view_software_map; /*!< Keep sparse and full fitted frames on one sampling grid */
 #if CONFIG_SOC_PPA_SUPPORTED
     struct ppa_client_t *ppa_srm;  /*!< Per-widget PPA scale client, or NULL */
 #endif

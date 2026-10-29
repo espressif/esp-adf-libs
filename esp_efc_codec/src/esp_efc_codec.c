@@ -32,7 +32,7 @@ esp_efc_err_t esp_efc_dec_open(const uint8_t *blob, size_t blob_len,
 {
     esp_efc_err_t ret = efc_dec_open(blob, blob_len, handle);
 #ifdef ESP_EFC_DECODE_4X4_ONLY
-    if (ret == ESP_EFC_OK && !efc_dec_is_fixed4(*handle)) {
+    if (ret == ESP_EFC_OK && !efc_dec_is_fixed4_stream(*handle)) {
         efc_dec_close(*handle);
         *handle = NULL;
         ret = ESP_EFC_ERR_INVALID_DATA;
@@ -41,6 +41,8 @@ esp_efc_err_t esp_efc_dec_open(const uint8_t *blob, size_t blob_len,
 #ifdef ESP_EFC_USE_SIMD
     if (ret == ESP_EFC_OK) {
         efc_dec_set_memcpy(*handle, esp_efc_memcpy_simd);
+        efc_dec_set_bilinear_row(*handle, esp_efc_bilinear_row_rgb565);
+        efc_dec_set_nn_row(*handle, esp_efc_nn_row_rgb565);
     }
 #endif
     if (ret != ESP_EFC_OK) {

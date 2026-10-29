@@ -49,13 +49,19 @@
     </select>
   </label>
   <label><input id="zlib" type="checkbox" checked /> zlib (raw DEFLATE, on by default)</label>
+  <label>Mode
+    <select id="codec">
+      <option value="legacy" selected>legacy opcodes</option>
+      <option value="pred">predictor planes (tile 4, zlib required)</option>
+    </select>
+  </label>
   <button id="go" type="button">Encode</button>
   <p id="log">Choose a GIF.</p>
   <p id="dl"></p>
   <script src="./efc_encoder.min.js"></script>
   <script>
     const { parseGIF, decompressFrames, encodeEfc, csumFrames,
-      tokenStream, withRawDeflate, gifToRgb565 } = EfcEncoder;
+      withPredDeflate, withRawDeflate, tokenStream, gifToRgb565 } = EfcEncoder;
 
     async function deflateRaw(bytes) {
       const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"));
@@ -143,9 +149,22 @@
       log.textContent = "Encoding…";
       const tile = Number(document.getElementById("tile").value);
       const zlib = document.getElementById("zlib").checked;
+      const codec = document.getElementById("codec").value;
+      if (codec === "pred" && (!zlib || (tile !== 0 && tile !== 4))) {
+        log.textContent = "Predictor mode requires zlib and tile 4 (or auto).";
+        return;
+      }
       const t1 = performance.now();
-      let blob = encodeEfc(clip.rgb565, clip.width, clip.height, clip.frameCount, tile, clip.colorKey);
-      if (zlib) {
+      let blob = encodeEfc(
+        clip.rgb565, clip.width, clip.height, clip.frameCount,
+        tile, clip.colorKey, codec === "legacy",
+      );
+      if (codec === "pred") {
+        blob = await withPredDeflate(
+          blob, clip.rgb565, clip.width, clip.height, clip.frameCount,
+          tile, clip.colorKey, deflateRaw,
+        );
+      } else if (zlib) {
         blob = withRawDeflate(blob, await deflateRaw(tokenStream(blob)));
       }
       const encMs = performance.now() - t1;
@@ -155,7 +174,7 @@
       log.textContent =
         `${clip.width}×${clip.height}  ${clip.frameCount} frames\n` +
         `gif ${file.size} B\n` +
-        `efc ${blob.length} B   zlib ${zlib ? "on" : "off"}\n` +
+        `efc ${blob.length} B   zlib ${zlib ? "on" : "off"}   mode ${codec}\n` +
         `decode ${decMs.toFixed(0)} ms   encode ${encMs.toFixed(0)} ms\n` +
         `csum 0x${csum.toString(16).padStart(8, "0")}`;
       dl.innerHTML = "";

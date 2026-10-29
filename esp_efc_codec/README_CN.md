@@ -193,6 +193,7 @@ EFC 不在每一帧重建整幅图像，而是把图像分成块。
 * **无损** — 没有画质损失
 * **优化的填充与拷贝** — ESP32-S3 和 ESP32-P4 使用优化实现
 
+
 ---
 
 ## 性能
@@ -276,6 +277,9 @@ Node.js 工具。
 
 * **Tile：** `4`
 * **zlib：** 开启
+* **模式：** 预测平面（`PRED`）
+
+动画片段建议使用 PRED 模式，因为它通常能减小文件并减少解码工作。旧版操作码仍保留用于对比。
 
 ### 浏览器
 
@@ -290,8 +294,9 @@ pc/js/dist/encode.html
 1. 选择一个 GIF。
 2. **Tile** 保持 `4 (device decoder)`。
 3. **zlib** 保持开启。
-4. 点击 **Encode**。
-5. 点击 **Download**。
+4. 选择 **predictor planes**。
+5. 点击 **Encode**。
+6. 点击 **Download**。
 
 页面会显示 GIF 大小、EFC 大小、帧数和编码耗时。
 
@@ -301,7 +306,7 @@ pc/js/dist/encode.html
 
 ```bash
 cd pc/js/dist
-node encode_gif.mjs smile.gif smile.efc
+node encode_gif.mjs smile.gif smile.efc 4 z pred
 ```
 
 发布脚本已包含所有依赖，不需要执行 `npm install`。
@@ -310,6 +315,12 @@ node encode_gif.mjs smile.gif smile.efc
 
 ```bash
 node encode_gif.mjs smile.gif smile.efc raw
+```
+
+改用旧版操作码：
+
+```bash
+node encode_gif.mjs smile.gif smile_legacy.efc 4 z legacy
 ```
 
 一次转换多个 GIF：
@@ -322,6 +333,104 @@ for g in *.gif; do
 done
 ```
 
+---
+
+## 将视频转换为 EFC
+
+`pc/video_to_efc.py` 把短 MP4、AVI 或 GIF 转成 `.efc` 文件。它需要 Python 3、NumPy、Pillow 和 FFmpeg。一次性安装：
+
+```bash
+python -m pip install numpy pillow
+```
+
+从本目录运行以下命令。请根据素材特点和输出要求选择流程：
+
+* 更重视保留解码后的源像素而不是文件大小时，使用 **RGB565 无损模式**。
+* 对需要稳定减少颜色的干净图形，使用 **GIF 风格调色板转换**。
+* 对照片、噪点较多或纹理复杂的动画，使用 **H.264 平滑预处理**。
+* 输出必须满足固定的 Flash 空间限制时，使用 **文件大小目标**；它可以与 H.264 平滑预处理组合使用。
+* 所有流程都可以添加 `--legacy`，以关闭较新的预测平面（`PRED`）编码，只生成旧版块操作码。它适用于兼容旧版解码器或进行格式对比，但生成的 EFC 文件通常更大。
+
+### 1. 保留源像素
+
+使用 `--lossless` 跳过去噪、调色板缩减、时间保持和内部缩放。EFC 会把解码后的源画面存为 RGB565，不再进行其他有损处理：
+
+```bash
+python pc/video_to_efc.py clip.mp4 clip_lossless.efc --lossless
+```
+
+### 2. 减少颜色并保持稳定画质
+
+使用 `--via-gif` 进行 GIF 风格的全局调色板量化，然后执行无损 EFC 编码。想在减小文件的同时避免时间抖动或激进保持造成的浮动噪点时，优先使用此模式：
+
+```bash
+python pc/video_to_efc.py clip.mp4 clip_palette.efc --via-gif
+```
+
+### 3. 在 EFC 编码前平滑复杂素材
+
+`--h264-crf` 会先使用 x264 的动画调优执行一次 H.264 往返转换，再进入常规的调色板和 EFC 编码阶段。这是有损预处理：它会自动平滑细小噪点和纹理，因此在较保守的设置下通常可以保持良好视觉质量，并显著减小最终 EFC 文件。
+
+建议从 CRF 18 开始：
+
+```bash
+python pc/video_to_efc.py noisy.gif noisy.efc --h264-crf 18 --cmp /tmp/noisy_cmp.png
+```
+
+如果 EFC 仍然过大，可以尝试 CRF 30，并检查对比图或预览。CRF 越高，EFC 通常越小，但也会移除更多纹理，并可能产生色阶轮廓或时间跳动：
+
+```bash
+python pc/video_to_efc.py noisy.gif noisy_small.efc --h264-crf 30 --cmp /tmp/noisy_small_cmp.png
+```
+
+此流程要求 FFmpeg 编译时启用 `libx264` 编码器。如果该版本不是 `PATH` 中的默认 `ffmpeg`，请设置 `EFC_FFMPEG`；仅在需要使用非默认 `ffprobe` 时才设置 `EFC_FFPROBE`：
+
+```bash
+EFC_FFMPEG=$HOME/ffmpeg/ffmpeg/ffmpeg \
+    python pc/video_to_efc.py noisy.gif noisy.efc --h264-crf 18
+```
+
+转换器默认会自动对有损输入去噪。如果保留细微纹理比进一步减小文件更重要，请添加 `--denoise off`。质量指标和 `--cmp` 仍然会把解码后的 EFC 与原始输入比较，而不是与 H.264 中间文件比较。
+
+### 4. 满足文件大小目标
+
+`--size` 接受字节数或带 `K`/`M` 后缀的大小：
+
+```bash
+python pc/video_to_efc.py clip.mp4 clip_300k.efc --size 300K
+```
+
+搜索会保留每一帧。它先降低调色板颜色数。如果文件仍然过大，就逐步增加 4×4 时间死区。最后才依次尝试内部 4/5、4/6、1/2 和 1/4 缩放。它会保留满足目标大小的最高质量候选项，并在无法达到目标时明确报告。
+
+对于复杂素材，可以把保守的 H.264 初始设置与文件大小搜索组合使用：
+
+```bash
+python pc/video_to_efc.py noisy.gif noisy_300k.efc --h264-crf 18 --size 300K
+```
+`.efc` 文件不保存帧率。播放间隔为 `duration_ms / frame_count`。
+
+---
+
+## 在 PC 上播放 EFC
+
+`pc/efc_play.py` 在窗口中打开 `.efc` 文件。Tk 可用时优先使用 Tk，否则回退到 `ffplay`。文件不保存帧率，因此未指定时播放器使用 15 fps。
+
+```bash
+python3 pc/efc_play.py clip.efc
+python3 pc/efc_play.py clip.efc --fps 15
+python3 pc/efc_play.py clip.efc --delay-ms 67
+python3 pc/efc_play.py clip.efc --dump /tmp/frame0.png
+```
+
+| 按键 | 作用 |
+| --- | --- |
+| 空格 | 暂停或继续 |
+| 左 / 右 | 步进一帧，并暂停 |
+| 上 / 下 | 加快或减慢 |
+| C | 切换背景：棋盘格、黑、白 |
+| Q 或 Esc | 退出 |
+
+色键画在背景之上。`--dump` 写出第 0 帧后退出。
 ---
 
 ## LVGL 示例
