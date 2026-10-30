@@ -272,6 +272,124 @@ static void test_rate_convert_reset(uint32_t srate_in, uint32_t srate_out)
     free(output_buffer_reset);
 }
 
+/*
+ * Old RESAMPLE wrap scaled in_num/out_num with the current frame length n.
+ * Any pair whose wrap period is short enough that 192 vs 384 (or 200 vs 400)
+ * land in different doubling buckets overflowed get_max on the small frame
+ * after a large one. These pairs are 3/2, 2/3, 4/3, 3/4, 8/3, 16/3.
+ * Chunked PCM must match one-shot of the same sweep.
+ */
+static const uint32_t k_wrap_overflow_pairs[][2] = {
+    {8000, 12000},  {12000, 8000},
+    {12000, 16000}, {16000, 12000},
+    {12000, 32000}, {12000, 64000},
+    {16000, 24000}, {24000, 16000},
+    {24000, 32000}, {32000, 24000},
+    {24000, 64000},
+    {32000, 48000}, {48000, 32000},
+    {48000, 64000}, {64000, 48000},
+    {64000, 96000}, {96000, 64000},
+};
+
+static void test_rate_cvt_variable_frame_seq(uint32_t src_rate, uint32_t dest_rate,
+                                             const uint32_t *in_sizes, int frames)
+{
+    uint32_t total_in = 0;
+    uint32_t max_in = 0;
+    for (int i = 0; i < frames; i++) {
+        total_in += in_sizes[i];
+        if (in_sizes[i] > max_in) {
+            max_in = in_sizes[i];
+        }
+    }
+    uint32_t duration_ms = (total_in * 1000 + src_rate - 1) / src_rate;
+    if (duration_ms < 1) {
+        duration_ms = 1;
+    }
+    while ((duration_ms * src_rate / 1000) < total_in) {
+        duration_ms++;
+    }
+    uint32_t gen_n = duration_ms * src_rate / 1000;
+    int16_t *in_all = calloc(gen_n, sizeof(int16_t));
+    TEST_ASSERT_NOT_NULL(in_all);
+    ae_test_generate_sweep_signal(in_all, (int)duration_ms, (int)src_rate, -6.0f, 16, 1);
+
+    esp_ae_rate_cvt_cfg_t config = {
+        .src_rate = src_rate,
+        .dest_rate = dest_rate,
+        .channel = 1,
+        .bits_per_sample = 16,
+        .complexity = 2,
+        .perf_type = ESP_AE_RATE_CVT_PERF_TYPE_SPEED};
+    void *hd_ref = NULL;
+    void *hd_var = NULL;
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_open(&config, &hd_ref));
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_open(&config, &hd_var));
+    TEST_ASSERT_NOT_NULL(hd_ref);
+    TEST_ASSERT_NOT_NULL(hd_var);
+
+    uint32_t ref_cap = 0;
+    uint32_t frame_cap = 0;
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_get_max_out_sample_num(hd_ref, total_in, &ref_cap));
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_get_max_out_sample_num(hd_var, max_in, &frame_cap));
+    uint32_t var_cap = 0;
+    for (int i = 0; i < frames; i++) {
+        uint32_t cap = 0;
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_get_max_out_sample_num(hd_var, in_sizes[i], &cap));
+        var_cap += cap;
+    }
+    int16_t *out_ref = calloc(ref_cap, sizeof(int16_t));
+    int16_t *out_var = calloc(var_cap, sizeof(int16_t));
+    int16_t *out_frame = calloc(frame_cap, sizeof(int16_t));
+    TEST_ASSERT_NOT_NULL(out_ref);
+    TEST_ASSERT_NOT_NULL(out_var);
+    TEST_ASSERT_NOT_NULL(out_frame);
+
+    uint32_t ref_n = ref_cap;
+    TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_process(hd_ref, in_all, total_in, out_ref, &ref_n));
+
+    uint32_t var_n = 0;
+    uint32_t in_off = 0;
+    for (int i = 0; i < frames; i++) {
+        uint32_t n = in_sizes[i];
+        uint32_t cap = 0;
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_get_max_out_sample_num(hd_var, n, &cap));
+        uint32_t out_n = cap;
+        TEST_ASSERT_EQUAL(ESP_AE_ERR_OK, esp_ae_rate_cvt_process(hd_var, in_all + in_off, n, out_frame, &out_n));
+        ESP_LOGI(TAG, "%lu -> %lu n=%lu get_max=%lu out=%lu",
+                 (unsigned long)src_rate, (unsigned long)dest_rate,
+                 (unsigned long)n, (unsigned long)cap, (unsigned long)out_n);
+        TEST_ASSERT_TRUE(out_n <= cap);
+        TEST_ASSERT_TRUE(var_n + out_n <= var_cap);
+        memcpy(out_var + var_n, out_frame, out_n * sizeof(int16_t));
+        var_n += out_n;
+        in_off += n;
+    }
+    TEST_ASSERT_EQUAL(total_in, in_off);
+    TEST_ASSERT_EQUAL(ref_n, var_n);
+    TEST_ASSERT_EQUAL_INT16_ARRAY(out_ref, out_var, ref_n);
+
+    free(in_all);
+    free(out_ref);
+    free(out_var);
+    free(out_frame);
+    esp_ae_rate_cvt_close(hd_ref);
+    esp_ae_rate_cvt_close(hd_var);
+}
+
+TEST_CASE("Rate Convert variable frame wrap test", "AUDIO_EFFECT")
+{
+    const uint32_t seq_192_384[] = {192, 384, 192, 384, 192, 384, 192, 384};
+    const uint32_t seq_200_400[] = {200, 400, 200, 400, 200, 400, 200, 400};
+    for (int i = 0; i < AE_TEST_PARAM_NUM(k_wrap_overflow_pairs); i++) {
+        uint32_t src = k_wrap_overflow_pairs[i][0];
+        uint32_t dest = k_wrap_overflow_pairs[i][1];
+        ESP_LOGI(TAG, "wrap pair %lu -> %lu", (unsigned long)src, (unsigned long)dest);
+        test_rate_cvt_variable_frame_seq(src, dest, seq_192_384, 8);
+        test_rate_cvt_variable_frame_seq(src, dest, seq_200_400, 8);
+    }
+}
+
 TEST_CASE("Rate Convert branch test", "AUDIO_EFFECT")
 {
     esp_ae_rate_cvt_cfg_t config;

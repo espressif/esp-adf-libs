@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.4
+
+### Bug Fixes
+
+- Fixed `rate_cvt` wrap overflow that caused noise when processing variable frame sizes
+
 ## v1.4.3
 
 ### Features
