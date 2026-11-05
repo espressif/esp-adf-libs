@@ -106,6 +106,9 @@ typedef struct {
                                                    To finetune it, user can do speed test firstly (take `README.md` for reference) */
     bool                 no_key_frame_verify; /*!< Whether disable internal logic to verify video packet is key frame or not
                                                    Internal parse logic is used to correct the `key_frame` flag when not set by user */
+    bool                 no_packet_overwrite; /*!< When set, muxer copies packet data before processing.
+                                                   Some codecs (e.g. H264) convert start codes to NAL length in place.
+                                                   Use this when input packet buffers are read-only or shared. */
 } esp_muxer_config_t;
 
 /**
@@ -292,12 +295,16 @@ esp_muxer_err_t esp_muxer_add_audio_stream(esp_muxer_handle_t muxer, esp_muxer_a
 /**
  * @brief Add video packet data to muxer
  *
+ * @notes  When process H264 video packet, it will replace start code to NAL length in place
+ *         If input packet buffer is read-only or shared, please set `esp_muxer_config_t.no_packet_overwrite` to `true`
+ *
  * @param         muxer: Muxer handle
  * @param         stream_index: Stream index to distinguish which video stream
  * @param         packet: Video packet to be muxed
  * @return
  *      - ESP_MUXER_ERR_OK: Success to add video packet
  *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
+ *      - ESP_MUXER_ERR_NO_MEM: Memory not enough
  *      - Others: Fail to add video packet
  */
 esp_muxer_err_t esp_muxer_add_video_packet(esp_muxer_handle_t muxer, int stream_index,
@@ -312,6 +319,7 @@ esp_muxer_err_t esp_muxer_add_video_packet(esp_muxer_handle_t muxer, int stream_
  * @return
  *      - ESP_MUXER_ERR_OK: Success to add audio packet
  *      - ESP_MUXER_ERR_INVALID_ARG: Invalid input arguments
+ *      - ESP_MUXER_ERR_NO_MEM: Memory not enough
  *      - Others: Fail to add audio packet
  */
 esp_muxer_err_t esp_muxer_add_audio_packet(esp_muxer_handle_t muxer, int stream_index,

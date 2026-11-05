@@ -30,6 +30,7 @@
 #define DEFAULT_CHANNEL         (2)
 #define FOURCC_TO_CHARS(cc)     ((char *)&cc)[0], ((char *)&cc)[1], ((char *)&cc)[2], ((char *)&cc)[3]
 #define FILE_SLICE_PATTERN      "/sdcard/slice_%d.%s"
+#define MP4_MEM_SIZE            (8 * 1024)
 
 #define ASSIGN_BASIC_CFG(cfg)  {                   \
     cfg->sample_rate     = info->sample_rate;      \
@@ -488,6 +489,138 @@ TEST_CASE("Muxer to file while streaming", MUXER_MODULE_NAME)
     } else {
         ESP_LOGW(TAG, "Skip test of muxer to file while streaming");
     }
+}
+
+static const uint8_t h264_sim_pkt[] = {
+    0x00, 0x00, 0x00, 0x01, 0x65, 0x11, 0x22, 0x33,
+    0x00, 0x00, 0x00, 0x01, 0x41, 0x44, 0x55, 0x66,
+};
+static const uint8_t h264_sim_expect[] = {
+    0x00, 0x00, 0x00, 0x04, 0x65, 0x11, 0x22, 0x33,
+    0x00, 0x00, 0x00, 0x04, 0x41, 0x44, 0x55, 0x66,
+};
+static const uint8_t h264_sps_pps[] = {
+    0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x00, 0x0a, 0xf8, 0x41, 0xa2,
+    0x00, 0x00, 0x00, 0x01, 0x68, 0xce, 0x38, 0x80,
+};
+
+static uint8_t s_mp4_mem[MP4_MEM_SIZE];
+static int     s_mp4_pos;
+
+static int mp4_mem_path(char *path, int len, int slice_idx)
+{
+    snprintf(path, len, "sim_%d.mp4", slice_idx);
+    return 0;
+}
+
+static void *mp4_mem_open(char *path)
+{
+    s_mp4_pos = 0;
+    return s_mp4_mem;
+}
+
+static int mp4_mem_write(void *writer, void *buffer, int len)
+{
+    if (s_mp4_pos + len > MP4_MEM_SIZE) {
+        return -1;
+    }
+    memcpy(s_mp4_mem + s_mp4_pos, buffer, len);
+    s_mp4_pos += len;
+    return len;
+}
+
+static int mp4_mem_seek(void *writer, uint64_t pos)
+{
+    if (pos > MP4_MEM_SIZE) {
+        return -1;
+    }
+    s_mp4_pos = (int)pos;
+    return 0;
+}
+
+static int mp4_mem_close(void *writer)
+{
+    return 0;
+}
+
+static int mp4_mux_h264_pkt(bool no_overwrite, void *data, int len)
+{
+    mp4_muxer_config_t cfg = {
+        .base_config = {
+            .muxer_type = ESP_MUXER_TYPE_MP4,
+            .slice_duration = 200,
+            .url_pattern = mp4_mem_path,
+            .no_key_frame_verify = true,
+            .no_packet_overwrite = no_overwrite,
+        },
+    };
+    esp_muxer_file_writer_t writer = {
+        .on_open = mp4_mem_open,
+        .on_write = mp4_mem_write,
+        .on_seek = mp4_mem_seek,
+        .on_close = mp4_mem_close,
+    };
+
+    esp_muxer_register_default();
+
+    esp_muxer_handle_t muxer = esp_muxer_open(&cfg.base_config, sizeof(cfg));
+    int ret = -1;
+    do {
+        if (muxer == NULL) {
+            ESP_LOGE(TAG, "Failed to open muxer");
+            break;
+        }
+        ret = esp_muxer_set_file_writer(muxer, &writer);
+        if (ret != ESP_MUXER_ERR_OK) {
+            ESP_LOGE(TAG, "Failed to set file writer");
+            break;
+        }
+        int stream_idx = 0;
+        esp_muxer_video_stream_info_t video = {
+            .codec = ESP_MUXER_VDEC_H264,
+            .width = 16,
+            .height = 16,
+            .fps = 25,
+            .min_packet_duration = 10,
+            .codec_spec_info = (void *) h264_sps_pps,
+            .spec_info_len = sizeof(h264_sps_pps),
+        };
+        ret = esp_muxer_add_video_stream(muxer, &video, &stream_idx);
+        if (ret != ESP_MUXER_ERR_OK) {
+            ESP_LOGE(TAG, "Failed to add video stream");
+            break;
+        }
+        esp_muxer_video_packet_t packet = {
+            .data = data,
+            .len = len,
+            .key_frame = true,
+        };
+        for (int i = 0; i < 10; i++) {
+            packet.pts = i * 10;
+            ret = esp_muxer_add_video_packet(muxer, stream_idx, &packet);
+            if (ret != ESP_MUXER_ERR_OK) {
+                ESP_LOGE(TAG, "Failed to add video packet");
+                break;
+            }
+        }
+    } while (0);
+    if (muxer) {
+        int close_ret = esp_muxer_close(muxer);
+        if (ret == ESP_MUXER_ERR_OK) {
+            ret = close_ret;
+        }
+    }
+    esp_muxer_unregister_default();
+    return ret;
+}
+
+TEST_CASE("MP4 H264 no packet overwrite", MUXER_MODULE_NAME)
+{
+    uint8_t pkt[sizeof(h264_sim_pkt)];
+    memcpy(pkt, h264_sim_pkt, sizeof(pkt));
+    TEST_ESP_OK(mp4_mux_h264_pkt(false, pkt, sizeof(pkt)));
+    TEST_ASSERT_EQUAL_MEMORY(h264_sim_expect, pkt, sizeof(pkt));
+    TEST_ESP_OK(mp4_mux_h264_pkt(true, (void *)h264_sim_pkt, sizeof(h264_sim_pkt)));
 }
 
 #if CONFIG_IDF_TARGET_ESP32S3 && !defined(CONFIG_HEAP_TRACING_OFF)
