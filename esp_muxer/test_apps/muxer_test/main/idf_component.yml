@@ -5,4 +5,4 @@ dependencies:
     path: ../../../../esp_audio_codec
   esp_muxer:
     path: ../../../../esp_muxer
-  espressif/esp_board_manager: '~0.5'
+  espressif/esp_board_manager: '~0.7'

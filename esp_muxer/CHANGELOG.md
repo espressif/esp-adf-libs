@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.4
+
+### Features
+
+- Added `no_packet_overwrite` to avoid overwriting input packet data, especially for H264
+  - The muxer copies the input packet into a temporary buffer before processing
+  - Enable it only when the packet buffer is read-only or shared by multiple users
+
 ## v1.2.3
 
 ### Features
