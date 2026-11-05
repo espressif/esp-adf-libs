@@ -43,6 +43,8 @@ static bool load_blob(lv_efc_t *efc, const uint8_t *data, size_t len);
 static bool decode_frame(lv_efc_t *efc);
 static void release_clip(lv_efc_t *efc);
 static void note_fps(lv_efc_t *efc);
+static void fill_alpha(const uint16_t *color, uint8_t *alpha, size_t pixels,
+                       uint16_t color_key);
 #if CONFIG_ESP_EFC_PERF_LOG
 static void reset_perf(lv_efc_t *efc);
 static void note_perf(lv_efc_t *efc, int64_t decode_us, int64_t present_us, int64_t publish_us);
@@ -304,6 +306,7 @@ static void lv_efc_constructor(const lv_obj_class_t *class_p, lv_obj_t *obj)
     efc->decode_stride = 0;
     efc->view = NULL;
     efc->x_idx = NULL;
+    efc->view_software_map = false;
 #if CONFIG_SOC_PPA_SUPPORTED
     efc->ppa_srm = NULL;
 #endif
@@ -332,6 +335,7 @@ static void release_clip(lv_efc_t *efc)
     efc->view_cap = 0;
     efc->view_w = 0;
     efc->view_h = 0;
+    efc->view_software_map = false;
     free(efc->x_idx);
     efc->x_idx = NULL;
     efc->x_idx_dst_w = 0;
@@ -480,6 +484,7 @@ static bool load_blob(lv_efc_t *efc, const uint8_t *data, size_t len)
         efc->dec = NULL;
         return false;
     }
+    memset(efc->frame, 0, alloc_bytes);
     /* Frame zero discovers the optional color key. Alpha is generated only at
      * the final display resolution by present(), avoiding a redundant full-size
      * alpha pass when the image is downscaled. */
@@ -495,6 +500,10 @@ static bool load_blob(lv_efc_t *efc, const uint8_t *data, size_t len)
     efc->changed_y_start = info.changed_y_start;
     efc->changed_y_end = info.changed_y_end;
     efc->frame_bytes = efc->use_alpha ? alloc_bytes : color_bytes;
+    if (efc->use_alpha) {
+        fill_alpha((const uint16_t *)efc->frame, efc->frame + color_bytes,
+                   (size_t)efc->width * efc->height, efc->color_key);
+    }
     efc->decode_pixels = (const uint16_t *)efc->frame;
     efc->decode_stride = efc->width;
 
@@ -692,23 +701,19 @@ void esp_efc_fill_alpha_simd(const uint16_t *color, uint8_t *alpha, int pixels, 
 
 static void fill_alpha(const uint16_t *color, uint8_t *alpha, size_t pixels, uint16_t color_key)
 {
+
 #if defined(ESP_EFC_USE_SIMD) && \
     (defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S3))
-    size_t head = (16u - ((uintptr_t)alpha & 15u)) & 15u;
-    if (head > pixels) {
-        head = pixels;
-    }
-    fill_alpha_scalar(color, alpha, head, color_key);
-    color += head;
-    alpha += head;
-    pixels -= head;
-
-    size_t bulk = pixels & ~(size_t)15u;
-    if (bulk) {
-        esp_efc_fill_alpha_simd(color, alpha, (int)bulk, color_key);
-        color += bulk;
-        alpha += bulk;
-        pixels -= bulk;
+    /* The SIMD routine requires aligned stores. Keep arbitrary dirty-row
+     * starts on the scalar path; full rows use the validated vector packer. */
+    if ((((uintptr_t)color | (uintptr_t)alpha) & 15u) == 0) {
+        size_t bulk = pixels & ~(size_t)15u;
+        if (bulk) {
+            esp_efc_fill_alpha_simd(color, alpha, (int)bulk, color_key);
+            color += bulk;
+            alpha += bulk;
+            pixels -= bulk;
+        }
     }
 #endif
     fill_alpha_scalar(color, alpha, pixels, color_key);
@@ -733,6 +738,7 @@ static bool ensure_view(lv_efc_t *efc, size_t bytes)
     if (!p) {
         return false;
     }
+    memset(p, 0, cap);
     efc->view = p;
     efc->view_cap = cap;
     return true;
@@ -828,6 +834,15 @@ static bool scale_into_view(lv_efc_t *efc, int dst_w, int dst_h, float scale)
     int dst_y_start = 0;
     int dst_y_end = dst_h;
     bool can_update_rect = efc->view_w == dst_w && efc->view_h == dst_h;
+    if (!can_update_rect) {
+        efc->view_software_map = false;
+    }
+    bool full_source_rect = efc->changed_x_start == 0 &&
+                            efc->changed_y_start == 0 &&
+                            efc->changed_x_end == efc->width &&
+                            efc->changed_y_end == efc->height;
+    bool switch_to_software_map =
+        can_update_rect && !full_source_rect && !efc->view_software_map;
     if (can_update_rect) {
         changed_dst_axis(efc->width, dst_w, efc->changed_x_start, efc->changed_x_end,
                          &dst_x_start, &dst_x_end);
@@ -837,11 +852,32 @@ static bool scale_into_view(lv_efc_t *efc, int dst_w, int dst_h, float scale)
             return true;
         }
     }
+    if (switch_to_software_map) {
+        /* The PPA and software nearest-neighbor phases differ at some source
+         * boundaries. Rebuild the complete view once before sparse software
+         * updates, otherwise a stale one-pixel color-key seam can remain. */
+        dst_x_start = 0;
+        dst_x_end = dst_w;
+        dst_y_start = 0;
+        dst_y_end = dst_h;
+        efc->changed_x_start = 0;
+        efc->changed_x_end = efc->width;
+        efc->changed_y_start = 0;
+        efc->changed_y_end = efc->height;
+    }
 #if CONFIG_SOC_PPA_SUPPORTED
-    bool hw = ppa_scale_rgb565(efc, dst_w, dst_h, scale, can_update_rect);
+    /* A cropped PPA scale starts a new transform at the dirty rectangle.
+     * Its fixed-point phase/rounding therefore differs from the original
+     * full-image transform and leaves one-pixel seams at moving PRED bounds.
+     * PPA remains valuable for a full frame; sparse updates use the exact
+     * global nearest-neighbor map and also avoid PPA setup/DMA overhead. */
+    bool hw = !efc->view_software_map &&
+              (!can_update_rect || full_source_rect) &&
+              ppa_scale_rgb565(efc, dst_w, dst_h, scale, false);
 #else
     bool hw = false;
     (void)scale;
+    (void)full_source_rect;
 #endif
     if (!hw && !ensure_x_idx(efc, dst_w)) {
         return false;
@@ -850,6 +886,9 @@ static bool scale_into_view(lv_efc_t *efc, int dst_w, int dst_h, float scale)
         nn_rgb565_rect(efc->decode_pixels, efc->decode_stride, efc->height,
                        (uint16_t *)efc->view, dst_w, dst_h, efc->x_idx,
                        dst_x_start, dst_x_end, dst_y_start, dst_y_end);
+        efc->view_software_map = true;
+    } else {
+        efc->view_software_map = false;
     }
     if (efc->use_alpha) {
         for (int y = dst_y_start; y < dst_y_end; y++) {

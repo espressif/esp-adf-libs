@@ -39,6 +39,9 @@ typedef struct esp_efc_dec *esp_efc_dec_handle_t;
 typedef struct {
     int       width;                /*!< Frame width in pixels */
     int       height;               /*!< Frame height in pixels */
+    int       coded_width;          /*!< Internally coded width; equals width when not scaled */
+    int       coded_height;         /*!< Internally coded height; equals height when not scaled */
+    bool      scaled;               /*!< Bilinear-scale the coded frame to width/height */
     int       frame_count;          /*!< Number of frames in the clip */
     int       tile_size;            /*!< Tile size in pixels */
     int       token_width;          /*!< Bytes per token: 1 (palette) or 2 (raw RGB565) */
