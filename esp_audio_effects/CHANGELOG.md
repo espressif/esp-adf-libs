@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.4.5
+
+### Bug Fixes
+
+- Fixed unaligned PIE loads in `sonic` and `rate_cvt` on `ESP32-P4` and `ESP32-S31` when `CFG.mis_ld` is set
+
 ## v1.4.4
 
 ### Bug Fixes
